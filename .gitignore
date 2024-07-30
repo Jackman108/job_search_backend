@@ -1,0 +1,22 @@
+# Зависимости
+/node_modules
+/chrome
+
+# Логи
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Файлы среды выполнения
+.env
+secrets.js
+legacy.js
+.dockerignore
+
+# Директории, созданные Puppeteer
+.puppeteer
+.cache
+
+# Директории, созданные операционной системой
+.DS_Store
+Thumbs.db

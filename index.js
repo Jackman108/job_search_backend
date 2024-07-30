@@ -1,0 +1,70 @@
+//index.js
+import puppeteer from 'puppeteer';
+import { browserConfig } from './config.js';
+import { authorize } from './src/authorize.js';
+import { searchForVacancy } from './src/searchForVacancy.js';
+import { navigateAndProcessVacancies } from './src/navigateAndProcessVacancies.js';
+import { SELECTORS, TIMEOUTS } from './constants.js';
+import { reset, stop, isStopped } from './utils/stopManager.js';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+
+export async function runPuppeteerScript({ email, password, position, message, vacancyUrl }) {
+    const browser = await puppeteer.launch(browserConfig);
+    const page = await browser.newPage();
+
+    let counters = {
+        successfullySubmittedCount: 0,
+        unsuccessfullySubmittedCount: 0
+    };
+
+    try {
+        await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1, });
+        await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
+
+        await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
+        await page.waitForSelector(SELECTORS.COOKIE_ACCEPT);
+        await page.click(SELECTORS.COOKIE_ACCEPT);
+        
+        if (isStopped()) {
+            stop();
+            reset();
+            console.log('The script is stopped before authorization begins.');
+            return;
+        }
+        await authorize(page, email, password);
+
+        if (isStopped()) {
+            stop();
+            reset();
+            console.log('The script is stopped after authorization.');
+            return;
+        }
+        await page.screenshot({ path: 'screenshot-authorize.png' });
+
+        await searchForVacancy(page, position);
+
+        if (isStopped()) {
+            stop();
+            reset();
+            console.log('The script is stopped after the job search.');
+            return;
+        }
+        await page.screenshot({ path: 'screenshot-search.png' });
+
+        await navigateAndProcessVacancies(page, counters, message, isStopped);
+
+        console.log(`Total number of forms successfully submitted: ${counters.successfullySubmittedCount}`);
+
+        await page.screenshot({ path: 'screenshot-navigate.png' });
+    } catch (err) {
+        console.error('Error during script execution:', err);
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
+        stop();
+        reset();
+    }
+}
