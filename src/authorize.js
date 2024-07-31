@@ -1,9 +1,7 @@
 import { SELECTORS, TIMEOUTS } from '../constants.js';
-//import { solveCaptcha } from '../utils/solveCaptcha.js';
 import { stop } from '../utils/stopManager.js';
 import { broadcast } from '../server/startWebSocketServer.js';
 
-// Функция для авторизации
 export async function authorize(page, email, password) {
     try {
         const loginHandle = await page.waitForSelector(
@@ -21,8 +19,6 @@ export async function authorize(page, email, password) {
         if (closeButtonHandle) {
             await page.click(SELECTORS.REGION_BUTTON);
             await page.click(SELECTORS.LOGIN);
-        } else {
-            console.log('CLOSE button not found');
         }
        
         await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
@@ -59,13 +55,12 @@ export async function authorize(page, email, password) {
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (submitHandle) {
             await page.click(SELECTORS.LOGIN_SUBMIT);
-            console.log('Clicked SUBMIT button');
             await page.screenshot({ path: 'screenshot-authorize1.png' });
         } else {
             console.error('SUBMIT button not found');
         }
 
-        const capchaHandle = await page.waitForSelector(
+        const captchaHandle = await page.waitForSelector(
             SELECTORS.CAPTCHA_IMAGE,
             { timeout: TIMEOUTS.SEARCH, visible: true}).catch(() => null);
 
@@ -75,17 +70,18 @@ export async function authorize(page, email, password) {
             
             switch (true) {
                 case !!errorHandle:
-                    broadcast('ERROR detected, restart');
+                    broadcast('ERROR detected restart');
                     await page.screenshot({ path: 'screenshot-ERROR.png' });
                     stop();
                     return;
-                case !!capchaHandle:
-                    broadcast('CAPTCHA detected, restart');
+                case !!captchaHandle:
+                    const captchaSrc = await page.evaluate(img => img.src, captchaHandle);
+                    broadcast(`CAPTCHA detected restart ${captchaSrc}`);
                     await page.screenshot({ path: 'screenshot-CAPTCHA.png' });
                     stop();
                     return;                
                 default:
-                    console.log('No CAPTCHA or ERROR detected, proceeding with login.');
+                    console.log('No CAPTCHA or ERROR detected');
             }
 
     } catch (error) {

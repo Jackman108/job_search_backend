@@ -18,7 +18,6 @@ export async function processVacancy(page, vacancyResponse, data, counters, mess
             const modalContent = await page.evaluate(titleModal => titleModal.textContent, relocationModalHandle);
             if (modalContent.includes('Вы откликаетесь на вакансию в другой стране')) {
                 await page.click(confirmButtonSelector);
-                console.log('“Respond anyway” button is pressed.');
             }
         }
 
@@ -32,7 +31,6 @@ export async function processVacancy(page, vacancyResponse, data, counters, mess
 
         if (coverLetterButtonHandle) {
             await coverLetterButtonHandle.click()
-            console.log('The “Cover letter” button is pressed');
         }
 
         const coverLetterInputHandle = await page.waitForSelector(
@@ -41,12 +39,10 @@ export async function processVacancy(page, vacancyResponse, data, counters, mess
 
         if (coverLetterInputHandle) {
             await page.type(coverLetterInputSelector, message);
-            console.log('Cover letter introduced');;
         } else {
             console.log('An error was detected in the cover letter');
             counters.unsuccessfullySubmittedCount++;
             await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
-            console.log('Previous page open');
         }
 
         const responseSubmitHandle = await page.waitForSelector(
@@ -55,7 +51,6 @@ export async function processVacancy(page, vacancyResponse, data, counters, mess
         );
         if (responseSubmitHandle) {
             await responseSubmitHandle.click();
-            console.log('Submitting a vacancy form');
         }
 
         await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
@@ -79,7 +74,6 @@ export async function processVacancy(page, vacancyResponse, data, counters, mess
             console.log('An error was detected in the response form');
             counters.unsuccessfullySubmittedCount++;
             await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
-            console.log('Previous page open');
 
             await saveVacancy(data);
             console.log(`The vacancy with ID ${data.id} is saved with flag N`);

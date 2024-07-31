@@ -36,7 +36,6 @@ export async function saveVacancy(vacancy) {
 
     try {
         await client.query(query, values);
-        console.log(`The vacancy with ID ${vacancy.id} has been successfully saved to the database.`);
         broadcast(`Vacancy with ID ${vacancy.id} has been successfully saved`);
     } catch (err) {
         console.error('Error when saving a vacancy:', err);
