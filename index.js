@@ -20,6 +20,7 @@ export async function runPuppeteerScript({ email, password, position, message, v
     };
 
     try {
+        reset();
         await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1, });
         await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
 
@@ -28,43 +29,33 @@ export async function runPuppeteerScript({ email, password, position, message, v
         await page.click(SELECTORS.COOKIE_ACCEPT);
         
         if (isStopped()) {
-            stop();
-            reset();
+            stop();            
             console.log('The script is stopped before authorization begins.');
             return;
         }
         await authorize(page, email, password);
-
+        await page.screenshot({ path: 'screenshot-authorize.png' });
         if (isStopped()) {
             stop();
-            reset();
             console.log('The script is stopped after authorization.');
             return;
         }
-        await page.screenshot({ path: 'screenshot-authorize.png' });
-
+        
         await searchForVacancy(page, position);
-
+        await page.screenshot({ path: 'screenshot-search.png' });
         if (isStopped()) {
-            stop();
-            reset();
+            stop();            
             console.log('The script is stopped after the job search.');
             return;
         }
-        await page.screenshot({ path: 'screenshot-search.png' });
 
         await navigateAndProcessVacancies(page, counters, message, isStopped);
-
+        await page.screenshot({ path: 'screenshot-navigate.png' });
         console.log(`Total number of forms successfully submitted: ${counters.successfullySubmittedCount}`);
 
-        await page.screenshot({ path: 'screenshot-navigate.png' });
     } catch (err) {
         console.error('Error during script execution:', err);
     } finally {
-        if (browser) {
-            await browser.close();
-        }
-        stop();
-        reset();
+        stop();        
     }
 }

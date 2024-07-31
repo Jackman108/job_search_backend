@@ -1,5 +1,6 @@
 import { SELECTORS, TIMEOUTS } from '../constants.js';
 //import { solveCaptcha } from '../utils/solveCaptcha.js';
+import { stop } from '../utils/stopManager.js';
 import { broadcast } from '../server/startWebSocketServer.js';
 
 // Функция для авторизации
@@ -10,7 +11,6 @@ export async function authorize(page, email, password) {
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (loginHandle) {
             await page.click(SELECTORS.LOGIN);
-            console.log('Clicked LOGIN button');
         } else {
             console.error('LOGIN button not found');
         }
@@ -20,9 +20,7 @@ export async function authorize(page, email, password) {
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (closeButtonHandle) {
             await page.click(SELECTORS.REGION_BUTTON);
-            console.log('Clicked CLOSE button');
             await page.click(SELECTORS.LOGIN);
-            console.log('Clicked LOGIN button');
         } else {
             console.log('CLOSE button not found');
         }
@@ -34,7 +32,6 @@ export async function authorize(page, email, password) {
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (passwordToggleHandle) {
             await page.click(SELECTORS.PASSWORD_BUTTON);
-            console.log('Clicked PASSWORD button');
         } else {
             console.error('PASSWORD button not found');
         }
@@ -44,7 +41,6 @@ export async function authorize(page, email, password) {
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (emailHandle) {
             await page.type(SELECTORS.EMAIL_INPUT, email);
-            console.log('Clicked INPUT EMAIL');
         } else {
             console.error('INPUT EMAIL not found');
         }
@@ -54,7 +50,6 @@ export async function authorize(page, email, password) {
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (passwordHandle) {
             await page.type(SELECTORS.PASSWORD_INPUT, password);
-            console.log('Clicked INPUT PASSWORD');
         } else {
             console.error('INPUT PASSWORD not found');
         }
@@ -65,6 +60,7 @@ export async function authorize(page, email, password) {
         if (submitHandle) {
             await page.click(SELECTORS.LOGIN_SUBMIT);
             console.log('Clicked SUBMIT button');
+            await page.screenshot({ path: 'screenshot-authorize1.png' });
         } else {
             console.error('SUBMIT button not found');
         }
@@ -72,16 +68,25 @@ export async function authorize(page, email, password) {
         const capchaHandle = await page.waitForSelector(
             SELECTORS.CAPTCHA_IMAGE,
             { timeout: TIMEOUTS.SEARCH, visible: true}).catch(() => null);
-        if (capchaHandle) {
-            console.log('CAPTCHA detected, solving CAPTCHA...');
-            broadcast(`CAPTCHA detected restart`);
-            //await solveCaptcha(page, submitHandle);
-            await page.click(SELECTORS.LOGIN_SUBMIT);
-            console.log('Clicked SUBMIT button after solving CAPTCHA');
-            await page.screenshot({ path: 'screenshot-CAPTCHA.png' });
-        } else {
-            console.log('No CAPTCHA found, proceeding with login.');
-        }
+
+        const errorHandle = await page.waitForSelector(
+            SELECTORS.LOGIN_ERROR,
+            { timeout: TIMEOUTS.SEARCH, visible: true}).catch(() => null);
+            
+            switch (true) {
+                case !!errorHandle:
+                    broadcast('ERROR detected, restart');
+                    await page.screenshot({ path: 'screenshot-ERROR.png' });
+                    stop();
+                    return;
+                case !!capchaHandle:
+                    broadcast('CAPTCHA detected, restart');
+                    await page.screenshot({ path: 'screenshot-CAPTCHA.png' });
+                    stop();
+                    return;                
+                default:
+                    console.log('No CAPTCHA or ERROR detected, proceeding with login.');
+            }
 
     } catch (error) {
         console.error('Error during authorization:', error);
