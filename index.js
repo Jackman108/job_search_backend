@@ -7,6 +7,7 @@ import { navigateAndProcessVacancies } from './src/navigateAndProcessVacancies.j
 import { SELECTORS, TIMEOUTS } from './constants.js';
 import { reset, stop, isStopped } from './utils/stopManager.js';
 import * as dotenv from 'dotenv';
+import { broadcast } from './server/startWebSocketServer.js';
 dotenv.config();
 
 
@@ -25,14 +26,19 @@ export async function runPuppeteerScript({ email, password, position, message, v
         await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
 
         await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
-        await page.waitForSelector(SELECTORS.COOKIE_ACCEPT);
-        await page.click(SELECTORS.COOKIE_ACCEPT);
-        
-        if (isStopped()) {
-            stop();            
-            console.log('The script is stopped before authorization begins.');
+
+        const coockeHandle = await page.waitForSelector(
+            SELECTORS.COOKIE_ACCEPT,
+            { timeout: TIMEOUTS.SEARCH, visible: true }).catch(() => null);
+        if (!coockeHandle || isStopped()) {
+            broadcast('hh closed');
+            await page.screenshot({ path: 'screenshot-closed.png' });
+            stop();
             return;
+        } else {
+            await page.click(SELECTORS.COOKIE_ACCEPT);
         }
+
         await authorize(page, email, password);
         await page.screenshot({ path: 'screenshot-authorize.png' });
         if (isStopped()) {
@@ -40,11 +46,11 @@ export async function runPuppeteerScript({ email, password, position, message, v
             console.log('The script is stopped after authorization.');
             return;
         }
-        
+
         await searchForVacancy(page, position);
         await page.screenshot({ path: 'screenshot-search.png' });
         if (isStopped()) {
-            stop();            
+            stop();
             console.log('The script is stopped after the job search.');
             return;
         }
@@ -56,6 +62,6 @@ export async function runPuppeteerScript({ email, password, position, message, v
     } catch (err) {
         console.error('Error during script execution:', err);
     } finally {
-        stop();        
+        stop();
     }
 }
