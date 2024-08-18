@@ -1,5 +1,6 @@
 -- init.sql
 SELECT 'CREATE DATABASE db_vacancy' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'db_vacancy');
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 \c db_vacancy;
 

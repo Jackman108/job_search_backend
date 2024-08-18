@@ -6,7 +6,7 @@ services:
     container_name: postgres_container
     build: postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-root_auth}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: ${POSTGRES_DB:-db_vacancy}
       PGDATA: ${PGDATA:-/data/postgres}
