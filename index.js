@@ -1,6 +1,6 @@
 //index.js
 import puppeteer from 'puppeteer';
-import { browserConfig } from './config.js';
+import { browserConfig } from './config/brauserConfig.js';
 import { authorize } from './src/authorize.js';
 import { searchForVacancy } from './src/searchForVacancy.js';
 import { navigateAndProcessVacancies } from './src/navigateAndProcessVacancies.js';

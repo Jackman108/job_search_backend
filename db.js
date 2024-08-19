@@ -1,17 +1,5 @@
-import pkg from 'pg';
-import dotenv from 'dotenv';
+import client from "./config/dbConfig.js";
 import { broadcast } from './server/startWebSocketServer.js';
-
-const { Client } = pkg;
-dotenv.config();
-
-const client = new Client({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    user: process.env.POSTGRES_USER || 'postgres',
-    password: process.env.POSTGRES_PASSWORD || 'password',
-    database: process.env.POSTGRES_DB || 'db_vacancy'
-});
 
 client.connect()
     .then(() => console.log('Connected to PostgreSQL'))
@@ -19,10 +7,10 @@ client.connect()
 
 export async function saveVacancy(vacancy) {
     const query = `
-        INSERT INTO vacancies (id, title_vacancy, url_vacancy, title_company, url_company, vacancy_status, response_date)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO vacancies (id, title_vacancy, url_vacancy, title_company, url_company, vacancy_status, response_date, profileId, userId)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT (id) DO UPDATE 
-        SET title_vacancy = $2, url_vacancy = $3, title_company = $4, url_company = $5, vacancy_status = $6, response_date = $7;
+        SET title_vacancy = $2, url_vacancy = $3, title_company = $4, url_company = $5, vacancy_status = $6, response_date = $7, profileId = $8, userId = $9;
     `;
     const values = [
         vacancy.id,
@@ -31,7 +19,9 @@ export async function saveVacancy(vacancy) {
         vacancy.companyTitleText,
         vacancy.companyLinkText,
         vacancy.vacancyStatus,
-        vacancy.responseDate
+        vacancy.responseDate,
+        vacancy.profileId,
+        vacancy.userId
     ];
 
     try {
@@ -48,6 +38,39 @@ export async function getList() {
         return result.rows;
     } catch (err) {
         console.error('Data retrieval error:', err);
+        throw err;
+    }
+}
+
+export async function getProfileById(id) {
+    const query = 'SELECT * FROM profiles WHERE id = $1';
+    try {
+        const result = await client.query(query, [id]);
+        return result.rows[0] || null;
+    } catch (err) {
+        console.error('Error when retrieving profile:', err);
+        throw err;
+    }
+}
+
+export async function getVacanciesByUserId(userId) {
+    const query = 'SELECT * FROM vacancies WHERE userId = $1';
+    try {
+        const result = await client.query(query, [userId]);
+        return result.rows;
+    } catch (err) {
+        console.error('Error when retrieving vacancies by userId:', err);
+        throw err;
+    }
+}
+
+export async function getVacanciesByProfileId(profileId) {
+    const query = 'SELECT * FROM vacancies WHERE profileId = $1';
+    try {
+        const result = await client.query(query, [profileId]);
+        return result.rows;
+    } catch (err) {
+        console.error('Error when retrieving vacancies by profileId:', err);
         throw err;
     }
 }
