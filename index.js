@@ -11,7 +11,7 @@ import { broadcast } from './server/startWebSocketServer.js';
 dotenv.config();
 
 
-export async function runPuppeteerScript({ email, password, position, message, vacancyUrl }) {
+export async function runPuppeteerScript({ userId, email, password, position, message, vacancyUrl }) {
     const browser = await puppeteer.launch(browserConfig);
     const page = await browser.newPage();
 
@@ -55,7 +55,7 @@ export async function runPuppeteerScript({ email, password, position, message, v
             return;
         }
 
-        await navigateAndProcessVacancies(page, counters, message, isStopped);
+        await navigateAndProcessVacancies(userId, page, counters, message, isStopped);
         await page.screenshot({ path: 'screenshot-navigate.png' });
         console.log(`Total number of forms successfully submitted: ${counters.successfullySubmittedCount}`);
 

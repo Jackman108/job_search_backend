@@ -3,15 +3,15 @@ import { processVacancy } from './processVacancy.js';
 import { getVacancies } from './getVacancies.js';
 import { personalData } from '../secrets.js';
 import { SELECTORS, TIMEOUTS } from '../constants.js';
-import { getList } from '../db.js';
+import { getVacancies } from '../db.js';
 
-export async function navigateAndProcessVacancies(page, counters, message, isStopped) {
+export async function navigateAndProcessVacancies(userId, page, counters, message, isStopped) {
     let currentPage = 0;
     const { totalPages } = personalData;
 
     let existingVacanciesIds;
     try {
-        const existingVacancies = await getList();
+        const existingVacancies = await getVacancies(userId);
         existingVacanciesIds = new Set(existingVacancies.map(vacancy => vacancy.id));
     } catch (err) {
         return;

@@ -2,10 +2,11 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import { checkPort } from '../utils/checkPort.js';
-import { getProfileById, getVacanciesByProfileId, getVacanciesByUserId } from '../db.js';
+import { getUserProfile, getVacancies } from '../db.js';
 import { runPuppeteerScript } from '../index.js';
 import { stop } from '../utils/stopManager.js';
 import { personalData } from '../secrets.js';
+import { verifyToken } from '../utils/verifyToken.js';
 
 export const startHttpServer = async (port) => {
     try {
@@ -18,7 +19,8 @@ export const startHttpServer = async (port) => {
         app.post('/start', async (req, res) => {
             try {
 
-                const { email, password, position, message, vacancyUrl } = req.body;
+                const { userId, email, password, position, message, vacancyUrl } = req.body;
+                const userIdToUse = userId || personalData.userId;
                 const emailToUse = email || personalData.vacancyEmail;
                 const passwordToUse = password || personalData.vacancyPassword;
                 const positionToUse = position || personalData.vacancySearch;
@@ -26,6 +28,7 @@ export const startHttpServer = async (port) => {
                 const vacancyUrlToUse = vacancyUrl || personalData.vacanciesUrl;
 
                 await runPuppeteerScript({
+                    userId: userIdToUse,
                     email: emailToUse,
                     password: passwordToUse,
                     position: positionToUse,
@@ -53,11 +56,15 @@ export const startHttpServer = async (port) => {
             }
         });
 
-        app.get('/profiles/:id', async (req, res) => {
+        app.get('/profiles/:id', verifyToken, async (req, res) => {
+            const { email } = req.body;
+            if (!email) {
+                return res.status(400).json({ message: 'Не указан email.' });
+            }
             try {
-                const profile = await getProfileById(req.params.id);
-                if (!profile) {
-                    return res.status(404).json({ message: 'Профиль не найден' });
+                const userProfile = await getUserProfile(email);
+                if (!userProfile) {
+                    return res.status(404).json({ message: 'Профиль пользователя не найден' });
                 }
                 res.status(200).json(profile);
             } catch (error) {
@@ -65,23 +72,18 @@ export const startHttpServer = async (port) => {
                 res.status(500).json({ message: 'Ошибка получения профиля.' });
             }
         });
-        app.get('/vacancies/user/:userId', async (req, res) => {
+        app.post('/vacancies/user/:userId', verifyToken, async (req, res) => {
             try {
-                const vacancies = await getVacanciesByUserId(req.params.userId);
+                const userId = parseInt(req.params.userId, 10);
+                if (isNaN(userId)) {
+                    return res.status(400).json({ message: 'Неверный формат userId.' });
+                }
+                // Можно использовать req.userId для доступа к проверенному идентификатору
+                const vacancies = await getVacancies(userId);
                 res.status(200).json(vacancies);
             } catch (error) {
                 console.error('Ошибка получения вакансий по userId:', error);
                 res.status(500).json({ message: 'Ошибка получения вакансий по userId.' });
-            }
-        });
-
-        app.get('/vacancies/profile/:profileId', async (req, res) => {
-            try {
-                const vacancies = await getVacanciesByProfileId(req.params.profileId);
-                res.status(200).json(vacancies);
-            } catch (error) {
-                console.error('Ошибка получения вакансий по profileId:', error);
-                res.status(500).json({ message: 'Ошибка получения вакансий по profileId.' });
             }
         });
 
