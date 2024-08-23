@@ -5,46 +5,55 @@ client.connect()
     .then(() => console.log('Connected to PostgreSQL'))
     .catch(err => console.error('Connection error:', err.stack));
 
-
-export async function saveVacancy(vacancy) {
-    const tableName = `${vacancy.userId}_vacancies`;
+export const createVacancyTable = async (profileData) => {
+    const userId = profileData.userId.toString();
+    const tableName = `"${userId}_vacancy"`;
 
     const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS ${tableName} (
-            id BIGINT PRIMARY KEY,
-            title_vacancy VARCHAR(255),
-            url_vacancy TEXT,
-            title_company VARCHAR(255),
-            url_company TEXT,
-            vacancy_status VARCHAR(50),
-            response_date TIMESTAMP,
-            user_id INT,
-            FOREIGN KEY (profile_id) REFERENCES profiles(id)
-        );
-    `;
+            CREATE TABLE IF NOT EXISTS ${tableName} (
+                id BIGINT PRIMARY KEY,
+                title_vacancy VARCHAR(255),
+                url_vacancy TEXT,
+                title_company VARCHAR(255),
+                url_company TEXT,
+                vacancy_status VARCHAR(50),
+                response_date TIMESTAMP                
+            );
+        `;
+
+    try {
+        console.log(createTableQuery);
+        await client.query(createTableQuery);
+        console.log(`Table ${tableName} created or already exists.`);
+    } catch (err) {
+        console.error(`Error creating table ${tableName}:`, err);
+        throw err;
+    }
+};
+
+export async function saveVacancy(data, userId) {
+    const tableName = `"${userId}_vacancy"`;
 
     const insertOrUpdateQuery = `
-    INSERT INTO ${tableName} (id, title_vacancy, url_vacancy, title_company, url_company, vacancy_status, response_date, user_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    INSERT INTO ${tableName} (id, title_vacancy, url_vacancy, title_company, url_company, vacancy_status, response_date)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (id) DO UPDATE 
-    SET title_vacancy = $2, url_vacancy = $3, title_company = $4, url_company = $5, vacancy_status = $6, response_date = $7, user_id = $8;
-`;
+    SET title_vacancy = $2, url_vacancy = $3, title_company = $4, url_company = $5, vacancy_status = $6, response_date = $7;
+    `;
 
     const values = [
-        vacancy.id,
-        vacancy.vacancyTitleText,
-        vacancy.vacancyLinkText,
-        vacancy.companyTitleText,
-        vacancy.companyLinkText,
-        vacancy.vacancyStatus,
-        vacancy.responseDate,
-        vacancy.userId
+        data.id,
+        data.vacancyTitleText,
+        data.vacancyLinkText,
+        data.companyTitleText,
+        data.companyLinkText,
+        data.vacancyStatus,
+        data.responseDate,
     ];
 
     try {
-        await client.query(createTableQuery);
         await client.query(insertOrUpdateQuery, values);
-        broadcast(`Vacancy with ID ${vacancy.id} has been successfully saved`);
+        broadcast(`Vacancy has been successfully saved with ID ${data.id}`);
     } catch (err) {
         console.error('Error when saving a vacancy:', err);
     }
@@ -52,16 +61,26 @@ export async function saveVacancy(vacancy) {
 
 
 export async function getVacanciesUser(userId) {
-    const tableName = `${userId}_vacancies`;
-    const query = `SELECT * FROM ${tableName}`;
+    if (!userId) {
+        throw new Error('User ID is required');
+    }
+
+    const tableName = `"${userId}_vacancy"`;
+
     try {
+        const query = `SELECT * FROM ${tableName}`;
         const result = await client.query(query);
+        if (result.rows.length === 0) {
+            result.rows = [];
+        }
+
         return result.rows;
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}:`, err);
         throw err;
     }
 }
+
 
 
 export async function getUserProfile(userId) {

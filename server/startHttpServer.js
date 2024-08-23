@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import { checkPort } from '../utils/checkPort.js';
-import { getUserProfile, getVacanciesUser, createUserProfile, updateUserProfile } from '../db.js';
+import { getUserProfile, getVacanciesUser, createUserProfile, updateUserProfile, createVacancyTable } from '../db.js';
 import { runPuppeteerScript } from '../index.js';
 import { stop } from '../utils/stopManager.js';
 import { personalData } from '../secrets.js';
@@ -15,13 +15,13 @@ export const startHttpServer = async (port) => {
         app.use(cors({
             origin: 'http://localhost:3000',
             credentials: true
-        }));        app.use(bodyParser.json());
+        })); app.use(bodyParser.json());
 
         app.post('/start', async (req, res) => {
             try {
 
                 const { userId, email, password, position, message, vacancyUrl } = req.body;
-                const userIdToUse = userId || personalData.userId;
+                const userIdToUse = userId;
                 const emailToUse = email || personalData.vacancyEmail;
                 const passwordToUse = password || personalData.vacancyPassword;
                 const positionToUse = position || personalData.vacancySearch;
@@ -58,14 +58,15 @@ export const startHttpServer = async (port) => {
         });
 
 
-        app.post('/vacancies/user/:userId', async (req, res) => {
+        app.get('/vacancy/:userId', async (req, res) => {
             try {
-                const userId = parseInt(req.params.userId, 10);
-                if (isNaN(userId)) {
-                    return res.status(400).json({ message: 'Неверный формат userId.' });
-                }
+                const userId = req.params.userId;
                 const vacancies = await getVacanciesUser(userId);
-                res.status(200).json(vacancies);
+                if (vacancies) {
+                    res.status(200).json(vacancies);
+                } else {
+                    res.status(404).json({ message: 'Вакансии не найдены.' });
+                }
             } catch (error) {
                 console.error('Ошибка получения вакансий по userId:', error);
                 res.status(500).json({ message: 'Ошибка получения вакансий по userId.' });
@@ -93,6 +94,7 @@ export const startHttpServer = async (port) => {
             try {
                 const profileData = req.body;
                 await createUserProfile(profileData);
+                await createVacancyTable(profileData);
                 console.log(profileData);
                 res.status(201).json({ message: 'Профиль успешно создан.' });
             } catch (error) {

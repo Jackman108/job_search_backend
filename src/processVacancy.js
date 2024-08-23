@@ -2,9 +2,11 @@
 import { SELECTORS, TIMEOUTS } from '../constants.js';
 import { saveVacancy } from '../db.js';
 
-export async function processVacancy(page, vacancyResponse, data, counters, message) {
+export async function processVacancy(page, vacancyResponse, data, counters, message, userId) {
     try {
-        await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
+        await new Promise(r => setTimeout(r, SELECTORS.MODAL));
+        await page.screenshot({ path: 'screenshot-uncknoun.png' });
+
         await vacancyResponse.click();
 
         const relocationModalSelector = SELECTORS.RELOCATION_MODAL_TITLE;
@@ -75,13 +77,13 @@ export async function processVacancy(page, vacancyResponse, data, counters, mess
             counters.unsuccessfullySubmittedCount++;
             await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
 
-            await saveVacancy(data);
-            console.log(`The vacancy with ID ${data.id} is saved with flag N`);
+            await saveVacancy(data, userId);
+            console.log(`The vacancy with ID ${data.id} is saved with flag N for ${userId}`);
         } else {
             counters.successfullySubmittedCount++;
             data.vacancyStatus = true;
-            await saveVacancy(data);
-            console.log(`The vacancy with ID ${data.id} is saved with flag Y`);
+            await saveVacancy(data, userId);
+            console.log(`The vacancy with ID ${data.id} is saved with flag Y for ${userId}`);
         }
     } catch (error) {
         await page.screenshot({ path: 'screenshot-during.png' });

@@ -12,8 +12,10 @@ export async function navigateAndProcessVacancies(userId, page, counters, messag
     let existingVacanciesIds;
     try {
         const existingVacancies = await getVacanciesUser(userId);
+
         existingVacanciesIds = new Set(existingVacancies.map(vacancy => vacancy.id));
     } catch (err) {
+        console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
         return;
     }
 
@@ -29,6 +31,8 @@ export async function navigateAndProcessVacancies(userId, page, counters, messag
             console.log('Vacancies found', vacancies.length);
 
             if (vacancies.length === 0) {
+                console.log('vacancies.length', vacancies.length);
+
                 break;
             }
 
@@ -42,7 +46,7 @@ export async function navigateAndProcessVacancies(userId, page, counters, messag
                 await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
                 try {
                     existingVacanciesIds.add(data.id);
-                    await processVacancy(page, vacancyResponse, data, counters, message);
+                    await processVacancy(page, vacancyResponse, data, counters, message, userId);
                     vacancies = (await getVacancies(page)).filter(({ data }) => data.id && !existingVacanciesIds.has(data.id));
                 } catch (err) {
                     console.error(`Error processing vacancy with ID ${data.id}:`, err);
