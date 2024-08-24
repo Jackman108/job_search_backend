@@ -160,7 +160,6 @@ export async function updateUserProfile(userId, profileData) {
         values.push(profileData.avatar);
     }
 
-    // Добавляем дату обновления и ID пользователя
     updateFields.push(`updated_at = $${index++}`);
     values.push(new Date().toISOString());
     values.push(userId);

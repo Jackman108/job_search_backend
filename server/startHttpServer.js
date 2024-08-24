@@ -1,22 +1,35 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import fs from 'fs';
 import { checkPort } from '../utils/checkPort.js';
 import { getUserProfile, getVacanciesUser, createUserProfile, updateUserProfile, createVacancyTable } from '../db.js';
 import { runPuppeteerScript } from '../index.js';
 import { stop } from '../utils/stopManager.js';
 import { personalData } from '../secrets.js';
+import { handleAvatarUpload } from '../utils/avatarUpload.js';
+import { staticPath, uploadDir } from '../config/httpConfig.js';
+import { DOMAIN_URL } from '../config/serverConfig.js';
 
 export const startHttpServer = async (port) => {
     try {
         await checkPort(port);
 
         const app = express();
+        app.use(express.json({ limit: '10mb' }));
+        app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+        app.use(bodyParser.json({ limit: '10mb' }));
         app.use(cors({
-            origin: 'http://localhost:3000',
+            origin: DOMAIN_URL,
             credentials: true
-        })); app.use(bodyParser.json());
+        }));
+        app.use('/uploads', express.static(staticPath));
 
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir);
+        }
+        console.log('Upload Directory:', uploadDir);
+        console.log('Static Path:', staticPath);
         app.post('/start', async (req, res) => {
             try {
 
@@ -105,29 +118,26 @@ export const startHttpServer = async (port) => {
 
 
         app.put('/profile/:userId', async (req, res) => {
+
+            const userId = req.params.userId;
+            const { firstName, lastName, avatar } = req.body;
+
+            const updateFields = {};
+            if (firstName) updateFields.firstName = firstName;
+            if (lastName) updateFields.lastName = lastName;
+
             try {
-                const userId = req.params.userId;
-                const { firstName, lastName, avatar } = req.body;
-
-                const updateFields = {};
-                if (firstName) updateFields.firstName = firstName;
-                if (lastName) updateFields.lastName = lastName;
-                if (avatar) updateFields.avatar = avatar;
-
-                const updatedProfile = await updateUserProfile(userId, updateFields);
-                if (updatedProfile) {
-                    res.status(200).json({
-                        message: 'Профиль успешно обновлен.',
-                        profile: updatedProfile
-                    });
-                } else {
-                    res.status(404).json({ message: 'Профиль не найден.' });
+                if (avatar) {
+                    await handleAvatarUpload(avatar, userId, updateFields);
                 }
+                const updatedProfile = await updateUserProfile(userId, updateFields);
+                res.status(200).json({ message: 'Профиль успешно обновлен.', profile: updatedProfile });
             } catch (error) {
                 console.error('Ошибка обновления профиля пользователя:', error);
                 res.status(500).json({ message: 'Ошибка обновления профиля пользователя.' });
             }
         });
+
 
 
         const server = app.listen(port, () => {
