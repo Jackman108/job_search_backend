@@ -9,5 +9,6 @@ import { API_PORT, WS_PORT } from "./config/serverConfig.js";
         startWebSocketServer(httpServer, WS_PORT);
     } catch (error) {
         console.error(`Error starting servers: ${error.message}`);
+        process.exit(1);
     }
 })();

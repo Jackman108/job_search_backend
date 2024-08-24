@@ -185,3 +185,57 @@ export async function updateUserProfile(userId, profileData) {
         throw err;
     }
 }
+
+export async function deleteUser(userId, accessToken) {
+    if (!userId) {
+        throw new Error('User ID is required');
+    }
+
+    try {
+        await deleteUserFromUsers(userId, accessToken);
+
+        await deleteUserProfile(userId);
+
+        await deleteVacancyTable(userId);
+
+        broadcast(`User with ID ${userId} has been successfully deleted.`);
+    } catch (err) {
+        console.error('Error when deleting user:', err);
+        throw err;
+    }
+}
+
+async function deleteUserFromUsers(userId, accessToken) {
+
+    const query = `DELETE FROM users WHERE id = $1`;
+
+    try {
+        await client.query(query, [userId]);
+    } catch (err) {
+        console.error(`Error when deleting user from users table:`, err);
+        throw err;
+    }
+}
+
+async function deleteUserProfile(userId) {
+    const query = `DELETE FROM profiles WHERE user_id = $1`;
+
+    try {
+        await client.query(query, [userId]);
+    } catch (err) {
+        console.error(`Error when deleting user profile from profiles table:`, err);
+        throw err;
+    }
+}
+
+async function deleteVacancyTable(userId) {
+    const tableName = `"${userId}_vacancy"`;
+    const query = `DROP TABLE IF EXISTS ${tableName}`;
+
+    try {
+        await client.query(query);
+    } catch (err) {
+        console.error(`Error when dropping vacancy table ${tableName}:`, err);
+        throw err;
+    }
+}

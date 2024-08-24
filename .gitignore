@@ -20,3 +20,9 @@ legacy.js
 # Директории, созданные операционной системой
 .DS_Store
 Thumbs.db
+
+# Папка загрузок
+/uploads
+
+# Файлы скриншотов
+screenshot*.png

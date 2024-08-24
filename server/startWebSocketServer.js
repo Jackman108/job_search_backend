@@ -10,7 +10,6 @@ export const startWebSocketServer = async (httpServer, wsPort) => {
         wss = new WebSocketServer({ server: httpServer });
 
         wss.on('connection', (ws) => {
-            console.log('New WebSocket connection');
             clients.add(ws);
 
             ws.on('message', (message) => {
@@ -22,9 +21,8 @@ export const startWebSocketServer = async (httpServer, wsPort) => {
                 clients.delete(ws);
             });
 
-            ws.send('Welcome to the WebSocket server!');
+            ws.send('connection WebSocket server!');
         });   
-        console.log(`WebSocket server is running on port ${wsPort}`);
     } catch (err) {
         console.error(`Error starting WebSocket server: ${err.message}`);
         throw err;
