@@ -106,9 +106,23 @@ export const startHttpServer = async (port) => {
 
         app.put('/profile/:userId', async (req, res) => {
             try {
-                const profileData = { ...req.body, id: req.params.userId };
-                await updateUserProfile(profileData);
-                res.status(200).json({ message: 'Профиль успешно обновлен.' });
+                const userId = req.params.userId;
+                const { firstName, lastName, avatar } = req.body;
+
+                const updateFields = {};
+                if (firstName) updateFields.firstName = firstName;
+                if (lastName) updateFields.lastName = lastName;
+                if (avatar) updateFields.avatar = avatar;
+
+                const updatedProfile = await updateUserProfile(userId, updateFields);
+                if (updatedProfile) {
+                    res.status(200).json({
+                        message: 'Профиль успешно обновлен.',
+                        profile: updatedProfile
+                    });
+                } else {
+                    res.status(404).json({ message: 'Профиль не найден.' });
+                }
             } catch (error) {
                 console.error('Ошибка обновления профиля пользователя:', error);
                 res.status(500).json({ message: 'Ошибка обновления профиля пользователя.' });

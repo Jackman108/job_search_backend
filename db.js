@@ -82,7 +82,6 @@ export async function getVacanciesUser(userId) {
 }
 
 
-
 export async function getUserProfile(userId) {
     const query = `
         SELECT
@@ -115,7 +114,6 @@ export async function getUserProfile(userId) {
 }
 
 
-
 export async function createUserProfile(profileData) {
     const createProfileQuery = `
         INSERT INTO profiles (
@@ -124,7 +122,6 @@ export async function createUserProfile(profileData) {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id;
     `;
-
     const values = [
         profileData.firstName || 'Иван',
         profileData.lastName || 'Иванов',
@@ -145,54 +142,47 @@ export async function createUserProfile(profileData) {
     }
 }
 
+export async function updateUserProfile(userId, profileData) {
+    const updateFields = [];
+    const values = [];
+    let index = 1;
 
-export async function updateUserProfile(profileData) {
+    if (profileData.firstName) {
+        updateFields.push(`first_name = $${index++}`);
+        values.push(profileData.firstName);
+    }
+    if (profileData.lastName) {
+        updateFields.push(`last_name = $${index++}`);
+        values.push(profileData.lastName);
+    }
+    if (profileData.avatar) {
+        updateFields.push(`avatar = $${index++}`);
+        values.push(profileData.avatar);
+    }
+
+    // Добавляем дату обновления и ID пользователя
+    updateFields.push(`updated_at = $${index++}`);
+    values.push(new Date().toISOString());
+    values.push(userId);
+
     const updateProfileQuery = `
-        UPDATE profiles
-        SET email = $1,
-            updated_at = $2,
-            avatar = $3,
-            first_name = $4,
-            last_name = $5,
-            balance = $6,
-            spin_count = $7,
-            successful_responses_count = $8,
-            current_status = $9
-        WHERE id = $10
-        RETURNING user_id;
-    `;
-
-    const updateUserQuery = `
-        UPDATE users
-        SET profile_id = $1
-        WHERE id = $2;
-    `;
-
-    const values = [
-        profileData.email,
-        profileData.updatedAt || new Date().toISOString(),
-        profileData.avatar,
-        profileData.firstName,
-        profileData.lastName,
-        profileData.balance,
-        profileData.spinCount,
-        profileData.successfulResponsesCount,
-        profileData.currentStatus,
-    ];
+    UPDATE profiles
+    SET ${updateFields.join(', ')}
+    WHERE user_id = $${index}
+    RETURNING id, first_name AS "firstName", last_name AS "lastName", avatar, updated_at AS "updatedAt";
+  `;
 
     try {
         const result = await client.query(updateProfileQuery, values);
-        const userId = result.rows[0].user_id;
 
-        if (userId) {
-            await client.query(updateUserQuery, [profileData.id, userId]);
+        if (result.rows.length === 0) {
+            throw new Error(`Profile not found for userId: ${userId}`);
         }
 
-        broadcast(`Profile with ID ${profileData.id} has been successfully updated for user ${userId}`);
+        broadcast(`Profile with ID ${userId} has been successfully updated.`);
+        return result.rows[0];
     } catch (err) {
         console.error('Error when updating profile:', err);
         throw err;
     }
 }
-
-
