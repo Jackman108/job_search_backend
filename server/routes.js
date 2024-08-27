@@ -3,7 +3,7 @@ import { runPuppeteerScript } from '../index.js';
 import { stop } from '../utils/stopManager.js';
 import { personalData } from '../secrets.js';
 import { handleAvatarUpload } from '../utils/avatarUpload.js';
-import { getUserProfile, getVacanciesUser, createUserProfile, updateUserProfile, createVacancyTable } from '../db.js';
+import { getUserProfile, getVacanciesUser, createUserProfile, updateUserProfile, createVacancyTable, incrementSpinCount } from '../db.js';
 
 export const initializeRoutes = (app) => {
     app.post('/start', async (req, res) => {
@@ -17,6 +17,7 @@ export const initializeRoutes = (app) => {
                 message: message || personalData.coverLetter,
                 vacancyUrl: vacancyUrl || personalData.vacanciesUrl
             });
+            await incrementSpinCount(userId);
             res.status(200).json({ message: 'Скрипт выполнен успешно!' });
         } catch (error) {
             console.error('Ошибка выполнения скрипта:', error);

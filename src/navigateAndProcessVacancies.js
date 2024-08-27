@@ -7,13 +7,10 @@ import { getVacanciesUser } from '../db.js';
 
 export async function navigateAndProcessVacancies(userId, page, counters, message, isStopped) {
     let currentPage = 0;
-    const { totalPages } = personalData;
-
     let existingVacanciesIds;
+    const { totalPages } = personalData;
     try {
-        const existingVacancies = await getVacanciesUser(userId);
-
-        existingVacanciesIds = new Set(existingVacancies.map(vacancy => vacancy.id));
+        existingVacanciesIds = new Set(await getVacanciesUser(userId).map(vacancy => vacancy.id));
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
         return;
@@ -29,18 +26,16 @@ export async function navigateAndProcessVacancies(userId, page, counters, messag
             let vacancies = await getVacancies(page);
             vacancies = vacancies.filter(({ data }) => data.id && !existingVacanciesIds.has(data.id));
             console.log('Vacancies found', vacancies.length);
-
             if (vacancies.length === 0) {
                 console.log('vacancies.length', vacancies.length);
-
                 break;
             }
 
-            for (const { data, vacancyResponse } of vacancies) {
+            for (let i = 0; i < vacancies.length; i++) {
+                const { data, vacancyResponse } = vacancies[i];
                 if (isStopped()) {
                     return;
                 }
-
                 console.log('Sent feedback:', counters.successfullySubmittedCount, 'UnSent feedback:', counters.unsuccessfullySubmittedCount);
 
                 await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));

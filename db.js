@@ -41,6 +41,8 @@ export async function saveVacancy(data, userId) {
     SET title_vacancy = $2, url_vacancy = $3, title_company = $4, url_company = $5, vacancy_status = $6, response_date = $7;
     `;
 
+    
+
     const values = [
         data.id,
         data.vacancyTitleText,
@@ -129,7 +131,7 @@ export async function createUserProfile(profileData) {
         profileData.balance || 0,
         profileData.spinCount || 0,
         profileData.successfulResponsesCount || 0,
-        profileData.currentStatus || 'active',
+        profileData.currentStatus || 'inactive',
         profileData.userId,
         profileData.updatedAt || new Date().toISOString()
     ];
@@ -186,6 +188,45 @@ export async function updateUserProfile(userId, profileData) {
     }
 }
 
+export async function incrementSpinCount(userId) {
+    const updateProfileQuery = `
+        UPDATE profiles
+        SET spin_count = spin_count + 1, updated_at = NOW()
+        WHERE user_id = $1;
+    `;
+
+    try {
+        await client.query(updateProfileQuery, [userId]);
+    } catch (err) {
+        console.error('Error when updating spin_count:', err);
+        throw err;
+    }
+}
+
+export async function updateSuccessfulResponsesCount(userId) {
+    const tableName = `"${userId}_vacancy"`;
+    const countSuccessfulResponsesQuery = `
+    SELECT COUNT(*) AS "successfulResponsesCount"
+    FROM ${tableName}
+    WHERE vacancy_status = 'true';
+    `;
+    
+    const updateProfileQuery = `
+    UPDATE profiles
+    SET successful_responses_count = $1
+    WHERE user_id = $2;
+    `;
+    try {
+        const result = await client.query(countSuccessfulResponsesQuery);
+        const rawCount = result.rows[0].successfulResponsesCount;
+        const successfulResponsesCount = parseInt(rawCount, 10);
+        await client.query(updateProfileQuery, [successfulResponsesCount, userId]);
+    } catch (err) {
+        console.error('Error when updating successful_responses_count:', err);
+        throw err;
+    }
+}
+
 export async function deleteUser(userId, accessToken) {
     if (!userId) {
         throw new Error('User ID is required');
@@ -193,9 +234,7 @@ export async function deleteUser(userId, accessToken) {
 
     try {
         await deleteUserFromUsers(userId, accessToken);
-
         await deleteUserProfile(userId);
-
         await deleteVacancyTable(userId);
 
         broadcast(`User with ID ${userId} has been successfully deleted.`);
@@ -206,7 +245,6 @@ export async function deleteUser(userId, accessToken) {
 }
 
 async function deleteUserFromUsers(userId, accessToken) {
-
     const query = `DELETE FROM users WHERE id = $1`;
 
     try {

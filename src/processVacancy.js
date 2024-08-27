@@ -4,9 +4,8 @@ import { saveVacancy } from '../db.js';
 
 export async function processVacancy(page, vacancyResponse, data, counters, message, userId) {
     try {
-        await new Promise(r => setTimeout(r, SELECTORS.MODAL));
+        await new Promise(r => setTimeout(r, SELECTORS.SHORT));
         await page.screenshot({ path: 'screenshot-uncknoun.png' });
-
         await vacancyResponse.click();
 
         const relocationModalSelector = SELECTORS.RELOCATION_MODAL_TITLE;
@@ -78,12 +77,12 @@ export async function processVacancy(page, vacancyResponse, data, counters, mess
             await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
 
             await saveVacancy(data, userId);
-            console.log(`The vacancy with ID ${data.id} is saved with flag N for ${userId}`);
+            console.log(`The vacancy with ID ${data.id} is saved with flag N for ${data.vacancyTitleText}`);
         } else {
             counters.successfullySubmittedCount++;
             data.vacancyStatus = true;
             await saveVacancy(data, userId);
-            console.log(`The vacancy with ID ${data.id} is saved with flag Y for ${userId}`);
+            console.log(`The vacancy with ID ${data.id} is saved with flag Y for ${data.vacancyTitleText}`);
         }
     } catch (error) {
         await page.screenshot({ path: 'screenshot-during.png' });
