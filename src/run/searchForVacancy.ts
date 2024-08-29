@@ -1,7 +1,13 @@
-// src/searchForVacancy.js
+// src/searchForVacancy.ts
+import { Page } from 'puppeteer';
 import { SELECTORS, TIMEOUTS } from '../constants.js';
 
-export async function searchForVacancy(page, position) {
+interface SearchForVacancyParams {
+    page: Page;
+    position: string;
+}
+
+export async function searchForVacancy({ page, position }: SearchForVacancyParams): Promise<void> {
     await new Promise(r => setTimeout(r, TIMEOUTS.SEARCH));
 
     try {
@@ -10,7 +16,10 @@ export async function searchForVacancy(page, position) {
             { timeout: TIMEOUTS.SEARCH });
 
         if (vacancyInputSelector) {
-            await vacancyInputSelector.evaluate(input => input.value = '');
+            await vacancyInputSelector.evaluate(input => {
+                (input as HTMLInputElement).value = '';
+            });
+
             await vacancyInputSelector.type(position);
             await page.keyboard.press('Enter');
         } else {

@@ -1,8 +1,14 @@
 import { SELECTORS, TIMEOUTS } from '../constants.js';
-import { stop } from '../utils/stopManager.js';
 import { broadcast } from '../server/startWebSocketServer.js';
+import { stop } from '../utils/stopManager.js';
+import { Browser, Page } from 'puppeteer';
 
-export async function authorize(page, email, password) {
+export async function authorize(
+    page: Page,
+    email: string,
+    password: string,
+    browser: Browser
+): Promise<void> {
     try {
         const loginHandle = await page.waitForSelector(
             SELECTORS.LOGIN,
@@ -12,7 +18,7 @@ export async function authorize(page, email, password) {
         } else {
             console.error('LOGIN button not found');
         }
-        
+
         const closeButtonHandle = await page.waitForSelector(
             SELECTORS.REGION_BUTTON,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
@@ -20,7 +26,7 @@ export async function authorize(page, email, password) {
             await page.click(SELECTORS.REGION_BUTTON);
             await page.click(SELECTORS.LOGIN);
         }
-       
+
         await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
 
         const passwordToggleHandle = await page.waitForSelector(
@@ -62,27 +68,31 @@ export async function authorize(page, email, password) {
 
         const captchaHandle = await page.waitForSelector(
             SELECTORS.CAPTCHA_IMAGE,
-            { timeout: TIMEOUTS.SEARCH, visible: true}).catch(() => null);
+            { timeout: TIMEOUTS.SEARCH, visible: true }).catch(() => null);
 
         const errorHandle = await page.waitForSelector(
             SELECTORS.LOGIN_ERROR,
-            { timeout: TIMEOUTS.SEARCH, visible: true}).catch(() => null);
-            
-            switch (true) {
-                case !!errorHandle:
-                    broadcast('ERROR detected restart');
-                    await page.screenshot({ path: 'screenshot-ERROR.png' });
-                    stop();
-                    return;
-                case !!captchaHandle:
-                    const captchaSrc = await page.evaluate(img => img.src, captchaHandle);
-                    broadcast(`CAPTCHA detected restart ${captchaSrc}`);
-                    await page.screenshot({ path: 'screenshot-CAPTCHA.png' });
-                    stop();
-                    return;                
-                default:
-                    console.log('No CAPTCHA or ERROR detected');
-            }
+            { timeout: TIMEOUTS.SEARCH, visible: true }).catch(() => null);
+
+        switch (true) {
+            case !!errorHandle:
+                broadcast('ERROR detected restart');
+                await page.screenshot({ path: 'screenshot-ERROR.png' });
+                stop(browser);
+                return;
+            case !!captchaHandle:
+                const captchaSrc = await page.evaluate((img: unknown) => {
+                    const imageElement = img as HTMLImageElement;
+                    return imageElement.src;
+                }, captchaHandle as unknown); 
+                
+                broadcast(`CAPTCHA detected restart ${captchaSrc}`);
+                await page.screenshot({ path: 'screenshot-CAPTCHA.png' });
+                stop(browser);
+                return;
+            default:
+                console.log('No CAPTCHA or ERROR detected');
+        }
 
     } catch (error) {
         console.error('Error during authorization:', error);

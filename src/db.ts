@@ -1,12 +1,13 @@
 import client from "./config/dbConfig.js";
+import { ProfileData, VacancyData } from "./interface/interface.js";
 import { broadcast } from './server/startWebSocketServer.js';
 
 client.connect()
     .then(() => console.log('Connected to PostgreSQL'))
     .catch(err => console.error('Connection error:', err.stack));
 
-export const createVacancyTable = async (profileData) => {
-    const userId = profileData.userId.toString();
+    export const createVacancyTable = async (profileData: ProfileData): Promise<void> => {
+        const userId = profileData.userId.toString();
     const tableName = `"${userId}_vacancy"`;
 
     const createTableQuery = `
@@ -31,7 +32,7 @@ export const createVacancyTable = async (profileData) => {
     }
 };
 
-export async function saveVacancy(data, userId) {
+export async function saveVacancy(data: VacancyData, userId: string | number): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
 
     const insertOrUpdateQuery = `
@@ -40,17 +41,14 @@ export async function saveVacancy(data, userId) {
     ON CONFLICT (id) DO UPDATE 
     SET title_vacancy = $2, url_vacancy = $3, title_company = $4, url_company = $5, vacancy_status = $6, response_date = $7;
     `;
-
-    
-
     const values = [
         data.id,
-        data.vacancyTitleText,
-        data.vacancyLinkText,
-        data.companyTitleText,
-        data.companyLinkText,
-        data.vacancyStatus,
-        data.responseDate,
+        data.title_vacancy,
+        data.url_vacancy,
+        data.title_company,
+        data.url_company,
+        data.vacancy_status,
+        data.response_date,
     ];
 
     try {
@@ -62,7 +60,7 @@ export async function saveVacancy(data, userId) {
 }
 
 
-export async function getVacanciesUser(userId) {
+export async function getVacanciesUser(userId: string | number): Promise<any[]> {
     if (!userId) {
         throw new Error('User ID is required');
     }
@@ -84,7 +82,7 @@ export async function getVacanciesUser(userId) {
 }
 
 
-export async function getUserProfile(userId) {
+export async function getUserProfile(userId: string | number): Promise<ProfileData> {
     const query = `
         SELECT
             id,
@@ -116,7 +114,7 @@ export async function getUserProfile(userId) {
 }
 
 
-export async function createUserProfile(profileData) {
+export async function createUserProfile(profileData: ProfileData): Promise<void> {
     const createProfileQuery = `
         INSERT INTO profiles (
             first_name, last_name, avatar, balance, spin_count, successful_responses_count, current_status, user_id, updated_at
@@ -144,7 +142,7 @@ export async function createUserProfile(profileData) {
     }
 }
 
-export async function updateUserProfile(userId, profileData) {
+export async function updateUserProfile(userId: string | number, profileData: Partial<ProfileData>): Promise<ProfileData> {
     const updateFields = [];
     const values = [];
     let index = 1;
@@ -188,7 +186,7 @@ export async function updateUserProfile(userId, profileData) {
     }
 }
 
-export async function incrementSpinCount(userId) {
+export async function incrementSpinCount(userId: string | number): Promise<void> {
     const updateProfileQuery = `
         UPDATE profiles
         SET spin_count = spin_count + 1, updated_at = NOW()
@@ -203,7 +201,7 @@ export async function incrementSpinCount(userId) {
     }
 }
 
-export async function updateSuccessfulResponsesCount(userId) {
+export async function updateSuccessfulResponsesCount(userId: string | number): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
     const countSuccessfulResponsesQuery = `
     SELECT COUNT(*) AS "successfulResponsesCount"
@@ -227,7 +225,7 @@ export async function updateSuccessfulResponsesCount(userId) {
     }
 }
 
-export async function deleteUser(userId, accessToken) {
+export async function deleteUser(userId: string | number, accessToken: string): Promise<void> {
     if (!userId) {
         throw new Error('User ID is required');
     }
@@ -244,7 +242,7 @@ export async function deleteUser(userId, accessToken) {
     }
 }
 
-async function deleteUserFromUsers(userId, accessToken) {
+async function deleteUserFromUsers(userId: string | number, accessToken: string): Promise<void> {
     const query = `DELETE FROM users WHERE id = $1`;
 
     try {
@@ -255,7 +253,7 @@ async function deleteUserFromUsers(userId, accessToken) {
     }
 }
 
-async function deleteUserProfile(userId) {
+async function deleteUserProfile(userId: string | number): Promise<void> {
     const query = `DELETE FROM profiles WHERE user_id = $1`;
 
     try {
@@ -266,7 +264,7 @@ async function deleteUserProfile(userId) {
     }
 }
 
-async function deleteVacancyTable(userId) {
+async function deleteVacancyTable(userId: string | number): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
     const query = `DROP TABLE IF EXISTS ${tableName}`;
 

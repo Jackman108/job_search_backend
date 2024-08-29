@@ -1,10 +1,10 @@
 import net from 'net';
 
-export const checkPort = (port, host = '127.0.0.1') => {
+export const checkPort = (port: number, host: string = '127.0.0.1'): Promise<void> => {
     return new Promise((resolve, reject) => {
         const server = net.createServer();
 
-        server.once('error', (err) => {
+        server.once('error', (err: NodeJS.ErrnoException) => {
             if (err.code === 'EADDRINUSE') {
                 console.error(`Port ${port} is already in use`);
                 reject(new Error(`Port ${port} is already in use`));

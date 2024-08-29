@@ -1,7 +1,8 @@
-// stopManager.js
+// stopManager.ts
+import { Browser } from "puppeteer";
 let shouldStop = false;
 
-export async function stop(browser) {
+export async function stop(browser: Browser) {
     shouldStop = true;
     if (browser) {
         await browser.close();

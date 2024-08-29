@@ -2,7 +2,16 @@ import path from 'path';
 import fs from 'fs';
 import { API_URL, uploadDir } from '../config/serverConfig.js';
 
-export const handleAvatarUpload = async (avatar, userId, updateFields) => {
+interface UpdateFields {
+    avatar?: string;
+    [key: string]: any;
+}
+
+export const handleAvatarUpload = async (
+    avatar: string,
+    userId: string,
+    updateFields: UpdateFields
+): Promise<void> => {
     if (avatar.startsWith('data:image')) {
         const matches = avatar.match(/^data:(image\/[^;]+);base64,/);
         if (!matches) {

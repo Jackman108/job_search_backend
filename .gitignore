@@ -23,6 +23,7 @@ Thumbs.db
 
 # Папка загрузок
 /uploads
+/dist
 
 # Файлы скриншотов
 screenshot*.png

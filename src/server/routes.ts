@@ -1,14 +1,18 @@
-// server/routes.js
-import { runPuppeteerScript } from '../index.js';
-import { stop } from '../utils/stopManager.js';
+// server/routes.ts
+import express from 'express'
+import { runPuppeteerScript } from '../run/index.js';
 import { personalData } from '../secrets.js';
+import {
+    getUserProfile, getVacanciesUser, createUserProfile, updateUserProfile, createVacancyTable, incrementSpinCount
+} from '../db.js';
+import { AvatarUploadParams, PuppeteerScriptParams, UserProfileUpdateFields } from '../interface/interface.js';
 import { handleAvatarUpload } from '../utils/avatarUpload.js';
-import { getUserProfile, getVacanciesUser, createUserProfile, updateUserProfile, createVacancyTable, incrementSpinCount } from '../db.js';
+import { stop } from '../utils/stopManager.js';
 
-export const initializeRoutes = (app) => {
+export const initializeRoutes = (app: express.Application) => {
     app.post('/start', async (req, res) => {
         try {
-            const { userId, email, password, position, message, vacancyUrl } = req.body;
+            const { userId, email, password, position, message, vacancyUrl }: PuppeteerScriptParams = req.body;
             await runPuppeteerScript({
                 userId: userId,
                 email: email || personalData.vacancyEmail,
@@ -70,11 +74,16 @@ export const initializeRoutes = (app) => {
 
     app.put('/profile/:userId', async (req, res) => {
         try {
-            const { firstName, lastName, avatar } = req.body;
-            const updateFields = { firstName, lastName };
+            const { firstName, lastName, avatar }: UserProfileUpdateFields = req.body;
+            const updateFields: UserProfileUpdateFields = { firstName, lastName };
 
             if (avatar) {
-                await handleAvatarUpload(avatar, req.params.userId, updateFields);
+                const avatarUploadParams: AvatarUploadParams = {
+                    avatar,
+                    userId: req.params.userId,
+                    updateFields
+                };
+                await handleAvatarUpload(avatarUploadParams.avatar, avatarUploadParams.userId, avatarUploadParams.updateFields);
             }
 
             const updatedProfile = await updateUserProfile(req.params.userId, updateFields);

@@ -1,10 +1,18 @@
 // src/processVacancy.js
 import { SELECTORS, TIMEOUTS } from '../constants.js';
 import { saveVacancy } from '../db.js';
+import { ProcessVacancyParams } from '../interface/interface.js';
 
-export async function processVacancy(page, vacancyResponse, data, counters, message, userId) {
+export async function processVacancy({
+    page,
+    vacancyResponse,
+    data,
+    counters,
+    message,
+    userId
+}: ProcessVacancyParams): Promise<void> {
     try {
-        await new Promise(r => setTimeout(r, SELECTORS.SHORT));
+        await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
         await page.screenshot({ path: 'screenshot-uncknoun.png' });
         await vacancyResponse.click();
 
@@ -13,11 +21,12 @@ export async function processVacancy(page, vacancyResponse, data, counters, mess
 
         const relocationModalHandle = await page.waitForSelector(
             relocationModalSelector,
-            { timeout: TIMEOUTS.MODAL }).catch(() => null);
+            { timeout: TIMEOUTS.MODAL }
+        ).catch(() => null);
 
         if (relocationModalHandle) {
             const modalContent = await page.evaluate(titleModal => titleModal.textContent, relocationModalHandle);
-            if (modalContent.includes('Вы откликаетесь на вакансию в другой стране')) {
+            if (modalContent && modalContent.includes('Вы откликаетесь на вакансию в другой стране')) {
                 await page.click(confirmButtonSelector);
             }
         }
@@ -77,12 +86,12 @@ export async function processVacancy(page, vacancyResponse, data, counters, mess
             await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
 
             await saveVacancy(data, userId);
-            console.log(`The vacancy with ID ${data.id} is saved with flag N for ${data.vacancyTitleText}`);
+            console.log(`The vacancy with ID ${data.id} is saved with flag N for ${data.title_vacancy}`);
         } else {
             counters.successfullySubmittedCount++;
-            data.vacancyStatus = true;
+            data.vacancy_status = 'true';
             await saveVacancy(data, userId);
-            console.log(`The vacancy with ID ${data.id} is saved with flag Y for ${data.vacancyTitleText}`);
+            console.log(`The vacancy with ID ${data.id} is saved with flag Y for ${data.title_vacancy}`);
         }
     } catch (error) {
         await page.screenshot({ path: 'screenshot-during.png' });
