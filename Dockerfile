@@ -5,10 +5,10 @@ FROM node:19-alpine3.16
 WORKDIR /app
 
 # Копируем package.json и package-lock.json
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
 # Устанавливаем зависимости
-RUN npm install
+RUN yarn install
 
 # Устанавливаем зависимости для Puppeteer
 RUN apk add --no-cache \
@@ -29,4 +29,4 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 EXPOSE 8000
 
 # запускаем основной скрипт в момент запуска контейнера
-CMD ["npm", "start"]
+CMD ["yarn", "start"]
