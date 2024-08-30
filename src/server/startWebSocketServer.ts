@@ -2,9 +2,12 @@ import WebSocket, { WebSocketServer } from 'ws';
 import http from 'http';
 import { StartWebSocketServerParams } from '../interface/interface.js';
 import { checkPort } from '../utils/checkPort.js';
+interface Client {
+    ws: WebSocket;
+    userId: string;
+}
 
-
-const clients = new Set<WebSocket>();
+const clients = new Set<Client>();
 let wss: WebSocketServer | null = null;
 
 export const startWebSocketServer = async ({ app, wsPort }: StartWebSocketServerParams): Promise<void> => {
@@ -13,12 +16,18 @@ export const startWebSocketServer = async ({ app, wsPort }: StartWebSocketServer
         const server = http.createServer(app);
 
         wss = new WebSocketServer({ server });
-        wss.on('connection', (ws: WebSocket) => {
-            clients.add(ws);
+        wss.on('connection', (ws: WebSocket, req) => {
+            const userId = req.url?.split('/').pop() || '';
+            if (!userId) {
+                ws.close(1008, 'User ID is required');
+                return;
+            }
+            const client = { ws, userId };
+            clients.add(client);
             ws.on('message', (message: WebSocket.MessageEvent) => {
             });
             ws.on('close', () => {
-                clients.delete(ws);
+                clients.delete(client);
             });
             ws.send('connection WebSocket server!');
         });
