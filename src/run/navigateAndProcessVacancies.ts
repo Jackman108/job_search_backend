@@ -3,8 +3,8 @@ import { processVacancy } from './processVacancy.js';
 import { getVacancies } from './getVacancies.js';
 import { personalData } from '../secrets.js';
 import { SELECTORS, TIMEOUTS } from '../constants.js';
-import { getVacanciesUser } from '../db.js';
 import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '../interface/interface.js';
+import { getVacanciesUser } from '../services/vacancyService.js';
 
 export async function navigateAndProcessVacancies({
     userId,
@@ -34,7 +34,6 @@ export async function navigateAndProcessVacancies({
 
             let vacancies: VacancyWithResponse[] = await getVacancies(page);
             vacancies = vacancies.filter(({ data }) => data.id && !existingVacanciesIds.has(data.id));
-            console.log('Vacancies found', vacancies.length);
             if (vacancies.length === 0) {
                 console.log('vacancies.length', vacancies.length);
                 break;
@@ -45,6 +44,7 @@ export async function navigateAndProcessVacancies({
                 if (isStopped()) {
                     return;
                 }
+                console.log('Vacancies found', vacancies.length);
                 console.log('Sent feedback:', counters.successfullySubmittedCount, 'UnSent feedback:', counters.unsuccessfullySubmittedCount);
 
                 await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));

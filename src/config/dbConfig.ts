@@ -12,4 +12,8 @@ const client = new Client({
     database: process.env.POSTGRES_DB || 'db_vacancy'
 });
 
+client.connect()
+    .then(() => console.log('Connected to PostgreSQL'))
+    .catch(err => console.error('Connection error:', err.stack));
+
 export default client;

@@ -1,7 +1,7 @@
 // src/processVacancy.js
 import { SELECTORS, TIMEOUTS } from '../constants.js';
-import { saveVacancy } from '../db.js';
 import { ProcessVacancyParams } from '../interface/interface.js';
+import { saveVacancy } from '../services/vacancyService.js';
 
 export async function processVacancy({
     page,

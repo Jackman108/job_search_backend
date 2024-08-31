@@ -1,11 +1,11 @@
 // server/routes.ts
 import express from 'express';
-import {
-    createUserProfile, createVacancyTable, deleteVacancy, getUserProfile, getVacanciesUser, incrementSpinCount, updateUserProfile
-} from '../db.js';
 import { AvatarUploadParams, PuppeteerScriptParams, UserProfileUpdateFields } from '../interface/interface.js';
 import { runPuppeteerScript } from '../run/index.js';
 import { personalData } from '../secrets.js';
+import { createUserProfile, getUserProfile, incrementSpinCount, updateUserProfile } from '../services/profileService.js';
+import { createResume, deleteResume, getResumeById, updateResume } from '../services/resumeService.js';
+import { createVacancyTable, deleteVacancy, getVacanciesUser } from '../services/vacancyService.js';
 import { handleAvatarUpload } from '../utils/avatarUpload.js';
 import { stop } from '../utils/stopManager.js';
 
@@ -102,6 +102,50 @@ export const initializeRoutes = (app: express.Application) => {
         } catch (error) {
             console.error('Ошибка обновления профиля пользователя:', error);
             res.status(500).json({ message: 'Ошибка обновления профиля пользователя.' });
+        }
+    });
+
+    app.post('/resume', async (req, res) => {
+        try {
+            const { userId, resumeData } = req.body;
+            const resumeId = await createResume(userId, resumeData);
+            res.status(201).json({ message: 'Резюме успешно создано.', resumeId });
+        } catch (error) {
+            console.error('Ошибка создания резюме:', error);
+            res.status(500).json({ message: 'Ошибка создания резюме.' });
+        }
+    });
+
+    app.get('/resume/:resumeId', async (req, res) => {
+        try {
+            const resume = await getResumeById(Number(req.params.resumeId));
+            res.status(resume ? 200 : 404).json(resume || { message: 'Резюме не найдено.' });
+        } catch (error) {
+            console.error(`Ошибка получения резюме ${req.params.resumeId}:`, error);
+            res.status(500).json({ message: 'Ошибка получения резюме.' });
+        }
+    });
+
+    app.put('/resume/:resumeId', async (req, res) => {
+        try {
+            const resumeId = Number(req.params.resumeId);
+            const updates = req.body;
+            await updateResume(resumeId, updates);
+            res.status(200).json({ message: 'Резюме успешно обновлено.' });
+        } catch (error) {
+            console.error(`Ошибка обновления резюме ${req.params.resumeId}:`, error);
+            res.status(500).json({ message: 'Ошибка обновления резюме.' });
+        }
+    });
+
+    app.delete('/resume/:resumeId', async (req, res) => {
+        try {
+            const resumeId = Number(req.params.resumeId);
+            await deleteResume(resumeId);
+            res.status(200).json({ message: 'Резюме успешно удалено.' });
+        } catch (error) {
+            console.error(`Ошибка удаления резюме ${req.params.resumeId}:`, error);
+            res.status(500).json({ message: 'Ошибка удаления резюме.' });
         }
     });
 };
