@@ -23,7 +23,6 @@ client.connect()
         `;
 
     try {
-        console.log(createTableQuery);
         await client.query(createTableQuery);
         console.log(`Table ${tableName} created or already exists.`);
     } catch (err) {
