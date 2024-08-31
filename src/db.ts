@@ -6,8 +6,8 @@ client.connect()
     .then(() => console.log('Connected to PostgreSQL'))
     .catch(err => console.error('Connection error:', err.stack));
 
-    export const createVacancyTable = async (profileData: ProfileData): Promise<void> => {
-        const userId = profileData.userId.toString();
+export const createVacancyTable = async (profileData: ProfileData): Promise<void> => {
+    const userId = profileData.userId.toString();
     const tableName = `"${userId}_vacancy"`;
 
     const createTableQuery = `
@@ -63,20 +63,31 @@ export async function getVacanciesUser(userId: string | number): Promise<any[]> 
     if (!userId) {
         throw new Error('User ID is required');
     }
-
     const tableName = `"${userId}_vacancy"`;
-
     try {
         const query = `SELECT * FROM ${tableName}`;
         const result = await client.query(query);
         if (result.rows.length === 0) {
             result.rows = [];
         }
-
         return result.rows;
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}:`, err);
         throw err;
+    }
+}
+
+export async function deleteVacancy(vacancyId: string | number, userId: string | number): Promise<void> {
+    const tableName = `"${userId}_vacancy"`;
+    const deleteQuery = `
+    DELETE FROM ${tableName}
+    WHERE id = $1;
+    `;
+    try {
+        await client.query(deleteQuery, [vacancyId]);
+        broadcast(`Vacancy has been successfully saved with ID ${vacancyId} deleted.`);
+    } catch (err) {
+        console.error('Error when deleting a vacancy:', err);
     }
 }
 
@@ -207,7 +218,7 @@ export async function updateSuccessfulResponsesCount(userId: string | number): P
     FROM ${tableName}
     WHERE vacancy_status = 'true';
     `;
-    
+
     const updateProfileQuery = `
     UPDATE profiles
     SET successful_responses_count = $1

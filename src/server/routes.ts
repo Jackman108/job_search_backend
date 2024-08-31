@@ -1,11 +1,11 @@
 // server/routes.ts
-import express from 'express'
-import { runPuppeteerScript } from '../run/index.js';
-import { personalData } from '../secrets.js';
+import express from 'express';
 import {
-    getUserProfile, getVacanciesUser, createUserProfile, updateUserProfile, createVacancyTable, incrementSpinCount
+    createUserProfile, createVacancyTable, deleteVacancy, getUserProfile, getVacanciesUser, incrementSpinCount, updateUserProfile
 } from '../db.js';
 import { AvatarUploadParams, PuppeteerScriptParams, UserProfileUpdateFields } from '../interface/interface.js';
+import { runPuppeteerScript } from '../run/index.js';
+import { personalData } from '../secrets.js';
 import { handleAvatarUpload } from '../utils/avatarUpload.js';
 import { stop } from '../utils/stopManager.js';
 
@@ -47,6 +47,17 @@ export const initializeRoutes = (app: express.Application) => {
         } catch (error) {
             console.error('Ошибка получения вакансий по userId:', error);
             res.status(500).json({ message: 'Ошибка получения вакансий по userId.' });
+        }
+    });
+
+    app.delete('/vacancy/:userId/:vacancyId', async (req, res) => {
+        const { userId, vacancyId } = req.params;
+        try {
+            await deleteVacancy(vacancyId, userId);
+            res.status(200).json({ message: 'Vacancy deleted successfully.' });
+        } catch (error) {
+            console.error('Error deleting vacancy:', error);
+            res.status(500).json({ message: 'Error deleting vacancy.' });
         }
     });
 
