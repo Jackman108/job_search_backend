@@ -1,19 +1,20 @@
 // resumeService.ts
 import client from "../config/dbConfig.js";
 
-export const createResume = async (userId: number, resumeData: {
+export const createResume = async (userId: string, resumeData: {
     full_name: string,
     position?: string,
     employment_type?: string,
     work_schedule?: string,
     travel_time?: string,
     business_trip_readiness?: boolean
-}): Promise<number> => {
-    const insertResumeQuery = `
-            INSERT INTO resumes (user_id, full_name, position, employment_type, work_schedule, travel_time, business_trip_readiness)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id;
-        `;
+}): Promise<string> => {
+        const insertResumeQuery = `
+        INSERT INTO resumes (user_id, full_name, position, employment_type, work_schedule, travel_time, business_trip_readiness, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        RETURNING id;
+    `;
+
 
     const values = [
         userId,
@@ -36,18 +37,18 @@ export const createResume = async (userId: number, resumeData: {
     }
 };
 
-export const getResumeById = async (resumeId: number): Promise<any> => {
-    const query = `SELECT * FROM resumes WHERE id = $1`;
+export const getResumeById = async (userId: string): Promise<any> => {
+    const query = `SELECT * FROM resumes WHERE user_id = $1`;
     try {
-        const result = await client.query(query, [resumeId]);
+        const result = await client.query(query, [userId]);
         return result.rows[0] || null;
     } catch (err) {
-        console.error(`Error retrieving resume ${resumeId}:`, err);
+        console.error(`Error retrieving resume ${userId}:`, err);
         throw err;
     }
 };
 
-export const updateResume = async (resumeId: number, updates: {
+export const updateResume = async (userId: string, updates: {
     full_name?: string,
     position?: string,
     employment_type?: string,
@@ -90,46 +91,31 @@ export const updateResume = async (resumeId: number, updates: {
     const setClauseStr = setClause.join(', ');
     const updateQuery = `
         UPDATE resumes
-        SET ${setClauseStr}, last_updated = CURRENT_TIMESTAMP
-        WHERE id = $${values.length + 1};
+        SET ${setClauseStr}, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $${values.length + 1};
     `;
-    values.push(resumeId);
+    values.push(userId);
 
     try {
         await client.query(updateQuery, values);
-        console.log(`Resume with ID ${resumeId} updated successfully.`);
+        console.log(`Resume with ID ${userId} updated successfully.`);
     } catch (err) {
-        console.error(`Error updating resume ${resumeId}:`, err);
+        console.error(`Error updating resume ${userId}:`, err);
         throw err;
     }
 };
 
-export const deleteResume = async (resumeId: number): Promise<void> => {
+export const deleteResume = async (userId: string): Promise<void> => {
     const deleteResumeQuery = `
         DELETE FROM resumes
-        WHERE id = $1;
-    `;
-    const deleteContactsQuery = `
-        DELETE FROM contacts
-        WHERE resume_id = $1;
-    `;
-    const deleteWorkExperienceQuery = `
-        DELETE FROM work_experience
-        WHERE resume_id = $1;
-    `;
-    const deleteSkillsQuery = `
-        DELETE FROM skills
-        WHERE resume_id = $1;
+        WHERE user_id = $1;
     `;
 
     try {
-        await client.query(deleteContactsQuery, [resumeId]);
-        await client.query(deleteWorkExperienceQuery, [resumeId]);
-        await client.query(deleteSkillsQuery, [resumeId]);
-        await client.query(deleteResumeQuery, [resumeId]);
-        console.log(`Resume with ID ${resumeId} deleted successfully.`);
+        await client.query(deleteResumeQuery, [userId]);
+        console.log(`Resume with ID ${userId} deleted successfully.`);
     } catch (err) {
-        console.error(`Error deleting resume ${resumeId}:`, err);
+        console.error(`Error deleting resume ${userId}:`, err);
         throw err;
     }
 };

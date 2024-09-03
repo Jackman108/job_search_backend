@@ -105,46 +105,50 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.post('/resume', async (req, res) => {
+    app.post('/resume/:userId', async (req, res) => {
         try {
-            const { userId, resumeData } = req.body;
-            const resumeId = await createResume(userId, resumeData);
-            res.status(201).json({ message: 'Резюме успешно создано.', resumeId });
+            const userId = req.params.userId;
+            const resumeData = req.body;
+            if (!userId || !resumeData || !resumeData.full_name) {
+                return res.status(400).json({ message: 'Необходимо указать userId и full_name.' });
+            }
+            const resume = await createResume(userId, resumeData);
+            res.status(201).json({ message: 'Резюме успешно создано.', resume });
         } catch (error) {
             console.error('Ошибка создания резюме:', error);
             res.status(500).json({ message: 'Ошибка создания резюме.' });
         }
     });
 
-    app.get('/resume/:resumeId', async (req, res) => {
+    app.get('/resume/:userId', async (req, res) => {
         try {
-            const resume = await getResumeById(Number(req.params.resumeId));
+            const resume = await getResumeById(req.params.userId);
             res.status(resume ? 200 : 404).json(resume || { message: 'Резюме не найдено.' });
         } catch (error) {
-            console.error(`Ошибка получения резюме ${req.params.resumeId}:`, error);
+            console.error(`Ошибка получения резюме ${req.params.userId}:`, error);
             res.status(500).json({ message: 'Ошибка получения резюме.' });
         }
     });
 
-    app.put('/resume/:resumeId', async (req, res) => {
+    app.put('/resume/:userId', async (req, res) => {
         try {
-            const resumeId = Number(req.params.resumeId);
+            const userId = req.params.userId;
             const updates = req.body;
-            await updateResume(resumeId, updates);
+            await updateResume(userId, updates);
             res.status(200).json({ message: 'Резюме успешно обновлено.' });
         } catch (error) {
-            console.error(`Ошибка обновления резюме ${req.params.resumeId}:`, error);
+            console.error(`Ошибка обновления резюме ${req.params.userId}:`, error);
             res.status(500).json({ message: 'Ошибка обновления резюме.' });
         }
     });
 
-    app.delete('/resume/:resumeId', async (req, res) => {
+    app.delete('/resume/:userId', async (req, res) => {
         try {
-            const resumeId = Number(req.params.resumeId);
-            await deleteResume(resumeId);
+            const userId = req.params.userId;
+            await deleteResume(userId);
             res.status(200).json({ message: 'Резюме успешно удалено.' });
         } catch (error) {
-            console.error(`Ошибка удаления резюме ${req.params.resumeId}:`, error);
+            console.error(`Ошибка удаления резюме ${req.params.userId}:`, error);
             res.status(500).json({ message: 'Ошибка удаления резюме.' });
         }
     });
