@@ -3,7 +3,7 @@ import express from 'express';
 import { AvatarUploadParams, PuppeteerScriptParams, UserProfileUpdateFields } from '../interface/interface.js';
 import { runPuppeteerScript } from '../run/index.js';
 import { personalData } from '../secrets.js';
-import { createUserProfile, getUserProfile, incrementSpinCount, updateUserProfile } from '../services/profileService.js';
+import { createUserProfile, getUserProfile, incrementSpinCount, updateSuccessfulResponsesCount, updateUserProfile } from '../services/profileService.js';
 import { createResume, deleteResume, getResumeById, updateResume } from '../services/resumeService.js';
 import { createVacancyTable, deleteVacancy, getVacanciesUser } from '../services/vacancyService.js';
 import { handleAvatarUpload } from '../utils/avatarUpload.js';
@@ -22,6 +22,7 @@ export const initializeRoutes = (app: express.Application) => {
                 vacancyUrl: vacancyUrl || personalData.vacanciesUrl
             });
             await incrementSpinCount(userId);
+            await updateSuccessfulResponsesCount(userId);
             res.status(200).json({ message: 'Скрипт выполнен успешно!' });
         } catch (error) {
             console.error('Ошибка выполнения скрипта:', error);

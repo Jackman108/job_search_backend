@@ -28,7 +28,6 @@ export async function getUserProfile(userId: string | number): Promise<ProfileDa
         }
         return result.rows[0];
     } catch (err) {
-        console.error('Error when retrieving user profile:', err);
         throw err;
     }
 }
@@ -57,7 +56,7 @@ export async function createUserProfile(profileData: ProfileData): Promise<void>
         await client.query(createProfileQuery, values);
         broadcast(`Profile has been successfully created for user ${profileData.userId}`);
     } catch (err) {
-        console.error('Error when creating user profile:', err);
+        throw err;
     }
 }
 
@@ -99,7 +98,6 @@ export async function updateUserProfile(userId: string | number, profileData: Pa
         broadcast(`Profile with ID ${userId} has been successfully updated.`);
         return result.rows[0];
     } catch (err) {
-        console.error('Error when updating profile:', err);
         throw err;
     }
 }
@@ -138,7 +136,6 @@ export async function updateSuccessfulResponsesCount(userId: string | number): P
         const successfulResponsesCount = parseInt(rawCount, 10);
         await client.query(updateProfileQuery, [successfulResponsesCount, userId]);
     } catch (err) {
-        console.error('Error when updating successful responses count:', err);
         throw err;
     }
 }
