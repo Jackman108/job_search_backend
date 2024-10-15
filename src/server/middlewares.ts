@@ -1,7 +1,7 @@
 // server/middlewares.ts
 import bodyParser from 'body-parser';
 import cors, { CorsOptions } from 'cors';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import { InitializeMiddleware } from '../interface/interface.js';
 import { DOMAIN_URL, staticPath, uploadDir } from '../config/serverConfig.js';
@@ -25,5 +25,25 @@ export const initializeMiddleware: InitializeMiddleware = (app: express.Applicat
 
     if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir);
+    }
+};
+
+export const handleErrors = (res: Response, error: unknown, defaultMessage: string) => {
+    console.error(error);
+    res.status(500).json({ message: defaultMessage });
+};
+
+export const validateUserId = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.params.userId) {
+        return res.status(400).json({ message: 'userId is required.' });
+    }
+    next();
+};
+
+export const validateDataPresence = (req: Request, res: Response, keys: string[]) => {
+    for (const key of keys) {
+        if (!req.body[key]) {
+            return res.status(400).json({ message: `${key} is required.` });
+        }
     }
 };

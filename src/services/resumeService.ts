@@ -1,20 +1,21 @@
 // resumeService.ts
 import client from "../config/dbConfig.js";
 
-export const createResume = async (userId: string, resumeData: {
-    full_name: string,
-    position?: string,
-    employment_type?: string,
-    work_schedule?: string,
-    travel_time?: string,
-    business_trip_readiness?: boolean
-}): Promise<string> => {
-        const insertResumeQuery = `
+export const createResume = async (
+    userId: string,
+    resumeData: {
+        full_name: string,
+        position?: string,
+        employment_type?: string,
+        work_schedule?: string,
+        travel_time?: string,
+        business_trip_readiness?: boolean
+    }): Promise<string> => {
+    const insertResumeQuery = `
         INSERT INTO resumes (user_id, full_name, position, employment_type, work_schedule, travel_time, business_trip_readiness, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id;
     `;
-
 
     const values = [
         userId,
