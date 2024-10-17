@@ -60,7 +60,7 @@ export async function createUserProfile(profileData: ProfileData): Promise<void>
     }
 }
 
-export async function updateUserProfile(userId: string | number, profileData: Partial<ProfileData>): Promise<ProfileData> {
+export async function updateUserProfile( profileData: Partial<ProfileData>): Promise<ProfileData> {
     const updateFields = [];
     const values = [];
     let index = 1;
@@ -80,7 +80,7 @@ export async function updateUserProfile(userId: string | number, profileData: Pa
 
     updateFields.push(`updated_at = $${index++}`);
     values.push(new Date().toISOString());
-    values.push(userId);
+    values.push(profileData.userId);
 
     const updateProfileQuery = `
         UPDATE profiles
@@ -92,10 +92,10 @@ export async function updateUserProfile(userId: string | number, profileData: Pa
     try {
         const result = await client.query(updateProfileQuery, values);
         if (result.rows.length === 0) {
-            throw new Error(`Profile not found for userId: ${userId}`);
+            throw new Error(`Profile not found for userId: ${profileData.userId}`);
         }
 
-        broadcast(`Profile with ID ${userId} has been successfully updated.`);
+        broadcast(`Profile with ID ${profileData.userId} has been successfully updated.`);
         return result.rows[0];
     } catch (err) {
         throw err;

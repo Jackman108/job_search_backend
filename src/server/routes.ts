@@ -10,7 +10,7 @@ import { createSkill, deleteSkill, getSkillsByUserId, updateSkill } from '../ser
 import { createVacancyTable, deleteVacancy, getVacanciesUser } from '../services/vacancyService.js';
 import { handleAvatarUpload } from '../utils/avatarUpload.js';
 import { stop } from '../utils/stopManager.js';
-import { handleErrors, validateDataPresence, validateUserId } from './middlewares.js';
+import { AuthenticatedRequest, extractUserId, handleErrors, validateDataPresence, validateUserId, validateUserPatch } from './middlewares.js';
 import { createWorkExperience, deleteWorkExperience, getWorkExperienceByUserId, updateWorkExperience } from '../services/workExperienceService.js';
 
 export const initializeRoutes = (app: express.Application) => {
@@ -43,35 +43,43 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.get('/vacancy/:userId', validateUserId, async (req, res) => {
+    app.get('/vacancy', extractUserId, async (req: AuthenticatedRequest, res) => {
         try {
-            const vacancies = await getVacanciesUser(req.params.userId);
+            if (!req.userId) {
+                return res.status(400).json({ message: 'userId is required.' });
+            }
+            const vacancies = await getVacanciesUser(req.userId);
             res.status(vacancies ? 200 : 404).json(vacancies || { message: 'Вакансии не найдены.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка получения вакансий по userId.');
         }
     });
 
-    app.delete('/vacancy/:userId/:vacancyId', validateUserId, async (req, res) => {
-        const { userId, vacancyId } = req.params;
+    app.delete('/vacancy/:vacancyId', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            await deleteVacancy(vacancyId, userId);
+            await deleteVacancy(req.params.vacancyId, req.userId);
             res.status(200).json({ message: 'Вакансия удалена успешно.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка удаления вакансии.');
         }
     });
 
-    app.get('/profile/:userId', validateUserId, async (req, res) => {
+    app.get('/profile', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            const profile = await getUserProfile(req.params.userId);
+            const profile = await getUserProfile(req.userId);
             res.status(profile ? 200 : 404).json(profile || { message: 'Профиль не найден.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка получения профиля пользователя.');
         }
     });
 
-    app.post('/profile', validateUserId, async (req, res) => {
+    app.post('/profile', async (req, res) => {
         try {
             await createUserProfile(req.body);
             await createVacancyTable(req.body);
@@ -81,14 +89,14 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.put('/profile/:userId', validateUserId, async (req, res) => {
+    app.put('/profile', async (req, res) => {
         try {
             const { avatar, ...updateFields }: UserProfileUpdateFields = req.body;
             if (avatar) {
-                const avatarUploadParams: AvatarUploadParams = { avatar, userId: req.params.userId, updateFields };
-                await handleAvatarUpload(avatarUploadParams.avatar, avatarUploadParams.userId, avatarUploadParams.updateFields);
+                const avatarUploadParams: AvatarUploadParams = { avatar, updateFields };
+                await handleAvatarUpload(avatarUploadParams.avatar, avatarUploadParams.updateFields);
             }
-            const updatedProfile = await updateUserProfile(req.params.userId, updateFields);
+            const updatedProfile = await updateUserProfile(updateFields);
             res.status(200).json({ message: 'Профиль успешно обновлен.', profile: updatedProfile });
         } catch (error) {
             handleErrors(res, error, 'Ошибка обновления профиля пользователя.');
@@ -105,7 +113,8 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.get('/resume/:userId', validateUserId, async (req, res) => {
+    app.get('/resume/:userId', validateUserPatch, async (req, res) => {
+
         try {
             const resume = await getResumeById(req.params.userId);
             res.status(resume ? 200 : 404).json(resume || { message: 'Резюме не найдено.' });
@@ -114,7 +123,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.put('/resume/:userId', validateUserId, async (req, res) => {
+    app.put('/resume/:userId', validateUserPatch, async (req, res) => {
         try {
             const userId = req.params.userId;
             const updates = req.body;
@@ -125,7 +134,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.delete('/resume/:userId', validateUserId, async (req, res) => {
+    app.delete('/resume/:userId', validateUserPatch, async (req, res) => {
         try {
             const userId = req.params.userId;
             await deleteResume(userId);
@@ -135,7 +144,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.post('/contacts/:userId', validateUserId, async (req, res) => {
+    app.post('/contacts/:userId', validateUserPatch, async (req, res) => {
         validateDataPresence(req, res, ['phone']);
         try {
             const contact = await createContact(req.params.userId, req.body);
@@ -145,7 +154,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.get('/contacts/:userId', validateUserId, async (req, res) => {
+    app.get('/contacts/:userId', validateUserPatch, async (req, res) => {
         try {
             const contact = await getContactById(req.params.userId);
             res.status(contact ? 200 : 404).json(contact || { message: 'Контакты не найдены.' });
@@ -154,7 +163,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.put('/contacts/:userId', validateUserId, async (req, res) => {
+    app.put('/contacts/:userId', validateUserPatch, async (req, res) => {
         try {
             await updateContact(req.params.userId, req.body);
             res.status(200).json({ message: 'Контакты успешно обновлены.' });
@@ -163,7 +172,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.delete('/contacts/:userId', validateUserId, async (req, res) => {
+    app.delete('/contacts/:userId', validateUserPatch, async (req, res) => {
         try {
             await deleteContact(req.params.userId);
             res.status(200).json({ message: 'Контакты успешно удалены.' });
@@ -172,7 +181,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.post('/skills/:userId', validateUserId, async (req, res) => {
+    app.post('/skills/:userId', validateUserPatch, async (req, res) => {
         try {
             const skill = await createSkill(req.params.userId, req.body);
             res.status(201).json({ message: 'Навык успешно создан.', skill });
@@ -181,7 +190,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.get('/skills/:userId', validateUserId, async (req, res) => {
+    app.get('/skills/:userId', validateUserPatch, async (req, res) => {
         try {
             const skills = await getSkillsByUserId(req.params.userId);
             res.status(skills.length ? 200 : 404).json(skills.length ? skills : { message: 'Навыки не найдены.' });
@@ -190,7 +199,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.put('/skills/:userId/:skillId', validateUserId, async (req, res) => {
+    app.put('/skills/:userId/:skillId', validateUserPatch, async (req, res) => {
         try {
             await updateSkill(req.params.userId, req.params.skillId, req.body);
             res.status(200).json({ message: 'Навык успешно обновлен.' });
@@ -199,7 +208,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.delete('/skills/:userId/:skillId', validateUserId, async (req, res) => {
+    app.delete('/skills/:userId/:skillId', validateUserPatch, async (req, res) => {
         try {
             await deleteSkill(req.params.userId, req.params.skillId);
             res.status(200).json({ message: 'Навык успешно удален.' });
@@ -208,7 +217,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
     
-    app.post('/work_experience/:userId', validateUserId, async (req, res) => {
+    app.post('/work_experience/:userId', validateUserPatch, async (req, res) => {
         try {
             const workExperience = await createWorkExperience(req.params.userId, req.body);
             res.status(201).json({ message: 'Опыт успешно создан.', workExperience });
@@ -217,7 +226,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.get('/work_experience/:userId', validateUserId, async (req, res) => {
+    app.get('/work_experience/:userId', validateUserPatch, async (req, res) => {
         try {
             const workExperience = await getWorkExperienceByUserId(req.params.userId);
             res.status(workExperience.length ? 200 : 404).json(workExperience.length ? workExperience : { message: 'Опыты не найдены.' });
@@ -226,7 +235,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.put('/work_experience/:userId/:experienceId', validateUserId, async (req, res) => {
+    app.put('/work_experience/:userId/:experienceId', validateUserPatch, async (req, res) => {
         try {
             await updateWorkExperience(req.params.userId, req.params.experienceId, req.body);
             res.status(200).json({ message: 'Опыт успешно обновлен.' });
@@ -235,7 +244,7 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.delete('/work_experience/:userId/:experienceId', validateUserId, async (req, res) => {
+    app.delete('/work_experience/:userId/:experienceId', validateUserPatch, async (req, res) => {
         try {
             await deleteWorkExperience(req.params.userId, req.params.experienceId);
             res.status(200).json({ message: 'Опыт успешно удален.' });

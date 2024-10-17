@@ -30,7 +30,6 @@ export interface StartHttpServerParams {
 }
 export interface AvatarUploadParams {
     avatar: string;
-    userId: string;
     updateFields: UserProfileUpdateFields;
 }
 

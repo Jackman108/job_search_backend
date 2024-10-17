@@ -55,12 +55,8 @@ export async function saveVacancy(data: VacancyData, userId: string | number): P
 }
 
 export async function getVacanciesUser(userId: string | number): Promise<any[]> {
-    if (!userId) {
-        throw new Error('User ID is required');
-    }
-    const tableName = `"${userId}_vacancy"`;
     try {
-        const query = `SELECT * FROM ${tableName}`;
+        const query = `SELECT * FROM ${`"${userId}_vacancy"`}`;
         const result = await client.query(query);
         return result.rows.length > 0 ? result.rows : [];
     } catch (err) {
@@ -70,9 +66,8 @@ export async function getVacanciesUser(userId: string | number): Promise<any[]> 
 }
 
 export async function deleteVacancy(vacancyId: string | number, userId: string | number): Promise<void> {
-    const tableName = `"${userId}_vacancy"`;
     const deleteQuery = `
-        DELETE FROM ${tableName}
+        DELETE FROM ${`"${userId}_vacancy"`}
         WHERE id = $1;
     `;
     try {

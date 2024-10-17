@@ -9,7 +9,6 @@ interface UpdateFields {
 
 export const handleAvatarUpload = async (
     avatar: string,
-    userId: string,
     updateFields: UpdateFields
 ): Promise<void> => {
     if (avatar.startsWith('data:image')) {
@@ -20,7 +19,7 @@ export const handleAvatarUpload = async (
 
         const mimeType = matches[1];
         const extension = mimeType.split('/')[1];
-        const fileName = `${userId}_avatar.${extension}`;
+        const fileName = `${updateFields.userId}_avatar.${extension}`;
         const filePath = path.join(uploadDir, fileName);
         const base64Data = avatar.replace(/^data:image\/[^;]+;base64,/, '');
 

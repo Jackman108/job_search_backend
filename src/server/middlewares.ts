@@ -5,7 +5,11 @@ import express, { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import { InitializeMiddleware } from '../interface/interface.js';
 import { DOMAIN_URL, staticPath, uploadDir } from '../config/serverConfig.js';
+import jwt from 'jsonwebtoken';
 
+export interface AuthenticatedRequest extends Request {
+    userId?: string;
+}
 
 export const initializeMiddleware: InitializeMiddleware = (app: express.Application) => {
     app.use(express.json({ limit: '10mb' }));
@@ -33,17 +37,39 @@ export const handleErrors = (res: Response, error: unknown, defaultMessage: stri
     res.status(500).json({ message: defaultMessage });
 };
 
-export const validateUserId = (req: Request, res: Response, next: NextFunction) => {
+export const validateUserId = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.userId) {
+        return res.status(400).json({ message: 'userId is required.' });
+    }
+    next();
+};
+export const validateUserPatch = (req: Request, res: Response, next: NextFunction) => {
     if (!req.params.userId) {
         return res.status(400).json({ message: 'userId is required.' });
     }
     next();
 };
-
 export const validateDataPresence = (req: Request, res: Response, keys: string[]) => {
     for (const key of keys) {
         if (!req.body[key]) {
             return res.status(400).json({ message: `${key} is required.` });
         }
+    }
+};
+
+export const extractUserId = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) throw new Error('Токен отсутствует');
+
+        const secret = process.env.JWT_SECRET
+        if (!secret) throw new Error('Секретный ключ не найден');
+
+        const decoded: any = jwt.verify(token, secret);
+        req.userId = decoded.id;
+        next();
+    } catch (err) {
+        console.error(err);
+        res.status(401).json({ message: 'Неавторизованный запрос' });
     }
 };
