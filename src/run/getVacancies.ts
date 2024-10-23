@@ -30,7 +30,7 @@ export async function getVacancies(page: Page): Promise<VacancyWithResponse[]> {
             }
 
             if (responseText?.includes('Откликнуться')) {
-                const data = await extractVacancyData(page, {title_vacancy, url_vacancy, title_company, url_company });
+                const data = await extractVacancyData({title_vacancy, url_vacancy, title_company, url_company });
                 
                 if (!visitedIds.has(data.id)) {
                     visitedIds.add(data.id);

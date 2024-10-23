@@ -36,7 +36,7 @@ export async function runPuppeteerScript({
         await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
 
         await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
-
+        console.log('Start script');
         const coockeHandle = await page.waitForSelector(
             SELECTORS.COOKIE_ACCEPT,
             { timeout: TIMEOUTS.SEARCH, visible: true }).catch(() => null);

@@ -14,27 +14,33 @@ import { AuthenticatedRequest, extractUserId, handleErrors, validateDataPresence
 import { createWorkExperience, deleteWorkExperience, getWorkExperienceByUserId, updateWorkExperience } from '../services/workExperienceService.js';
 
 export const initializeRoutes = (app: express.Application) => {
-    app.post('/start', async (req, res) => {
+    app.post('/start', extractUserId, async (req: AuthenticatedRequest, res) => {
         try {
-            const { userId, email, password, position, message, vacancyUrl }: PuppeteerScriptParams = req.body;
+            if (!req.userId) {
+                return res.status(400).json({ message: 'userId is required.' });
+            }
+            const { email, password, position, message, vacancyUrl }: PuppeteerScriptParams = req.body;
             await runPuppeteerScript({
-                userId,
+                userId: req.userId,
                 email: email || personalData.vacancyEmail,
                 password: password || personalData.vacancyPassword,
                 position: position || personalData.vacancySearch,
                 message: message || personalData.coverLetter,
                 vacancyUrl: vacancyUrl || personalData.vacanciesUrl
             });
-            await incrementSpinCount(userId);
-            await updateSuccessfulResponsesCount(userId);
+            await incrementSpinCount(req.userId);
+            await updateSuccessfulResponsesCount(req.userId);
             res.status(200).json({ message: 'Скрипт выполнен успешно!' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка выполнения скрипта.');
         }
     });
 
-    app.post('/stop', async (req, res) => {
+    app.post('/stop', extractUserId, async (req: AuthenticatedRequest, res) => {
         try {
+            if (!req.userId) {
+                return res.status(400).json({ message: 'userId is required.' });
+            }
             const { browser } = req.body;
             await stop(browser);
             res.status(200).json({ message: 'Скрипт остановлен успешно!' });
@@ -69,34 +75,47 @@ export const initializeRoutes = (app: express.Application) => {
 
     app.get('/profile', extractUserId, async (req: AuthenticatedRequest, res) => {
         if (!req.userId) {
+            console.log(req);
             return res.status(400).json({ message: 'userId is required.' });
         }
         try {
             const profile = await getUserProfile(req.userId);
-            res.status(profile ? 200 : 404).json(profile || { message: 'Профиль не найден.' });
+            if (!profile) {
+                return res.status(404).json({ message: 'Profile not found' });
+            }
+            res.status(200).json(profile);
         } catch (error) {
-            handleErrors(res, error, 'Ошибка получения профиля пользователя.');
+            console.error("Error fetching user profile:", error);
+            return res.status(500).json({ message: 'Error fetching profile.' });
         }
     });
+    
 
-    app.post('/profile', async (req, res) => {
+    app.post('/profile', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            await createUserProfile(req.body);
-            await createVacancyTable(req.body);
-            res.status(201).json({ message: 'Профиль успешно создан.' });
+            const profileData = { ...req.body, userId: req.userId };
+            await createUserProfile(profileData);
+            await createVacancyTable(profileData);
+            res.status(201).json({ message: 'Profile successfully created.' });
         } catch (error) {
-            handleErrors(res, error, 'Ошибка создания профиля пользователя.');
+            handleErrors(res, error, 'Error creating a user profile.');
         }
     });
 
-    app.put('/profile', async (req, res) => {
+    app.put('/profile', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
             const { avatar, ...updateFields }: UserProfileUpdateFields = req.body;
             if (avatar) {
                 const avatarUploadParams: AvatarUploadParams = { avatar, updateFields };
                 await handleAvatarUpload(avatarUploadParams.avatar, avatarUploadParams.updateFields);
             }
-            const updatedProfile = await updateUserProfile(updateFields);
+            const updatedProfile = await updateUserProfile({ ...updateFields, userId: req.userId });
             res.status(200).json({ message: 'Профиль успешно обновлен.', profile: updatedProfile });
         } catch (error) {
             handleErrors(res, error, 'Ошибка обновления профиля пользователя.');
@@ -216,7 +235,7 @@ export const initializeRoutes = (app: express.Application) => {
             handleErrors(res, error, 'Ошибка удаления навыка.');
         }
     });
-    
+
     app.post('/work_experience/:userId', validateUserPatch, async (req, res) => {
         try {
             const workExperience = await createWorkExperience(req.params.userId, req.body);

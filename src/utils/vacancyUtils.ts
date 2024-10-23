@@ -1,8 +1,7 @@
 // src/utils/vacancyUtils.ts
-import { Page } from 'puppeteer';
 import { ExtractVacancyDataParams, VacancyData } from '../interface/interface.js';
 
-export async function extractVacancyData(page: Page, {
+export async function extractVacancyData({
     title_vacancy, url_vacancy, title_company, url_company
 }: ExtractVacancyDataParams): Promise<VacancyData> {
     const id = Number(url_vacancy.match(/\/(\d+)\?/)?.[1]) || 0;
