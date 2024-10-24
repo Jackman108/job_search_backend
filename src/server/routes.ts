@@ -122,150 +122,195 @@ export const initializeRoutes = (app: express.Application) => {
         }
     });
 
-    app.post('/resume/:userId', validateUserId, async (req, res) => {
+    app.post('/resume', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         validateDataPresence(req, res, ['full_name']);
         try {
-            const resume = await createResume(req.params.userId, req.body);
+            const resume = await createResume(req.userId, req.body);
             res.status(201).json({ message: 'Резюме успешно создано.', resume });
         } catch (error) {
             handleErrors(res, error, 'Ошибка создания резюме.');
         }
     });
 
-    app.get('/resume/:userId', validateUserPatch, async (req, res) => {
-
+    app.get('/resume', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            const resume = await getResumeById(req.params.userId);
+            const resume = await getResumeById(req.userId);
             res.status(resume ? 200 : 404).json(resume || { message: 'Резюме не найдено.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка получения резюме.');
         }
     });
 
-    app.put('/resume/:userId', validateUserPatch, async (req, res) => {
+    app.put('/resume', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            const userId = req.params.userId;
-            const updates = req.body;
-            await updateResume(userId, updates);
+            await updateResume(req.userId,  req.body);
             res.status(200).json({ message: 'Резюме успешно обновлено.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка обновления резюме.');
         }
     });
 
-    app.delete('/resume/:userId', validateUserPatch, async (req, res) => {
+    app.delete('/resume', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            const userId = req.params.userId;
-            await deleteResume(userId);
+            await deleteResume(req.userId);
             res.status(200).json({ message: 'Резюме успешно удалено.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка удаления резюме.');
         }
     });
 
-    app.post('/contacts/:userId', validateUserPatch, async (req, res) => {
+    app.post('/contacts', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         validateDataPresence(req, res, ['phone']);
         try {
-            const contact = await createContact(req.params.userId, req.body);
+            const contact = await createContact(req.userId, req.body);
             res.status(201).json({ message: 'Контакты успешно созданы.', contact });
         } catch (error) {
             handleErrors(res, error, 'Ошибка создания контактов.');
         }
     });
 
-    app.get('/contacts/:userId', validateUserPatch, async (req, res) => {
+    app.get('/contacts', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            const contact = await getContactById(req.params.userId);
+            const contact = await getContactById(req.userId);
             res.status(contact ? 200 : 404).json(contact || { message: 'Контакты не найдены.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка получения контактов.');
         }
     });
 
-    app.put('/contacts/:userId', validateUserPatch, async (req, res) => {
+    app.put('/contacts', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            await updateContact(req.params.userId, req.body);
+            await updateContact(req.userId, req.body);
             res.status(200).json({ message: 'Контакты успешно обновлены.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка обновления контактов.');;
         }
     });
 
-    app.delete('/contacts/:userId', validateUserPatch, async (req, res) => {
+    app.delete('/contacts', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            await deleteContact(req.params.userId);
+            await deleteContact(req.userId);
             res.status(200).json({ message: 'Контакты успешно удалены.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка удаления контактов.');
         }
     });
 
-    app.post('/skills/:userId', validateUserPatch, async (req, res) => {
+    app.post('/skills', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            const skill = await createSkill(req.params.userId, req.body);
+            const skill = await createSkill(req.userId, req.body);
             res.status(201).json({ message: 'Навык успешно создан.', skill });
         } catch (error) {
             handleErrors(res, error, 'Ошибка создания навыка.');
         }
     });
 
-    app.get('/skills/:userId', validateUserPatch, async (req, res) => {
+    app.get('/skills', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            const skills = await getSkillsByUserId(req.params.userId);
+            const skills = await getSkillsByUserId(req.userId);
             res.status(skills.length ? 200 : 404).json(skills.length ? skills : { message: 'Навыки не найдены.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка получения навыков.');
         }
     });
 
-    app.put('/skills/:userId/:skillId', validateUserPatch, async (req, res) => {
+    app.put('/skills/:skillId', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
+
         try {
-            await updateSkill(req.params.userId, req.params.skillId, req.body);
+            await updateSkill(req.userId, req.params.skillId, req.body);
             res.status(200).json({ message: 'Навык успешно обновлен.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка обновления навыка.');
         }
     });
 
-    app.delete('/skills/:userId/:skillId', validateUserPatch, async (req, res) => {
+    app.delete('/skills/:skillId', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            await deleteSkill(req.params.userId, req.params.skillId);
+            await deleteSkill(req.userId, req.params.skillId);
             res.status(200).json({ message: 'Навык успешно удален.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка удаления навыка.');
         }
     });
 
-    app.post('/work_experience/:userId', validateUserPatch, async (req, res) => {
+    app.post('/work_experience', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            const workExperience = await createWorkExperience(req.params.userId, req.body);
+            const workExperience = await createWorkExperience(req.userId, req.body);
             res.status(201).json({ message: 'Опыт успешно создан.', workExperience });
         } catch (error) {
             handleErrors(res, error, 'Ошибка создания опыта.');
         }
     });
 
-    app.get('/work_experience/:userId', validateUserPatch, async (req, res) => {
+    app.get('/work_experience', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            const workExperience = await getWorkExperienceByUserId(req.params.userId);
+            const workExperience = await getWorkExperienceByUserId(req.userId);
             res.status(workExperience.length ? 200 : 404).json(workExperience.length ? workExperience : { message: 'Опыты не найдены.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка получения опыта.');
         }
     });
 
-    app.put('/work_experience/:userId/:experienceId', validateUserPatch, async (req, res) => {
+    app.put('/work_experience/:experienceId', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            await updateWorkExperience(req.params.userId, req.params.experienceId, req.body);
+            await updateWorkExperience(req.userId, req.params.experienceId, req.body);
             res.status(200).json({ message: 'Опыт успешно обновлен.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка обновления опыта.');
         }
     });
 
-    app.delete('/work_experience/:userId/:experienceId', validateUserPatch, async (req, res) => {
+    app.delete('/work_experience/:experienceId', extractUserId, async (req: AuthenticatedRequest, res) => {
+        if (!req.userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
         try {
-            await deleteWorkExperience(req.params.userId, req.params.experienceId);
+            await deleteWorkExperience(req.userId, req.params.experienceId);
             res.status(200).json({ message: 'Опыт успешно удален.' });
         } catch (error) {
             handleErrors(res, error, 'Ошибка удаления опыта.');
