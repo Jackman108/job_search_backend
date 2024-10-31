@@ -1,17 +1,18 @@
 // src/navigateAndProcessVacancies.ts
-import { processVacancy } from './processVacancy.js';
+import { SELECTORS, TIMEOUTS } from '../../../constants.js';
+import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '../../../interface/interface.js';
+import { personalData } from '../../../secrets.js';
+import { getVacanciesUser } from '../../../services/sentFeedbackService.js';
+import { isStopped, stop } from '../../../utils/stopManager.js';
 import { getVacancies } from './getVacancies.js';
-import { personalData } from '../secrets.js';
-import { SELECTORS, TIMEOUTS } from '../constants.js';
-import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '../interface/interface.js';
-import { getVacanciesUser } from '../services/vacancyService.js';
+import { processVacancy } from './processVacancy.js';
 
 export async function navigateAndProcessVacancies({
     userId,
     page,
     counters,
     message,
-    isStopped
+    browser
 }: NavigateAndProcessVacanciesParams): Promise<void> {
     let currentPage = 0;
     let existingVacanciesIds: Set<number>;
@@ -27,6 +28,7 @@ export async function navigateAndProcessVacancies({
 
     while (currentPage < totalPages) {
         if (isStopped()) {
+            await stop(browser);
             return;
         }
         try {
@@ -41,9 +43,12 @@ export async function navigateAndProcessVacancies({
 
             for (let i = 0; i < vacancies.length; i++) {
                 const { data, vacancyResponse } = vacancies[i];
+                await page.screenshot({ path: 'vacancies_length.png' });
                 if (isStopped()) {
+                    await stop(browser);
                     return;
                 }
+
                 console.log('Vacancies found', vacancies.length);
                 console.log('Sent feedback:', counters.successfullySubmittedCount, 'UnSent feedback:', counters.unsuccessfullySubmittedCount);
 
@@ -64,13 +69,17 @@ export async function navigateAndProcessVacancies({
             const nextPageButtonHandle = await page.$(SELECTORS.PAGER_NEXT);
             if (nextPageButtonHandle) {
                 console.log('Go to the next page.');
+                await page.screenshot({ path: 'next_ page.png' });
+
                 await nextPageButtonHandle.click();
                 await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
                 currentPage++;
             } else {
                 break;
             }
+
             if (isStopped()) {
+                await stop(browser);
                 return;
             }
         } catch (err) {

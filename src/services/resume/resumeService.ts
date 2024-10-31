@@ -1,7 +1,7 @@
 // resumeService.ts
-import client from "../config/dbConfig.js";
+import client from "../../config/dbConfig.js";
 
-export const createResume = async (
+export const createResumeUser = async (
     userId: string,
     resumeData: {
         full_name: string,
@@ -38,7 +38,7 @@ export const createResume = async (
     }
 };
 
-export const getResumeById = async (userId: string): Promise<any> => {
+export const getResumeUser = async (userId: string): Promise<any> => {
     const query = `SELECT * FROM resumes WHERE user_id = $1`;
     try {
         const result = await client.query(query, [userId]);
@@ -49,7 +49,7 @@ export const getResumeById = async (userId: string): Promise<any> => {
     }
 };
 
-export const updateResume = async (userId: string, updates: {
+export const updateResumeUser = async (userId: string, updates: {
     full_name?: string,
     position?: string,
     employment_type?: string,
@@ -106,7 +106,7 @@ export const updateResume = async (userId: string, updates: {
     }
 };
 
-export const deleteResume = async (userId: string): Promise<void> => {
+export const deleteResumeUser = async (userId: string): Promise<void> => {
     const deleteResumeQuery = `
         DELETE FROM resumes
         WHERE user_id = $1;

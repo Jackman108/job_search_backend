@@ -39,3 +39,14 @@ export const SELECTORS = {
     CAPTCHA_INPUT: '[data-qa="account-captcha-input"]',
     CAPTCHA_LANG: '[data-qa="captcha-language"]',
 };
+
+export const SELECTORS_CHAT = {
+    CHAT_URL: 'https://chatik.hh.ru/?hhtmSource=chat_page&hhtmFrom=chat',
+    CHAT_CARD: 'a[data-qa*="chatik-open-chat-"]',
+    VACANCY_RESPONSE: '[data-qa="vacancy-serp__vacancy_response"]',
+    VACANCY_URL: '[data-qa="chatik-header-vacancy-link"]',
+    RESPONSE_STATUS: '[data-qa="chat-bubble-title"]',
+    CHAT_TEXT: '[data-qa="chat-bubble-text"]',
+    CHAT_DATE: '<div class="vY_8KMJ___chat-date"><div class="magritte-text___pbpft_3-0-15 magritte-text_style-tertiary___ANX5P_3-0-15 magritte-text_typography-label-2-regular___ia7GB_3-0-15">Вчера</div></div>',
+    CHAT_TIME: '[data-qa="chat-buble-display-time"]',
+};

@@ -1,321 +1,52 @@
 // server/routes.ts
-import express from 'express';
-import { AvatarUploadParams, PuppeteerScriptParams, UserProfileUpdateFields } from '../interface/interface.js';
-import { runPuppeteerScript } from '../run/index.js';
-import { personalData } from '../secrets.js';
-import { createContact, deleteContact, getContactById, updateContact } from '../services/contactService.js';
-import { createUserProfile, getUserProfile, incrementSpinCount, updateSuccessfulResponsesCount, updateUserProfile } from '../services/profileService.js';
-import { createResume, deleteResume, getResumeById, updateResume } from '../services/resumeService.js';
-import { createSkill, deleteSkill, getSkillsByUserId, updateSkill } from '../services/skillService.js';
-import { createVacancyTable, deleteVacancy, getVacanciesUser } from '../services/vacancyService.js';
-import { handleAvatarUpload } from '../utils/avatarUpload.js';
-import { stop } from '../utils/stopManager.js';
-import { AuthenticatedRequest, extractUserId, handleErrors, validateDataPresence, validateUserId, validateUserPatch } from './middlewares.js';
-import { createWorkExperience, deleteWorkExperience, getWorkExperienceByUserId, updateWorkExperience } from '../services/workExperienceService.js';
+import express, { Response } from 'express';
+import { ContactsController } from '../controllers/ContactsController.js';
+import { ProfileController } from '../controllers/ProfileController.js';
+import { ResumeController } from '../controllers/ResumeController.js';
+import { ScriptController } from '../controllers/ScriptController.js';
+import { SkillsController } from '../controllers/SkillsController.js';
+import { VacancyController } from '../controllers/VacancyController.js';
+import { WorkExperienceController } from '../controllers/WorkExperienceController.js';
+import { AuthenticatedRequest, extractUserId } from './middlewares.js';
+
+const profileController = new ProfileController();
+const resumeController = new ResumeController();
+const vacancyController = new VacancyController();
+const contactsController = new ContactsController();
+const skillsController = new SkillsController();
+const workExperienceController = new WorkExperienceController();
+const scriptController = new ScriptController();
 
 export const initializeRoutes = (app: express.Application) => {
-    app.post('/start', extractUserId, async (req: AuthenticatedRequest, res) => {
-        try {
-            if (!req.userId) {
-                return res.status(400).json({ message: 'userId is required.' });
-            }
-            const { email, password, position, message, vacancyUrl }: PuppeteerScriptParams = req.body;
-            await runPuppeteerScript({
-                userId: req.userId,
-                email: email || personalData.vacancyEmail,
-                password: password || personalData.vacancyPassword,
-                position: position || personalData.vacancySearch,
-                message: message || personalData.coverLetter,
-                vacancyUrl: vacancyUrl || personalData.vacanciesUrl
-            });
-            await incrementSpinCount(req.userId);
-            await updateSuccessfulResponsesCount(req.userId);
-            res.status(200).json({ message: 'Скрипт выполнен успешно!' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка выполнения скрипта.');
-        }
-    });
 
-    app.post('/stop', extractUserId, async (req: AuthenticatedRequest, res) => {
-        try {
-            if (!req.userId) {
-                return res.status(400).json({ message: 'userId is required.' });
-            }
-            const { browser } = req.body;
-            await stop(browser);
-            res.status(200).json({ message: 'Скрипт остановлен успешно!' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка остановки скрипта.');
-        }
-    });
+    app.get('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.getProfile(req, res));
+    app.post('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.createProfile(req, res));
+    app.put('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.updateProfile(req, res));
 
-    app.get('/vacancy', extractUserId, async (req: AuthenticatedRequest, res) => {
-        try {
-            if (!req.userId) {
-                return res.status(400).json({ message: 'userId is required.' });
-            }
-            const vacancies = await getVacanciesUser(req.userId);
-            res.status(vacancies ? 200 : 404).json(vacancies || { message: 'Вакансии не найдены.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка получения вакансий по userId.');
-        }
-    });
+    app.get('/vacancy', extractUserId, (req: AuthenticatedRequest, res: Response) => vacancyController.getVacancies(req, res));
+    app.delete('/vacancy/:vacancyId', extractUserId, (req: AuthenticatedRequest, res: Response) => vacancyController.deleteVacancy(req, res));
 
-    app.delete('/vacancy/:vacancyId', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            await deleteVacancy(req.params.vacancyId, req.userId);
-            res.status(200).json({ message: 'Вакансия удалена успешно.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка удаления вакансии.');
-        }
-    });
+    app.post('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.createResume(req, res));
+    app.get('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.getResume(req, res));
+    app.put('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.updateResume(req, res));
+    app.delete('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.deleteResume(req, res));
 
-    app.get('/profile', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            console.log(req);
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            const profile = await getUserProfile(req.userId);
-            if (!profile) {
-                return res.status(404).json({ message: 'Profile not found' });
-            }
-            res.status(200).json(profile);
-        } catch (error) {
-            console.error("Error fetching user profile:", error);
-            return res.status(500).json({ message: 'Error fetching profile.' });
-        }
-    });
-    
+    app.get('/contacts', extractUserId, (req: AuthenticatedRequest, res: Response) => contactsController.getContacts(req, res));
+    app.post('/contacts', extractUserId, (req: AuthenticatedRequest, res: Response) => contactsController.createContact(req, res));
+    app.put('/contacts', extractUserId, (req: AuthenticatedRequest, res: Response) => contactsController.updateContact(req, res));
+    app.delete('/contacts', extractUserId, (req: AuthenticatedRequest, res: Response) => contactsController.deleteContact(req, res));
 
-    app.post('/profile', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            const profileData = { ...req.body, userId: req.userId };
-            await createUserProfile(profileData);
-            await createVacancyTable(profileData);
-            res.status(201).json({ message: 'Profile successfully created.' });
-        } catch (error) {
-            handleErrors(res, error, 'Error creating a user profile.');
-        }
-    });
+    app.get('/skills', extractUserId, (req: AuthenticatedRequest, res: Response) => skillsController.getSkills(req, res));
+    app.post('/skills', extractUserId, (req: AuthenticatedRequest, res: Response) => skillsController.createSkill(req, res));
+    app.put('/skills/:skillId', extractUserId, (req: AuthenticatedRequest, res: Response) => skillsController.updateSkill(req, res));
+    app.delete('/skills/:skillId', extractUserId, (req: AuthenticatedRequest, res: Response) => skillsController.deleteSkill(req, res));
 
-    app.put('/profile', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            const { avatar, ...updateFields }: UserProfileUpdateFields = req.body;
-            if (avatar) {
-                const avatarUploadParams: AvatarUploadParams = { avatar, updateFields };
-                await handleAvatarUpload(avatarUploadParams.avatar, avatarUploadParams.updateFields);
-            }
-            const updatedProfile = await updateUserProfile({ ...updateFields, userId: req.userId });
-            res.status(200).json({ message: 'Профиль успешно обновлен.', profile: updatedProfile });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка обновления профиля пользователя.');
-        }
-    });
+    app.get('/work_experience', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.getExperience(req, res));
+    app.post('/work_experience', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.createExperience(req, res));
+    app.put('/work_experience/:experienceId', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.updateExperience(req, res));
+    app.delete('/work_experience/:experienceId', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.deleteExperience(req, res));
 
-    app.post('/resume', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        validateDataPresence(req, res, ['full_name']);
-        try {
-            const resume = await createResume(req.userId, req.body);
-            res.status(201).json({ message: 'Резюме успешно создано.', resume });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка создания резюме.');
-        }
-    });
-
-    app.get('/resume', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            const resume = await getResumeById(req.userId);
-            res.status(resume ? 200 : 404).json(resume || { message: 'Резюме не найдено.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка получения резюме.');
-        }
-    });
-
-    app.put('/resume', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            await updateResume(req.userId,  req.body);
-            res.status(200).json({ message: 'Резюме успешно обновлено.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка обновления резюме.');
-        }
-    });
-
-    app.delete('/resume', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            await deleteResume(req.userId);
-            res.status(200).json({ message: 'Резюме успешно удалено.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка удаления резюме.');
-        }
-    });
-
-    app.post('/contacts', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        validateDataPresence(req, res, ['phone']);
-        try {
-            const contact = await createContact(req.userId, req.body);
-            res.status(201).json({ message: 'Контакты успешно созданы.', contact });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка создания контактов.');
-        }
-    });
-
-    app.get('/contacts', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            const contact = await getContactById(req.userId);
-            res.status(contact ? 200 : 404).json(contact || { message: 'Контакты не найдены.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка получения контактов.');
-        }
-    });
-
-    app.put('/contacts', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            await updateContact(req.userId, req.body);
-            res.status(200).json({ message: 'Контакты успешно обновлены.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка обновления контактов.');;
-        }
-    });
-
-    app.delete('/contacts', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            await deleteContact(req.userId);
-            res.status(200).json({ message: 'Контакты успешно удалены.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка удаления контактов.');
-        }
-    });
-
-    app.post('/skills', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            const skill = await createSkill(req.userId, req.body);
-            res.status(201).json({ message: 'Навык успешно создан.', skill });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка создания навыка.');
-        }
-    });
-
-    app.get('/skills', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            const skills = await getSkillsByUserId(req.userId);
-            res.status(skills.length ? 200 : 404).json(skills.length ? skills : { message: 'Навыки не найдены.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка получения навыков.');
-        }
-    });
-
-    app.put('/skills/:skillId', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-
-        try {
-            await updateSkill(req.userId, req.params.skillId, req.body);
-            res.status(200).json({ message: 'Навык успешно обновлен.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка обновления навыка.');
-        }
-    });
-
-    app.delete('/skills/:skillId', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            await deleteSkill(req.userId, req.params.skillId);
-            res.status(200).json({ message: 'Навык успешно удален.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка удаления навыка.');
-        }
-    });
-
-    app.post('/work_experience', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            const workExperience = await createWorkExperience(req.userId, req.body);
-            res.status(201).json({ message: 'Опыт успешно создан.', workExperience });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка создания опыта.');
-        }
-    });
-
-    app.get('/work_experience', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            const workExperience = await getWorkExperienceByUserId(req.userId);
-            res.status(workExperience.length ? 200 : 404).json(workExperience.length ? workExperience : { message: 'Опыты не найдены.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка получения опыта.');
-        }
-    });
-
-    app.put('/work_experience/:experienceId', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            await updateWorkExperience(req.userId, req.params.experienceId, req.body);
-            res.status(200).json({ message: 'Опыт успешно обновлен.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка обновления опыта.');
-        }
-    });
-
-    app.delete('/work_experience/:experienceId', extractUserId, async (req: AuthenticatedRequest, res) => {
-        if (!req.userId) {
-            return res.status(400).json({ message: 'userId is required.' });
-        }
-        try {
-            await deleteWorkExperience(req.userId, req.params.experienceId);
-            res.status(200).json({ message: 'Опыт успешно удален.' });
-        } catch (error) {
-            handleErrors(res, error, 'Ошибка удаления опыта.');
-        }
-    });
-
-
+    app.post('/start', extractUserId, (req: AuthenticatedRequest, res: Response) => scriptController.startScript(req, res));
+    app.post('/stop', extractUserId, (req: AuthenticatedRequest, res: Response) => scriptController.stopScript(req, res));
+    app.post('/refresh', extractUserId, (req: AuthenticatedRequest, res: Response) => scriptController.refreshData(req, res));
 };

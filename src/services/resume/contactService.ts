@@ -1,6 +1,6 @@
-import client from "../config/dbConfig.js";
+import client from "../../config/dbConfig.js";
 
-export const createContact = async (
+export const createContactUser = async (
     userId: string,
     contactData: {
         phone: string;
@@ -32,7 +32,7 @@ export const createContact = async (
     }
 };
 
-export const getContactById = async (userId: string): Promise<any> => {
+export const getContactUser = async (userId: string): Promise<any> => {
     const query = `SELECT * FROM contacts WHERE user_id = $1`;
     try {
         const result = await client.query(query, [userId]);
@@ -43,7 +43,7 @@ export const getContactById = async (userId: string): Promise<any> => {
     }
 };
 
-export const updateContact = async (
+export const updateContactUser = async (
     userId: string,
     updates: { phone?: string; email?: string; personal_site?: string }
 ): Promise<void> => {
@@ -84,7 +84,7 @@ export const updateContact = async (
     }
 };
 
-export const deleteContact = async (userId: string): Promise<void> => {
+export const deleteContactUser = async (userId: string): Promise<void> => {
     const deleteQuery = `DELETE FROM contacts WHERE user_id = $1;`;
     try {
         await client.query(deleteQuery, [userId]);

@@ -1,7 +1,7 @@
 // skillService.ts
-import client from "../config/dbConfig.js";
+import client from "../../config/dbConfig.js";
 
-export const createSkill = async (
+export const createSkillUser = async (
     userId: string,
     skillData: {
         skill_name: string;
@@ -30,7 +30,7 @@ export const createSkill = async (
     }
 };
 
-export const getSkillsByUserId = async (userId: string): Promise<any[]> => {
+export const getSkillsUser = async (userId: string): Promise<any[]> => {
     const query = `SELECT * FROM skills WHERE user_id = $1`;
     try {
         const result = await client.query(query, [userId]);
@@ -41,7 +41,7 @@ export const getSkillsByUserId = async (userId: string): Promise<any[]> => {
     }
 };
 
-export const updateSkill = async (
+export const updateSkillUser = async (
     userId: string,
     skillId: string,
     updates: { skill_name?: string; proficiency_level?: string }
@@ -79,7 +79,7 @@ export const updateSkill = async (
     }
 };
 
-export const deleteSkill = async (userId: string, skillId: string): Promise<void> => {
+export const deleteSkillUser = async (userId: string, skillId: string): Promise<void> => {
     const deleteSkillQuery = `
         DELETE FROM skills
         WHERE user_id = $1 AND id = $2;

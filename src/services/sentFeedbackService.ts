@@ -1,6 +1,6 @@
 // vacancyService.ts
 import client from '../config/dbConfig.js';
-import { ProfileData, VacancyData } from '../interface/interface';
+import { ProfileData, VacancyData } from '../interface/interface.js';
 import { broadcast} from '../server/startWebSocketServer.js';
 
 export const createVacancyTable = async (profileData: ProfileData): Promise<void> => {
@@ -65,7 +65,7 @@ export async function getVacanciesUser(userId: string | number): Promise<any[]> 
     }
 }
 
-export async function deleteVacancy(vacancyId: string | number, userId: string | number): Promise<void> {
+export async function deleteVacancyUser(vacancyId: string | number, userId: string | number): Promise<void> {
     const deleteQuery = `
         DELETE FROM ${`"${userId}_vacancy"`}
         WHERE id = $1;

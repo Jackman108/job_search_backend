@@ -1,6 +1,6 @@
-import client from '../config/dbConfig.js';
-import { ProfileData } from '../interface/interface';
-import { broadcast } from '../server/startWebSocketServer.js';
+import client from '../../config/dbConfig.js';
+import { ProfileData } from '../../interface/interface.js';
+import { broadcast } from '../../server/startWebSocketServer.js';
 
 export async function getUserProfile(userId: string | number): Promise<ProfileData> {
     const query = `

@@ -1,7 +1,18 @@
 // workExperienceService.ts
-import client from "../config/dbConfig.js";
+import client from "../../config/dbConfig.js";
 
-export const createWorkExperience = async (
+export const getExperienceUser = async (userId: string): Promise<any[]> => {
+    const query = `SELECT * FROM work_experience WHERE user_id = $1`;
+    try {
+        const result = await client.query(query, [userId]);
+        return result.rows;
+    } catch (err) {
+        console.error(`Error retrieving work experience for user ${userId}:`, err);
+        throw err;
+    }
+};
+
+export const createExperienceUser = async (
     userId: string,
     experienceData: {
         company_name: string;
@@ -37,18 +48,7 @@ export const createWorkExperience = async (
     }
 };
 
-export const getWorkExperienceByUserId = async (userId: string): Promise<any[]> => {
-    const query = `SELECT * FROM work_experience WHERE user_id = $1`;
-    try {
-        const result = await client.query(query, [userId]);
-        return result.rows;
-    } catch (err) {
-        console.error(`Error retrieving work experience for user ${userId}:`, err);
-        throw err;
-    }
-};
-
-export const updateWorkExperience = async (
+export const updateExperienceUser = async (
     userId: string,
     experienceId: string,
     updates: {
@@ -104,7 +104,7 @@ export const updateWorkExperience = async (
     }
 };
 
-export const deleteWorkExperience = async (userId: string, experienceId: string): Promise<void> => {
+export const deleteExperienceUser = async (userId: string, experienceId: string): Promise<void> => {
     const deleteExperienceQuery = `
         DELETE FROM work_experience
         WHERE user_id = $1 AND id = $2;
