@@ -1,9 +1,23 @@
 // server/controllers/VacancyController.ts
 import { Response } from 'express';
 import { AuthenticatedRequest, handleErrors } from '../server/middlewares.js';
-import { createVacancyTable, deleteVacancyUser, getVacanciesUser } from '../services/sentFeedbackService.js';
+import { createTableVacanciesUser, deleteVacancyUser, getVacanciesUser } from '../services/vacancyService.js';
 
 export class VacancyController {
+    async createVacanciesTable(req: AuthenticatedRequest, res: Response,) {
+        const userId = req.body.userId;
+        if (!userId) {
+            return res.status(400).json({ message: 'userId is required.' });
+        }
+        console.log(userId)
+        try {
+            await createTableVacanciesUser(userId);
+            res.status(201).json({ message: 'Vacancy Table successfully created.' });
+        } catch (error) {
+            res.status(500).json({ message: 'Error creating a Vacancy Table.' });
+        }
+    }
+
     async getVacancies(req: AuthenticatedRequest, res: Response) {
         try {
             const userId = req.userId;

@@ -1,7 +1,7 @@
 // src/processVacancy.js
 import { SELECTORS, SELECTORS_CHAT, TIMEOUTS } from '../../../constants.js';
-import { FeedbackChatParams } from '../../../interface/interface.js';
-import { saveFeedback } from '../../../services/getFeedbackService.js';
+import { ProcessChatParams, GetFeedbackParams } from '../../../interface/interface.js';
+import { saveChatFeedback } from '../../../services/chatService.js';
 import { extractFeedbackData } from '../../../utils/chatUtils.js';
 
 export async function processChat({
@@ -9,7 +9,7 @@ export async function processChat({
     chatLinkHandle,
     chatId,
     userId
-}: FeedbackChatParams): Promise<void> {
+}: ProcessChatParams): Promise<void> {
     
     await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
     await page.screenshot({ path: 'screenshot-unknown.png' });
@@ -35,6 +35,6 @@ export async function processChat({
     const feedback_time = timeHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), timeHandle) : '';
 
     const newData = await extractFeedbackData({ userId, chatId, url_vacancy, response_status, feedback_text, feedback_date, feedback_time });
-    await saveFeedback(newData, userId);
+    await saveChatFeedback(newData, userId);
     console.log(`The Chat with ID ${newData.id} is saved with flag ${newData.response_status}`);
 };

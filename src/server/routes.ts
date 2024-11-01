@@ -1,5 +1,6 @@
 // server/routes.ts
 import express, { Response } from 'express';
+import { ChatFeedbackController } from '../controllers/ChatFeedbackController.js';
 import { ContactsController } from '../controllers/ContactsController.js';
 import { ProfileController } from '../controllers/ProfileController.js';
 import { ResumeController } from '../controllers/ResumeController.js';
@@ -12,6 +13,7 @@ import { AuthenticatedRequest, extractUserId } from './middlewares.js';
 const profileController = new ProfileController();
 const resumeController = new ResumeController();
 const vacancyController = new VacancyController();
+const chatFeedbackController = new ChatFeedbackController();
 const contactsController = new ContactsController();
 const skillsController = new SkillsController();
 const workExperienceController = new WorkExperienceController();
@@ -19,15 +21,21 @@ const scriptController = new ScriptController();
 
 export const initializeRoutes = (app: express.Application) => {
 
-    app.get('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.getProfile(req, res));
-    app.post('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.createProfile(req, res));
-    app.put('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.updateProfile(req, res));
+    app.post('/default/vacancies', (req, res: Response) => vacancyController.createVacanciesTable(req, res));
+    app.post('/default/feedback', (req, res: Response) => chatFeedbackController.createFeedbackTable(req, res));
+    app.post('/default/profile', (req, res: Response) => profileController.createProfile(req, res));
 
     app.get('/vacancy', extractUserId, (req: AuthenticatedRequest, res: Response) => vacancyController.getVacancies(req, res));
     app.delete('/vacancy/:vacancyId', extractUserId, (req: AuthenticatedRequest, res: Response) => vacancyController.deleteVacancy(req, res));
 
-    app.post('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.createResume(req, res));
+    app.get('/feedback', extractUserId, (req: AuthenticatedRequest, res: Response) => chatFeedbackController.getFeedback(req, res));
+    app.delete('/feedback/:feedbackId', extractUserId, (req: AuthenticatedRequest, res: Response) => chatFeedbackController.deleteFeedback(req, res));
+
+    app.get('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.getProfile(req, res));
+    app.put('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.updateProfile(req, res));
+
     app.get('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.getResume(req, res));
+    app.post('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.createResume(req, res));
     app.put('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.updateResume(req, res));
     app.delete('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.deleteResume(req, res));
 
@@ -45,6 +53,7 @@ export const initializeRoutes = (app: express.Application) => {
     app.post('/work_experience', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.createExperience(req, res));
     app.put('/work_experience/:experienceId', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.updateExperience(req, res));
     app.delete('/work_experience/:experienceId', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.deleteExperience(req, res));
+
 
     app.post('/start', extractUserId, (req: AuthenticatedRequest, res: Response) => scriptController.startScript(req, res));
     app.post('/stop', extractUserId, (req: AuthenticatedRequest, res: Response) => scriptController.stopScript(req, res));

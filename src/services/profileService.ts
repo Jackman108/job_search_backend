@@ -1,6 +1,6 @@
-import client from '../../config/dbConfig.js';
-import { ProfileData } from '../../interface/interface.js';
-import { broadcast } from '../../server/startWebSocketServer.js';
+import client from '../config/dbConfig.js';
+import { ProfileData } from '../interface/interface.js';
+import { broadcast } from '../server/startWebSocketServer.js';
 
 export async function getUserProfile(userId: string | number): Promise<ProfileData> {
     const query = `
@@ -32,7 +32,8 @@ export async function getUserProfile(userId: string | number): Promise<ProfileDa
     }
 }
 
-export async function createUserProfile(profileData: ProfileData): Promise<void> {
+export async function createUserProfile(userId: string): Promise<void> {
+    const id = userId.toString();
     const createProfileQuery = `
         INSERT INTO profiles (
             first_name, last_name, avatar, balance, spin_count, successful_responses_count, current_status, user_id, updated_at
@@ -41,26 +42,26 @@ export async function createUserProfile(profileData: ProfileData): Promise<void>
         RETURNING id;
     `;
     const values = [
-        profileData.firstName || 'Иван',
-        profileData.lastName || 'Иванов',
-        profileData.avatar || '',
-        profileData.balance || 0,
-        profileData.spinCount || 0,
-        profileData.successfulResponsesCount || 0,
-        profileData.currentStatus || 'inactive',
-        profileData.userId,
-        profileData.updatedAt || new Date().toISOString()
+        'Иван',
+        'Иванов',
+        '',
+        0,
+        0,
+        0,
+        'inactive',
+        id,
+        new Date().toISOString()
     ];
 
     try {
         await client.query(createProfileQuery, values);
-        broadcast(`Profile has been successfully created for user ${profileData.userId}`);
+        broadcast(`Profile has been successfully created for user ${userId}`);
     } catch (err) {
         throw err;
     }
 }
 
-export async function updateUserProfile( profileData: Partial<ProfileData>): Promise<ProfileData> {
+export async function updateUserProfile(profileData: Partial<ProfileData>): Promise<ProfileData> {
     const updateFields = [];
     const values = [];
     let index = 1;

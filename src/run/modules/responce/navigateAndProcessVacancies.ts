@@ -2,7 +2,7 @@
 import { SELECTORS, TIMEOUTS } from '../../../constants.js';
 import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '../../../interface/interface.js';
 import { personalData } from '../../../secrets.js';
-import { getVacanciesUser } from '../../../services/sentFeedbackService.js';
+import { getVacanciesUser } from '../../../services/vacancyService.js';
 import { isStopped, stop } from '../../../utils/stopManager.js';
 import { getVacancies } from './getVacancies.js';
 import { processVacancy } from './processVacancy.js';

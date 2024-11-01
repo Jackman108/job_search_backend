@@ -2,7 +2,7 @@
 import { SELECTORS, TIMEOUTS } from '../../../constants.js';
 import { ChatData, ChatWithResponse, navigateAndProcessChats } from '../../../interface/interface.js';
 import { personalData } from '../../../secrets.js';
-import { getFeedbacksForUser } from '../../../services/getFeedbackService.js';
+import { getChatFeedback } from '../../../services/chatService.js';
 import { isStopped, stop } from '../../../utils/stopManager.js';
 import { getChats } from './getChats.js';
 import { processChat } from './processChat.js';
@@ -18,7 +18,7 @@ export async function navigateAndProcessChats({
     const { totalPages } = personalData;
 
     try {
-        const ChatsFromDb = await getFeedbacksForUser(userId);
+        const ChatsFromDb = await getChatFeedback(userId);
         existingChatsIds = new Set(ChatsFromDb.map(chat => chat.id));
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
@@ -34,15 +34,15 @@ export async function navigateAndProcessChats({
             console.log(`Processing page ${currentPage + 1} из ${totalPages}`);
 
             let chats: ChatWithResponse[] = await getChats(page);
-            chats = chats.filter(( data ) => data.chatId && !existingChatsIds.has(data.chatId));
+            chats = chats.filter((data) => data.chatId && !existingChatsIds.has(data.chatId));
             if (chats.length === 0) {
                 console.log('chats.length', chats.length);
                 break;
             }
 
             for (let i = 0; i < chats.length; i++) {
-                const  {chatId, chatLinkHandle}  = chats[i];
-                
+                const { chatId, chatLinkHandle } = chats[i];
+
                 await page.screenshot({ path: 'chats_length.png' });
                 if (isStopped()) {
                     await stop(browser);
@@ -53,6 +53,7 @@ export async function navigateAndProcessChats({
 
                 await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
                 try {
+                    existingChatsIds.add(chatId);
                     if (chatLinkHandle) {
                         await processChat({ page, chatLinkHandle, chatId, userId });
                     } else {
@@ -63,22 +64,6 @@ export async function navigateAndProcessChats({
                 }
             }
 
-            const nextPageButtonHandle = await page.$(SELECTORS.PAGER_NEXT);
-            if (nextPageButtonHandle) {
-                console.log('Go to the next page.');
-                await page.screenshot({ path: 'next_ page.png' });
-
-                await nextPageButtonHandle.click();
-                await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
-                currentPage++;
-            } else {
-                break;
-            }
-
-            if (isStopped()) {
-                await stop(browser);
-                return;
-            }
         } catch (err) {
             console.error('Error during page processing:', err);
         }

@@ -1,11 +1,12 @@
 // vacancyService.ts
 import client from '../config/dbConfig.js';
-import { ProfileData, VacancyData } from '../interface/interface.js';
-import { broadcast} from '../server/startWebSocketServer.js';
+import { VacancyData } from '../interface/interface.js';
+import { broadcast } from '../server/startWebSocketServer.js';
 
-export const createVacancyTable = async (profileData: ProfileData): Promise<void> => {
-    const userId = profileData.userId.toString();
-    const tableName = `"${userId}_vacancy"`;
+export const createTableVacanciesUser = async (userId: string | number): Promise<void> => {
+    const id = userId.toString();
+    const tableName = `"${id}_vacancy"`;
+    console.log(tableName)
 
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS ${tableName} (

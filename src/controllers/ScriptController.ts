@@ -1,11 +1,11 @@
 // controllers/ScriptController.js
-import { Request, Response } from 'express';
-import { personalData } from '../secrets.js';
-import { incrementSpinCount, updateSuccessfulResponsesCount } from '../services/resume/profileService.js';
-import { sendFeedback } from '../run/sendFeedback.js';
-import { stop } from '../utils/stopManager.js';
+import { Response } from 'express';
 import { getFeedback } from '../run/getFeedback.js';
+import { sendFeedback } from '../run/sendFeedback.js';
+import { personalData } from '../secrets.js';
 import { AuthenticatedRequest, handleErrors } from '../server/middlewares.js';
+import { incrementSpinCount, updateSuccessfulResponsesCount } from '../services/profileService.js';
+import { stop } from '../utils/stopManager.js';
 
 export class ScriptController {
     async startScript(req: AuthenticatedRequest, res: Response) {
