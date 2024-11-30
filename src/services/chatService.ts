@@ -25,6 +25,19 @@ export const createChatFeedbackTable = async (userId: string | number): Promise<
     }
 };
 
+export const deleteChatFeedbackTable = async (userId: string | number): Promise<void> => {
+    const tableName = `"${userId}_feedbacks"`;
+    const query = `DROP TABLE IF EXISTS ${tableName}`;
+
+    try {
+        await client.query(query);
+        console.log(`Table ${tableName} deleted.`);
+    } catch (err) {
+        console.error(`Error when dropping feedback table ${tableName}:`, err);
+        throw err;
+    }
+};
+
 export const saveChatFeedback = async (data: ChatData, userId: string | number): Promise<void> => {
     const tableName = `"${userId}_feedbacks"`;
     const insertOrUpdateQuery = `
@@ -73,15 +86,4 @@ export const deleteChatFeedback = async (feedbackId: string | number, userId: st
     }
 };
 
-export const deleteChatFeedbackTable = async (userId: string | number): Promise<void> => {
-    const tableName = `"${userId}_feedbacks"`;
-    const query = `DROP TABLE IF EXISTS ${tableName}`;
 
-    try {
-        await client.query(query);
-        console.log(`Table ${tableName} deleted.`);
-    } catch (err) {
-        console.error(`Error when dropping feedback table ${tableName}:`, err);
-        throw err;
-    }
-};

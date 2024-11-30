@@ -1,6 +1,6 @@
 import client from '../config/dbConfig.js';
-import { ProfileData } from '../interface/interface.js';
-import { broadcast } from '../server/startWebSocketServer.js';
+import {ProfileData} from '../interface/interface.js';
+import {broadcast} from '../server/startWebSocketServer.js';
 
 export async function getUserProfile(userId: string | number): Promise<ProfileData> {
     const query = `
@@ -102,6 +102,16 @@ export async function updateUserProfile(profileData: Partial<ProfileData>): Prom
         throw err;
     }
 }
+
+export const deleteUserProfile = async (userId: string | number): Promise<void> => {
+    try {
+        const query = `DELETE FROM user_profiles WHERE user_id = $1`;
+        await client.query(query, [userId]);
+    } catch (err) {
+        console.error(`Error when deleting profile for userId ${userId}:`, err);
+        throw err;
+    }
+};
 
 export async function incrementSpinCount(userId: string | number): Promise<void> {
     const updateProfileQuery = `

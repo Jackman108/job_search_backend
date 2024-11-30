@@ -1,7 +1,7 @@
 // vacancyService.ts
 import client from '../config/dbConfig.js';
-import { VacancyData } from '../interface/interface.js';
-import { broadcast } from '../server/startWebSocketServer.js';
+import {VacancyData} from '../interface/interface.js';
+import {broadcast} from '../server/startWebSocketServer.js';
 
 export const createTableVacanciesUser = async (userId: string | number): Promise<void> => {
     const id = userId.toString();
@@ -28,6 +28,20 @@ export const createTableVacanciesUser = async (userId: string | number): Promise
         throw err;
     }
 };
+
+export async function deleteVacancyTable(userId: string | number): Promise<void> {
+    const id = userId.toString();
+    const tableName = `"${id}_vacancy"`;
+    const query = `DROP TABLE IF EXISTS ${tableName}`;
+
+    try {
+        await client.query(query);
+        console.log(`Table ${tableName} deleted successfully.`);
+    } catch (err) {
+        console.error(`Error when dropping vacancy table ${tableName}:`, err);
+        throw err;
+    }
+}
 
 export async function saveVacancy(data: VacancyData, userId: string | number): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
@@ -79,14 +93,3 @@ export async function deleteVacancyUser(vacancyId: string | number, userId: stri
     }
 }
 
-async function deleteVacancyTable(userId: string | number): Promise<void> {
-    const tableName = `"${userId}_vacancy"`;
-    const query = `DROP TABLE IF EXISTS ${tableName}`;
-
-    try {
-        await client.query(query);
-    } catch (err) {
-        console.error(`Error when dropping vacancy table ${tableName}:`, err);
-        throw err;
-    }
-}
