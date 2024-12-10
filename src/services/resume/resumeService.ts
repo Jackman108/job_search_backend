@@ -29,9 +29,7 @@ export const createResumeUser = async (
 
     try {
         const result = await client.query(insertResumeQuery, values);
-        const resumeId = result.rows[0].id;
-        console.log(`Resume created with ID ${resumeId}`);
-        return resumeId;
+        return result.rows[0].id;
     } catch (err) {
         console.error('Error creating resume:', err);
         throw err;
@@ -99,7 +97,6 @@ export const updateResumeUser = async (userId: string, updates: {
 
     try {
         await client.query(updateQuery, values);
-        console.log(`Resume with ID ${userId} updated successfully.`);
     } catch (err) {
         console.error(`Error updating resume ${userId}:`, err);
         throw err;
@@ -114,7 +111,6 @@ export const deleteResumeUser = async (userId: string): Promise<void> => {
 
     try {
         await client.query(deleteResumeQuery, [userId]);
-        console.log(`Resume with ID ${userId} deleted successfully.`);
     } catch (err) {
         console.error(`Error deleting resume ${userId}:`, err);
         throw err;

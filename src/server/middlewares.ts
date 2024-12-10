@@ -6,6 +6,7 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import {DOMAIN_URL, staticPath, uploadDir} from '../config/serverConfig.js';
 import {InitializeMiddleware} from '../interface/interface.js';
+import client from "../config/dbConfig.js";
 
 export interface AuthenticatedRequest extends Request {
     userId?: string;
@@ -34,6 +35,18 @@ export const initializeMiddleware: InitializeMiddleware = (app: express.Applicat
 };
 
 
+export const validateUserIdMiddleware = (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    if (!req.userId) {
+        return res.status(400).json({ message: 'userId is required.' });
+    }
+    next();
+};
+
+
 export const handleErrors = (res: Response, error: unknown, defaultMessage: string) => {
     console.error(error);
     res.status(500).json({message: defaultMessage});
@@ -43,9 +56,14 @@ export const handleErrors = (res: Response, error: unknown, defaultMessage: stri
 
 export const extractUserId = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        const secret = process.env.JWT_SECRET
-        if (!secret) throw new Error('The secret key was not found');
+        const authorizationHeader = req.headers.authorization;
+        if (!authorizationHeader) {
+            console.warn('Authorization header is missing. The user is not authorized.');
+            req.userId = undefined;
+            return next();
+        }
+
+        const token = authorizationHeader.split(' ')[1];
 
         if (!token) {
             console.warn('Token is missing. The user is not authorized.');
@@ -53,30 +71,56 @@ export const extractUserId = (req: AuthenticatedRequest, res: Response, next: Ne
             return next();
         }
 
-        const decoded: any = jwt.verify(token, secret);
-        req.userId = decoded.id;
-        next();
+        const secret = process.env.JWT_SECRET
+        if (!secret) throw new Error('The secret key was not found');
+
+        try {
+            const decoded = jwt.verify(token, secret) as { id: string };
+            if (!decoded || !decoded.id) {
+                return res.status(401).json({ message: 'Invalid token' });
+            }
+            req.userId = decoded.id;
+
+            next();
+        } catch (err: any) {
+            if (err instanceof jwt.TokenExpiredError) {
+                return res.status(401).json({ message: 'Token has expired' });
+            }
+            console.error(err);
+            return res.status(401).json({ message: 'Unauthorized request' });
+        }
+
     } catch (err) {
         console.error(err);
-        res.status(401).json({message: 'Unauthorized request'});
+        res.status(401).json({ message: 'Unauthorized request' });
     }
 };
 
-export const extractUserIdFromToken = (token: string | null): string | null => {
-    if (!token) {
-        return null;
+export function registerRoute(
+    app: express.Application,
+    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+    path: string,
+    controller: any,
+    action: string,
+    requiresAuth = true,
+) {
+
+    const middlewares = [extractUserId];
+    if (requiresAuth) {
+        middlewares.push(validateUserIdMiddleware);
     }
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-        throw new Error('JWT_SECRET not configured');
-    }
+    app[method](path, ...middlewares, (req: AuthenticatedRequest, res: Response) => {
+        const controllerInstance = new controller();
+        controllerInstance[action](req, res);
+    });
+}
 
+export const executeQuery = async (query: string, values: any[] = []) => {
     try {
-        const decoded: any = jwt.verify(token, secret);
-        return decoded.id || null;
+        const result = await client.query(query, values);
+        return result.rows;
     } catch (err) {
-        console.error('Invalid token or decoding error:', err);
-        return null;
+        throw err;
     }
 };

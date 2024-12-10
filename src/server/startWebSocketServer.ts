@@ -31,7 +31,7 @@ export const startWebSocketServer = async ({app, wsPort}: StartWebSocketServerPa
             if (!secret) {
                 throw new Error('JWT_SECRET not configured');
             }
-
+            try {
             const decoded: any = jwt.verify(token, secret);
             const userId = decoded.id;
 
@@ -48,6 +48,13 @@ export const startWebSocketServer = async ({app, wsPort}: StartWebSocketServerPa
                 clients.delete(client);
             });
             ws.send('connection WebSocket server!');
+            } catch (err) {
+                if (err instanceof jwt.TokenExpiredError) {
+                    ws.close(1008, 'Token has expired. Please reauthenticate.');
+                } else {
+                    ws.close(1008, 'Invalid token. Please reauthenticate.');
+                }
+            }
         });
 
         server.listen(wsPort, () => {

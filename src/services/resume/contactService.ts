@@ -23,9 +23,7 @@ export const createContactUser = async (
 
     try {
         const result = await client.query(insertContactQuery, values);
-        const contactId = result.rows[0].id;
-        console.log(`Contact created with ID ${contactId}`);
-        return contactId;
+        return result.rows[0].id;
     } catch (err) {
         console.error('Error creating contact:', err);
         throw err;
@@ -77,7 +75,6 @@ export const updateContactUser = async (
 
     try {
         await client.query(updateQuery, values);
-        console.log(`Contact with user ID ${userId} updated successfully.`);
     } catch (err) {
         console.error(`Error updating contact ${userId}:`, err);
         throw err;
@@ -88,7 +85,6 @@ export const deleteContactUser = async (userId: string): Promise<void> => {
     const deleteQuery = `DELETE FROM contacts WHERE user_id = $1;`;
     try {
         await client.query(deleteQuery, [userId]);
-        console.log(`Contact with user ID ${userId} deleted successfully.`);
     } catch (err) {
         console.error(`Error deleting contact ${userId}:`, err);
         throw err;

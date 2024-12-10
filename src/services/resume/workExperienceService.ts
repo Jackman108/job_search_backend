@@ -39,9 +39,7 @@ export const createExperienceUser = async (
 
     try {
         const result = await client.query(insertExperienceQuery, values);
-        const experienceId = result.rows[0].id;
-        console.log(`Work experience created with ID ${experienceId}`);
-        return experienceId;
+        return result.rows[0].id;
     } catch (err) {
         console.error('Error creating work experience:', err);
         throw err;
@@ -97,7 +95,6 @@ export const updateExperienceUser = async (
 
     try {
         await client.query(updateQuery, values);
-        console.log(`Work experience with ID ${experienceId} updated successfully for user ${userId}.`);
     } catch (err) {
         console.error(`Error updating work experience ${experienceId}:`, err);
         throw err;
@@ -112,7 +109,6 @@ export const deleteExperienceUser = async (userId: string, experienceId: string)
 
     try {
         await client.query(deleteExperienceQuery, [userId, experienceId]);
-        console.log(`Work experience with ID ${experienceId} successfully deleted for user ${userId}.`);
     } catch (err) {
         console.error(`Error deleting work experience ${experienceId}:`, err);
         throw err;

@@ -1,5 +1,5 @@
 // server/routes.ts
-import express, {Response} from 'express';
+import express from 'express';
 import {ChatFeedbackController} from '../controllers/ChatFeedbackController.js';
 import {ContactsController} from '../controllers/ContactsController.js';
 import {ProfileController} from '../controllers/ProfileController.js';
@@ -8,57 +8,69 @@ import {ScriptController} from '../controllers/ScriptController.js';
 import {SkillsController} from '../controllers/SkillsController.js';
 import {VacancyController} from '../controllers/VacancyController.js';
 import {WorkExperienceController} from '../controllers/WorkExperienceController.js';
-import {AuthenticatedRequest, extractUserId} from './middlewares.js';
+import {registerRoute} from './middlewares.js';
+import {PaymentController} from '../controllers/PaymentController.js';
+import {SubscriptionController} from "../controllers/SubscriptionController.js";
 
-const profileController = new ProfileController();
-const resumeController = new ResumeController();
-const vacancyController = new VacancyController();
-const chatFeedbackController = new ChatFeedbackController();
-const contactsController = new ContactsController();
-const skillsController = new SkillsController();
-const workExperienceController = new WorkExperienceController();
-const scriptController = new ScriptController();
 
 export const initializeRoutes = (app: express.Application) => {
+    registerRoute(app, 'post', '/default/vacancies', VacancyController, 'createVacanciesTable');
+    registerRoute(app, 'delete', '/default/vacancies', VacancyController, 'deleteVacanciesTable');
 
-    app.post('/default/vacancies', extractUserId, (req: AuthenticatedRequest, res: Response) => vacancyController.createVacanciesTable(req, res));
-    app.delete('/default/vacancies', extractUserId, (req: AuthenticatedRequest, res: Response) => vacancyController.deleteVacanciesTable(req, res));
+    registerRoute(app, 'post', '/default/feedback', ChatFeedbackController, 'createFeedbackTable');
+    registerRoute(app, 'delete', '/default/feedback', ChatFeedbackController, 'deleteFeedbackTable');
 
-    app.post('/default/feedback', extractUserId, (req: AuthenticatedRequest, res: Response) => chatFeedbackController.createFeedbackTable(req, res));
-    app.delete('/default/feedback', extractUserId, (req: AuthenticatedRequest, res: Response) => chatFeedbackController.deleteFeedbackTable(req, res));
+    registerRoute(app, 'post', '/default/payment', PaymentController, 'createPaymentTable');
+    registerRoute(app, 'post', '/default/subscription', SubscriptionController, 'createSubscriptionTable');
 
-    app.get('/vacancy', extractUserId, (req: AuthenticatedRequest, res: Response) => vacancyController.getVacancies(req, res));
-    app.delete('/vacancy/:vacancyId', extractUserId, (req: AuthenticatedRequest, res: Response) => vacancyController.deleteVacancy(req, res));
+    registerRoute(app, 'post', '/payments', PaymentController, 'listPayments');
+    registerRoute(app, 'post', '/subscriptions', SubscriptionController, 'listSubscriptions');
 
-    app.get('/feedback', extractUserId, (req: AuthenticatedRequest, res: Response) => chatFeedbackController.getFeedback(req, res));
-    app.delete('/feedback/:feedbackId', extractUserId, (req: AuthenticatedRequest, res: Response) => chatFeedbackController.deleteFeedback(req, res));
+    registerRoute(app, 'get', '/vacancy', VacancyController, 'getVacancies');
+    registerRoute(app, 'delete', '/vacancy/:vacancyId', VacancyController, 'deleteVacancy');
 
-    app.get('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.getProfile(req, res));
-    app.post('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.createProfile(req, res));
-    app.put('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.updateProfile(req, res));
-    app.delete('/profile', extractUserId, (req: AuthenticatedRequest, res: Response) => profileController.deleteProfile(req, res));
+    registerRoute(app, 'get', '/feedback',ChatFeedbackController, 'getFeedback');
+    registerRoute(app, 'delete', '/feedback/:feedbackId', ChatFeedbackController, 'deleteFeedback');
 
-    app.get('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.getResume(req, res));
-    app.post('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.createResume(req, res));
-    app.put('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.updateResume(req, res));
-    app.delete('/resume', extractUserId, (req: AuthenticatedRequest, res: Response) => resumeController.deleteResume(req, res));
+    registerRoute(app, 'get', '/profile', ProfileController, 'getProfile');
+    registerRoute(app, 'post', '/profile', ProfileController, 'createProfile');
+    registerRoute(app, 'put', '/profile', ProfileController, 'updateProfile');
+    registerRoute(app, 'delete', '/profile', ProfileController, 'deleteProfile');
 
-    app.get('/contacts', extractUserId, (req: AuthenticatedRequest, res: Response) => contactsController.getContacts(req, res));
-    app.post('/contacts', extractUserId, (req: AuthenticatedRequest, res: Response) => contactsController.createContact(req, res));
-    app.put('/contacts', extractUserId, (req: AuthenticatedRequest, res: Response) => contactsController.updateContact(req, res));
-    app.delete('/contacts', extractUserId, (req: AuthenticatedRequest, res: Response) => contactsController.deleteContact(req, res));
+    registerRoute(app, 'get', '/resume', ResumeController, 'getResume');
+    registerRoute(app, 'post', '/resume', ResumeController, 'createResume');
+    registerRoute(app, 'put', '/resume', ResumeController, 'updateResume');
+    registerRoute(app, 'delete', '/resume', ResumeController, 'deleteResume');
 
-    app.get('/skills', extractUserId, (req: AuthenticatedRequest, res: Response) => skillsController.getSkills(req, res));
-    app.post('/skills', extractUserId, (req: AuthenticatedRequest, res: Response) => skillsController.createSkill(req, res));
-    app.put('/skills/:skillId', extractUserId, (req: AuthenticatedRequest, res: Response) => skillsController.updateSkill(req, res));
-    app.delete('/skills/:skillId', extractUserId, (req: AuthenticatedRequest, res: Response) => skillsController.deleteSkill(req, res));
+    registerRoute(app, 'get', '/contacts', ContactsController, 'getContacts');
+    registerRoute(app, 'post', '/contacts', ContactsController, 'createContact');
+    registerRoute(app, 'put', '/contacts', ContactsController, 'updateContact');
+    registerRoute(app, 'delete', '/contacts', ContactsController, 'deleteContact');
 
-    app.get('/work_experience', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.getExperience(req, res));
-    app.post('/work_experience', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.createExperience(req, res));
-    app.put('/work_experience/:experienceId', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.updateExperience(req, res));
-    app.delete('/work_experience/:experienceId', extractUserId, (req: AuthenticatedRequest, res: Response) => workExperienceController.deleteExperience(req, res));
+    registerRoute(app, 'get', '/skills', SkillsController, 'getSkills');
+    registerRoute(app, 'post', '/skills', SkillsController, 'createSkill');
+    registerRoute(app, 'put', '/skills/:skillId', SkillsController, 'updateSkill');
+    registerRoute(app, 'delete', '/skills/:skillId', SkillsController, 'deleteSkill');
 
-    app.post('/start', extractUserId, (req: AuthenticatedRequest, res: Response) => scriptController.startScript(req, res));
-    app.post('/stop', extractUserId, (req: AuthenticatedRequest, res: Response) => scriptController.stopScript(req, res));
-    app.post('/refresh', extractUserId, (req: AuthenticatedRequest, res: Response) => scriptController.refreshData(req, res));
+    registerRoute(app, 'get', '/work_experience', WorkExperienceController, 'getExperience');
+    registerRoute(app, 'post', '/work_experience', WorkExperienceController, 'createExperience');
+    registerRoute(app, 'put', '/work_experience/:experienceId', WorkExperienceController, 'updateExperience');
+    registerRoute(app, 'delete', '/work_experience/:experienceId', WorkExperienceController, 'deleteExperience');
+
+    registerRoute(app, 'post', '/start', ScriptController, 'startScript');
+    registerRoute(app, 'post', '/stop', ScriptController, 'stopScript');
+    registerRoute(app, 'post', '/refresh', ScriptController, 'refreshData');
+
+    registerRoute(app, 'get', '/payment/:id', PaymentController, 'getPayment');
+    registerRoute(app, 'post', '/payment', PaymentController, 'createPayment');
+    registerRoute(app, 'put', '/payment', PaymentController, 'updatePayment');
+    registerRoute(app, 'delete', '/payment/:id', PaymentController, 'deletePayment');
+    registerRoute(app, 'patch', '/payment/:id', PaymentController, 'updatePaymentStatus');
+
+    registerRoute(app, 'get', '/subscription/:id', SubscriptionController, 'getSubscription');
+    registerRoute(app, 'post', '/subscription', SubscriptionController, 'createSubscription');
+    registerRoute(app, 'put', '/subscription', SubscriptionController, 'updateSubscription');
+    registerRoute(app, 'delete', '/subscription/:id', SubscriptionController, 'deleteSubscription');
+
+
 };

@@ -88,12 +88,12 @@ export interface VacancyData {
 
 export interface Vacancy {
     data: VacancyData;
-    vacancyResponse: ElementHandle<Element>;
+    vacancyResponse: ElementHandle;
 }
 
 export interface VacancyWithResponse {
     data: VacancyData;
-    vacancyResponse: ElementHandle<Element> | null;
+    vacancyResponse: ElementHandle| null;
 }
 
 // ------------------------
@@ -110,7 +110,7 @@ export interface ChatData {
 
 export interface ChatWithResponse {
     chatId: number;
-    chatLinkHandle: ElementHandle<Element> | null;
+    chatLinkHandle: ElementHandle | null;
 }
 
 // ------------------------
@@ -119,7 +119,7 @@ export interface ChatWithResponse {
 
 export interface ProcessVacancyParams {
     page: Page;
-    vacancyResponse: ElementHandle<Element>;
+    vacancyResponse: ElementHandle;
     data: VacancyData;
     counters: Counters;
     message: string;
@@ -128,7 +128,7 @@ export interface ProcessVacancyParams {
 
 export interface ProcessChatParams {
     page: Page;
-    chatLinkHandle: ElementHandle<Element>;
+    chatLinkHandle: ElementHandle;
     chatId: number;
     chatUrl?: string;
     userId: string;
@@ -184,4 +184,27 @@ export interface ExtractChatIdParams {
 export interface AvatarUploadParams {
     avatar: string;
     updateFields: UserProfileUpdateFields;
+}
+
+// ------------------------
+// Интерфейсы для подписок
+// ------------------------
+export interface Subscription {
+    id: string;
+    userId: string;
+    subscriptionType: string;
+    price: number;
+    startDate: string;
+    endDate?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface Payment {
+    id: number;
+    userId: string;
+    amount  : number;
+    paymentStatus: string;
+    paymentMethod?: string;
+    createdAt: string;
+    updatedAt: string;
 }

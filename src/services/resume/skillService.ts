@@ -21,9 +21,7 @@ export const createSkillUser = async (
 
     try {
         const result = await client.query(insertSkillQuery, values);
-        const skillId = result.rows[0].id;
-        console.log(`Skill created with ID ${skillId}`);
-        return skillId;
+        return result.rows[0].id;
     } catch (err) {
         console.error('Error creating skill:', err);
         throw err;
@@ -72,7 +70,6 @@ export const updateSkillUser = async (
 
     try {
         await client.query(updateQuery, values);
-        console.log(`Skill with ID ${skillId} updated successfully for user ${userId}.`);
     } catch (err) {
         console.error(`Error updating skill ${skillId}:`, err);
         throw err;
@@ -87,7 +84,6 @@ export const deleteSkillUser = async (userId: string, skillId: string): Promise<
 
     try {
         await client.query(deleteSkillQuery, [userId, skillId]);
-        console.log(`Навык с ID ${skillId} успешно удален для пользователя ${userId}.`);
     } catch (err) {
         console.error(`Ошибка при удалении навыка ${skillId}:`, err);
         throw err;

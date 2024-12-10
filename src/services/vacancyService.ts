@@ -22,7 +22,6 @@ export const createTableVacanciesUser = async (userId: string | number): Promise
 
     try {
         await client.query(createTableQuery);
-        console.log(`Table ${tableName} created or already exists.`);
     } catch (err) {
         console.error(`Error creating table ${tableName}:`, err);
         throw err;
@@ -36,7 +35,6 @@ export async function deleteVacancyTable(userId: string | number): Promise<void>
 
     try {
         await client.query(query);
-        console.log(`Table ${tableName} deleted successfully.`);
     } catch (err) {
         console.error(`Error when dropping vacancy table ${tableName}:`, err);
         throw err;
