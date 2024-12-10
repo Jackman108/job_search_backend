@@ -1,5 +1,5 @@
 import {Response} from 'express';
-import {AuthenticatedRequest, handleErrors} from '../server/middlewares.js';
+import {handleErrors} from '../server/middlewares.js';
 import {
     createPayment,
     createTablePayments,
@@ -9,9 +9,9 @@ import {
     updatePayment,
     updatePaymentStatus
 } from '../services/paymentService.js';
+import {AuthenticatedRequest} from "../interface/interface";
 
 export class PaymentController {
-
     async createPaymentTable(req: AuthenticatedRequest, res: Response) {
         try {
             await createTablePayments();
@@ -23,7 +23,6 @@ export class PaymentController {
 
     async listPayments(req: AuthenticatedRequest, res: Response) {
         const {status} = req.query;
-
         try {
             const payments = await listPayments(status as string);
             res.status(200).json(payments);
@@ -43,7 +42,6 @@ export class PaymentController {
 
     async createPayment(req: AuthenticatedRequest, res: Response) {
         const {amount, paymentMethod}: { amount: number, paymentMethod: string } = req.body;
-
         try {
             const payment = await createPayment({
                 userId: req.userId,
@@ -68,7 +66,6 @@ export class PaymentController {
 
     async updatePaymentStatus(req: AuthenticatedRequest, res: Response) {
         const {paymentId, status} = req.body;
-
         try {
             const updatedPayment = await updatePaymentStatus(paymentId, status);
             res.status(200).json(updatedPayment);

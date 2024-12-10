@@ -1,5 +1,6 @@
 import {Subscription} from '../interface/interface.js';
-import {executeQuery} from "../server/middlewares.js";
+import {executeQuery} from "../utils/queryHelpers.js";
+
 
 export const createTableSubscriptions = async (): Promise<void> => {
     const query = `
@@ -18,24 +19,23 @@ export const createTableSubscriptions = async (): Promise<void> => {
     await executeQuery(query);
 };
 
-export async function listSubscription(userId: string): Promise<Subscription[]> {
-    const query = `
-        SELECT * FROM subscriptions WHERE user_id = $1;
-    `;
 
+export async function listSubscription(userId: string): Promise<Subscription[]> {
+    const query = `SELECT * FROM subscriptions WHERE user_id = $1;`;
     return await executeQuery(query, [userId]);
 }
 
+
 export async function getSubscription(subscriptionId: string | number): Promise<Subscription> {
-    const query = `
-         SELECT * FROM subscriptions WHERE id = $1;
-    `;
+    const query = `SELECT * FROM subscriptions WHERE id = $1;`;
     const result = await executeQuery(query, [subscriptionId]);
+
     if (result.length === 0) {
         throw new Error(`Subscription not found for ID: ${subscriptionId}`);
     }
     return result[0];
 }
+
 
 export async function createSubscription(subscriptionData: Partial<Subscription>): Promise<Subscription> {
     const query = `
@@ -43,6 +43,7 @@ export async function createSubscription(subscriptionData: Partial<Subscription>
         VALUES ($1, $2, $3, $4, $5)
         RETURNING *;
     `;
+
     const values = [
         subscriptionData.userId,
         subscriptionData.subscriptionType,
@@ -54,6 +55,7 @@ export async function createSubscription(subscriptionData: Partial<Subscription>
     const result = await executeQuery(query, values);
     return result[0];
 }
+
 
 export async function updateSubscription(subscriptionData: Partial<Subscription>): Promise<Subscription> {
     const updateFields = [];
@@ -97,9 +99,8 @@ export async function updateSubscription(subscriptionData: Partial<Subscription>
     return result[0];
 }
 
+
 export const deleteSubscription = async (id: string | number): Promise<void> => {
-    const query = `
-        DELETE FROM subscriptions WHERE id = $1;
-    `;
+    const query = `DELETE FROM subscriptions WHERE id = $1;`;
     await executeQuery(query, [id]);
 }

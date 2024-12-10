@@ -1,6 +1,6 @@
 // Импортируем необходимые модули
-import express from 'express';
-import { Browser, ElementHandle, Page } from 'puppeteer';
+import express, {Request} from 'express';
+import {Browser, ElementHandle, Page} from 'puppeteer';
 
 // ------------------------
 // Интерфейсы для сервера
@@ -17,6 +17,10 @@ export interface StartHttpServerParams {
 export interface StartWebSocketServerParams {
     app: express.Application;
     wsPort: number;
+}
+
+export interface AuthenticatedRequest extends Request {
+    userId?: string;
 }
 
 // ------------------------
@@ -93,7 +97,7 @@ export interface Vacancy {
 
 export interface VacancyWithResponse {
     data: VacancyData;
-    vacancyResponse: ElementHandle| null;
+    vacancyResponse: ElementHandle | null;
 }
 
 // ------------------------
@@ -133,6 +137,7 @@ export interface ProcessChatParams {
     chatUrl?: string;
     userId: string;
 }
+
 export interface NavigateAndProcessVacanciesParams {
     userId: string;
     page: Page;
@@ -199,10 +204,11 @@ export interface Subscription {
     createdAt: string;
     updatedAt: string;
 }
+
 export interface Payment {
     id: number;
     userId: string;
-    amount  : number;
+    amount: number;
     paymentStatus: string;
     paymentMethod?: string;
     createdAt: string;

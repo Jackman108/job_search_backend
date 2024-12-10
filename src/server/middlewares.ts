@@ -1,16 +1,11 @@
 // server/middlewares.ts
 import bodyParser from 'body-parser';
 import cors, {CorsOptions} from 'cors';
-import express, {NextFunction, Request, Response} from 'express';
+import express, {NextFunction, Response} from 'express';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import {DOMAIN_URL, staticPath, uploadDir} from '../config/serverConfig.js';
-import {InitializeMiddleware} from '../interface/interface.js';
-import client from "../config/dbConfig.js";
-
-export interface AuthenticatedRequest extends Request {
-    userId?: string;
-}
+import {AuthenticatedRequest, InitializeMiddleware} from '../interface/interface.js';
 
 const corsOptions: CorsOptions = {
     origin: DOMAIN_URL,
@@ -34,24 +29,21 @@ export const initializeMiddleware: InitializeMiddleware = (app: express.Applicat
     }
 };
 
-
 export const validateUserIdMiddleware = (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
 ) => {
     if (!req.userId) {
-        return res.status(400).json({ message: 'userId is required.' });
+        return res.status(400).json({message: 'userId is required.'});
     }
     next();
 };
-
 
 export const handleErrors = (res: Response, error: unknown, defaultMessage: string) => {
     console.error(error);
     res.status(500).json({message: defaultMessage});
 };
-
 
 
 export const extractUserId = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -77,22 +69,22 @@ export const extractUserId = (req: AuthenticatedRequest, res: Response, next: Ne
         try {
             const decoded = jwt.verify(token, secret) as { id: string };
             if (!decoded || !decoded.id) {
-                return res.status(401).json({ message: 'Invalid token' });
+                return res.status(401).json({message: 'Invalid token'});
             }
             req.userId = decoded.id;
 
             next();
         } catch (err: any) {
             if (err instanceof jwt.TokenExpiredError) {
-                return res.status(401).json({ message: 'Token has expired' });
+                return res.status(401).json({message: 'Token has expired'});
             }
             console.error(err);
-            return res.status(401).json({ message: 'Unauthorized request' });
+            return res.status(401).json({message: 'Unauthorized request'});
         }
 
     } catch (err) {
         console.error(err);
-        res.status(401).json({ message: 'Unauthorized request' });
+        res.status(401).json({message: 'Unauthorized request'});
     }
 };
 
@@ -116,11 +108,3 @@ export function registerRoute(
     });
 }
 
-export const executeQuery = async (query: string, values: any[] = []) => {
-    try {
-        const result = await client.query(query, values);
-        return result.rows;
-    } catch (err) {
-        throw err;
-    }
-};

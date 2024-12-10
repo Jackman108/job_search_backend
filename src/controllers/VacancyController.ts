@@ -1,22 +1,18 @@
 // server/controllers/VacancyController.ts
 import {Response} from 'express';
-import {AuthenticatedRequest, handleErrors} from '../server/middlewares.js';
+import {handleErrors} from '../server/middlewares.js';
 import {
     createTableVacanciesUser,
     deleteVacancyTable,
     deleteVacancyUser,
     getVacanciesUser
 } from '../services/vacancyService.js';
+import {AuthenticatedRequest} from "../interface/interface";
 
 export class VacancyController {
     async createVacanciesTable(req: AuthenticatedRequest, res: Response,) {
-        const userId = req.userId;
-        if (!userId) {
-            return res.status(400).json({message: 'userId is required.'});
-        }
-        
         try {
-            await createTableVacanciesUser(userId);
+            await createTableVacanciesUser(req.userId!);
             res.status(201).json({message: 'Vacancy Table successfully created.'});
         } catch (error) {
             handleErrors(res, error, 'Error creating a Vacancy Table.');
@@ -24,13 +20,8 @@ export class VacancyController {
     }
 
     async deleteVacanciesTable(req: AuthenticatedRequest, res: Response) {
-        const userId = req.userId;
-        if (!userId) {
-            return res.status(400).json({message: 'userId is required.'});
-        }
-
         try {
-            await deleteVacancyTable(userId);
+            await deleteVacancyTable(req.userId!);
             res.status(200).json({message: 'Vacancy table deleted successfully.'});
         } catch (error) {
             handleErrors(res, error, 'Error deleting vacancy table.');
@@ -39,12 +30,7 @@ export class VacancyController {
 
     async getVacancies(req: AuthenticatedRequest, res: Response) {
         try {
-            const userId = req.userId;
-            if (!userId) {
-                return res.status(400).json({message: 'userId is required.'});
-            }
-
-            const vacancies = await getVacanciesUser(userId);
+            const vacancies = await getVacanciesUser(req.userId!);
             res.status(vacancies.length ? 200 : 404).json(vacancies.length ? vacancies : {message: 'No vacancies found.'});
         } catch (error) {
             handleErrors(res, error, 'Error retrieving vacancies.');
@@ -53,12 +39,7 @@ export class VacancyController {
 
     async deleteVacancy(req: AuthenticatedRequest, res: Response) {
         try {
-            const userId = req.userId;
-            const {vacancyId} = req.params;
-            if (!userId) {
-                return res.status(400).json({message: 'userId is required.'});
-            }
-            await deleteVacancyUser(vacancyId, userId);
+            await deleteVacancyUser(req.userId!, req.params.vacancyId);
             res.status(200).json({message: 'Vacancy deleted successfully.'});
         } catch (error) {
             handleErrors(res, error, 'Error deleting vacancy.');

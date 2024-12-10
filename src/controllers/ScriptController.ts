@@ -1,30 +1,31 @@
 // controllers/ScriptController.js
-import { Response } from 'express';
-import { getFeedback } from '../run/getFeedback.js';
-import { sendFeedback } from '../run/sendFeedback.js';
-import { personalData } from '../secrets.js';
-import { AuthenticatedRequest, handleErrors } from '../server/middlewares.js';
-import { incrementSpinCount, updateSuccessfulResponsesCount } from '../services/profileService.js';
-import { stop } from '../utils/stopManager.js';
+import {Response} from 'express';
+import {getFeedback} from '../run/getFeedback.js';
+import {sendFeedback} from '../run/sendFeedback.js';
+import {personalData} from '../secrets.js';
+import {handleErrors} from '../server/middlewares.js';
+import {incrementSpinCount, updateSuccessfulResponsesCount} from '../services/profileService.js';
+import {stop} from '../utils/stopManager.js';
+import {AuthenticatedRequest} from "../interface/interface";
 
 export class ScriptController {
     async startScript(req: AuthenticatedRequest, res: Response) {
         try {
-            const { email, password, position, message, vacancyUrl } = req.body;
-            if (!req.userId) {
-                return res.status(400).json({ message: 'userId is required.' });
-            }
+            const {email, password, position, message, vacancyUrl} = req.body;
+
             await sendFeedback({
-                userId: req.userId,
+                userId: req.userId!,
                 email: email || personalData.vacancyEmail,
                 password: password || personalData.vacancyPassword,
                 position: position || personalData.vacancySearch,
                 message: message || personalData.coverLetter,
                 vacancyUrl: vacancyUrl || personalData.vacanciesUrl,
             });
-            await incrementSpinCount(req.userId);
-            await updateSuccessfulResponsesCount(req.userId);
-            res.status(200).json({ message: 'The script was executed successfully!' });
+
+            await incrementSpinCount(req.userId!);
+            await updateSuccessfulResponsesCount(req.userId!);
+
+            res.status(200).json({message: 'The script was executed successfully!'});
         } catch (error) {
             handleErrors(res, error, 'Script execution error.');
         }
@@ -32,12 +33,8 @@ export class ScriptController {
 
     async stopScript(req: AuthenticatedRequest, res: Response) {
         try {
-            const { browser } = req.body;
-            if (!req.userId) {
-                return res.status(400).json({ message: 'userId is required.' });
-            }
-            await stop(browser);
-            res.status(200).json({ message: 'Script stopped successfully!' });
+            await stop(req.body.browser);
+            res.status(200).json({message: 'Script stopped successfully!'});
         } catch (error) {
             handleErrors(res, error, 'Script stop error.');
         }
@@ -45,16 +42,15 @@ export class ScriptController {
 
     async refreshData(req: AuthenticatedRequest, res: Response) {
         try {
-            const { email, password } = req.body;
-            if (!req.userId) {
-                return res.status(400).json({ message: 'userId is required.' });
-            }
+            const {email, password} = req.body;
+
             await getFeedback({
-                userId: req.userId,
+                userId: req.userId!,
                 email: email || personalData.vacancyEmail,
                 password: password || personalData.vacancyPassword,
             });
-            res.status(200).json({ message: 'The update is up and running!' });
+
+            res.status(200).json({message: 'The update is up and running!'});
         } catch (error) {
             handleErrors(res, error, 'Error Update!');
         }

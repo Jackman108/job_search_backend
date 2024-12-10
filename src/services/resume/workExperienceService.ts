@@ -1,16 +1,12 @@
 // workExperienceService.ts
-import client from "../../config/dbConfig.js";
+import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
+
 
 export const getExperienceUser = async (userId: string): Promise<any[]> => {
     const query = `SELECT * FROM work_experience WHERE user_id = $1`;
-    try {
-        const result = await client.query(query, [userId]);
-        return result.rows;
-    } catch (err) {
-        console.error(`Error retrieving work experience for user ${userId}:`, err);
-        throw err;
-    }
+    return await executeQuery(query, [userId]);
 };
+
 
 export const createExperienceUser = async (
     userId: string,
@@ -22,7 +18,8 @@ export const createExperienceUser = async (
         description: string;
     }
 ): Promise<string> => {
-    const insertExperienceQuery = `
+
+    const query = `
         INSERT INTO work_experience (user_id, company_name, position, start_date, end_date, description)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id;
@@ -37,14 +34,10 @@ export const createExperienceUser = async (
         experienceData.description,
     ];
 
-    try {
-        const result = await client.query(insertExperienceQuery, values);
-        return result.rows[0].id;
-    } catch (err) {
-        console.error('Error creating work experience:', err);
-        throw err;
-    }
+    const result = await executeQuery(query, values);
+    return result[0].id;
 };
+
 
 export const updateExperienceUser = async (
     userId: string,
@@ -57,60 +50,18 @@ export const updateExperienceUser = async (
         description?: string;
     }
 ): Promise<void> => {
-    const setClause: string[] = [];
-    const values: any[] = [];
 
-    if (updates.company_name) {
-        setClause.push(`company_name = $${values.length + 1}`);
-        values.push(updates.company_name);
-    }
-    if (updates.position) {
-        setClause.push(`position = $${values.length + 1}`);
-        values.push(updates.position);
-    }
-    if (updates.start_date) {
-        setClause.push(`start_date = $${values.length + 1}`);
-        values.push(updates.start_date);
-    }
-    if (updates.end_date) {
-        setClause.push(`end_date = $${values.length + 1}`);
-        values.push(updates.end_date);
-    }
-    if (updates.description) {
-        setClause.push(`description = $${values.length + 1}`);
-        values.push(updates.description);
-    }
+    const {query, values} = generateUpdateQueryWithConditions(
+        "work_experience",
+        updates,
+        {user_id: userId, id: experienceId}
+    );
 
-    if (values.length === 0) {
-        throw new Error('No update fields provided');
-    }
-
-    const setClauseStr = setClause.join(', ');
-    const updateQuery = `
-        UPDATE work_experience
-        SET ${setClauseStr}
-        WHERE user_id = $${values.length + 1} AND id = $${values.length + 2};
-    `;
-    values.push(userId, experienceId);
-
-    try {
-        await client.query(updateQuery, values);
-    } catch (err) {
-        console.error(`Error updating work experience ${experienceId}:`, err);
-        throw err;
-    }
+    await executeQuery(query, values);
 };
 
-export const deleteExperienceUser = async (userId: string, experienceId: string): Promise<void> => {
-    const deleteExperienceQuery = `
-        DELETE FROM work_experience
-        WHERE user_id = $1 AND id = $2;
-    `;
 
-    try {
-        await client.query(deleteExperienceQuery, [userId, experienceId]);
-    } catch (err) {
-        console.error(`Error deleting work experience ${experienceId}:`, err);
-        throw err;
-    }
+export const deleteExperienceUser = async (userId: string, experienceId: string): Promise<void> => {
+    const query = `DELETE FROM work_experience WHERE user_id = $1 AND id = $2;`;
+    await executeQuery(query, [userId, experienceId]);
 };

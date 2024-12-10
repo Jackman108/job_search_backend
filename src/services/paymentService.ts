@@ -1,5 +1,5 @@
 import {Payment} from '../interface/interface.js';
-import {executeQuery} from "../server/middlewares.js";
+import {executeQuery} from "../utils/queryHelpers.js";
 
 
 export const createTablePayments = async (): Promise<void> => {
@@ -18,6 +18,7 @@ export const createTablePayments = async (): Promise<void> => {
     await executeQuery(query);
 };
 
+
 export async function listPayments(status?: string): Promise<Payment[]> {
     let query = `
         SELECT 
@@ -29,20 +30,21 @@ export async function listPayments(status?: string): Promise<Payment[]> {
           updated_at AS "updatedAt"
         FROM payments
     `;
+
     const values = status ? [status] : [];
     if (status) query += ' WHERE payment_status = $1';
     return executeQuery(query, values);
 }
 
-export async function getPayment(paymentId: string | number): Promise<Payment> {
-    const query = `
-        SELECT * FROM payments WHERE id = $1;
-    `;
 
+export async function getPayment(paymentId: string | number): Promise<Payment> {
+    const query = `SELECT * FROM payments WHERE id = $1;`;
     const result = await executeQuery(query, [paymentId]);
+
     if (result.length === 0) throw new Error(`Payment not found for paymentId: ${paymentId}`);
     return result[0];
 }
+
 
 export async function createPayment(paymentData: Partial<Payment>): Promise<Payment> {
     const query = `
@@ -50,6 +52,7 @@ export async function createPayment(paymentData: Partial<Payment>): Promise<Paym
         VALUES ($1, $2, $3, $4)
         RETURNING *;
     `;
+
     const values = [
         paymentData.userId,
         paymentData.amount,
@@ -61,8 +64,8 @@ export async function createPayment(paymentData: Partial<Payment>): Promise<Paym
     return result[0];
 }
 
-export async function updatePayment(id: string | number, updates: Partial<Payment>): Promise<Payment> {
 
+export async function updatePayment(id: string | number, updates: Partial<Payment>): Promise<Payment> {
     const updateFields = [];
     const values = [];
     let index = 1;
@@ -95,6 +98,7 @@ export async function updatePayment(id: string | number, updates: Partial<Paymen
     if (result.length === 0) throw new Error(`Payment with ID ${id} not found.`);
     return result[0];
 }
+
 
 export async function updatePaymentStatus(paymentId: string, status: string): Promise<Payment> {
     const query = `

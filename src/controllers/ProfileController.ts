@@ -1,12 +1,11 @@
 // server/controllers/ProfileController.ts
 import {Response} from 'express';
-import {AvatarUploadParams, UserProfileUpdateFields} from '../interface/interface.js';
-import {AuthenticatedRequest, handleErrors} from '../server/middlewares.js';
+import {AuthenticatedRequest, AvatarUploadParams, UserProfileUpdateFields} from '../interface/interface.js';
+import {handleErrors} from '../server/middlewares.js';
 import {createUserProfile, deleteUserProfile, getUserProfile, updateUserProfile} from '../services/profileService.js';
 import {handleAvatarUpload} from '../utils/avatarUpload.js';
 
 export class ProfileController {
-
     async getProfile(req: AuthenticatedRequest, res: Response) {
         try {
             const profile = await getUserProfile(req.userId!);
@@ -26,8 +25,6 @@ export class ProfileController {
     }
 
     async updateProfile(req: AuthenticatedRequest, res: Response) {
-        const userId = req.userId!;
-
         try {
             const body = req.body ?? {};
             const {avatar, ...updateFields}: UserProfileUpdateFields = body;
@@ -37,8 +34,8 @@ export class ProfileController {
                 await handleAvatarUpload(avatarUploadParams.avatar, avatarUploadParams.updateFields);
             }
 
-            const updatedProfile = await updateUserProfile({...updateFields, userId});
-            res.status(200).json({message: 'The profile has been successfully updated.', profile: updatedProfile});
+            const updatedProfile = await updateUserProfile({...updateFields, userId: req.userId!});
+            res.status(200).json(updatedProfile);
         } catch (error) {
             handleErrors(res, error, 'Error updating a user profile.');
         }

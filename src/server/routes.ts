@@ -1,13 +1,13 @@
 // server/routes.ts
 import express from 'express';
 import {ChatFeedbackController} from '../controllers/ChatFeedbackController.js';
-import {ContactsController} from '../controllers/ContactsController.js';
+import {ContactsController} from '../controllers/resume/ContactsController.js';
 import {ProfileController} from '../controllers/ProfileController.js';
-import {ResumeController} from '../controllers/ResumeController.js';
+import {ResumeController} from '../controllers/resume/ResumeController.js';
 import {ScriptController} from '../controllers/ScriptController.js';
-import {SkillsController} from '../controllers/SkillsController.js';
+import {SkillsController} from '../controllers/resume/SkillsController.js';
 import {VacancyController} from '../controllers/VacancyController.js';
-import {WorkExperienceController} from '../controllers/WorkExperienceController.js';
+import {WorkExperienceController} from '../controllers/resume/WorkExperienceController.js';
 import {registerRoute} from './middlewares.js';
 import {PaymentController} from '../controllers/PaymentController.js';
 import {SubscriptionController} from "../controllers/SubscriptionController.js";
@@ -29,7 +29,7 @@ export const initializeRoutes = (app: express.Application) => {
     registerRoute(app, 'get', '/vacancy', VacancyController, 'getVacancies');
     registerRoute(app, 'delete', '/vacancy/:vacancyId', VacancyController, 'deleteVacancy');
 
-    registerRoute(app, 'get', '/feedback',ChatFeedbackController, 'getFeedback');
+    registerRoute(app, 'get', '/feedback', ChatFeedbackController, 'getFeedback');
     registerRoute(app, 'delete', '/feedback/:feedbackId', ChatFeedbackController, 'deleteFeedback');
 
     registerRoute(app, 'get', '/profile', ProfileController, 'getProfile');

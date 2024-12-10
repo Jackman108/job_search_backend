@@ -1,13 +1,16 @@
 // skillService.ts
-import client from "../../config/dbConfig.js";
+import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
+
 
 export const createSkillUser = async (
     userId: string,
     skillData: {
         skill_name: string;
         proficiency_level?: string
-    }): Promise<string> => {
-    const insertSkillQuery = `
+    }
+): Promise<string> => {
+
+    const query = `
         INSERT INTO skills (user_id, skill_name, proficiency_level)
         VALUES ($1, $2, $3)
         RETURNING id;
@@ -19,73 +22,34 @@ export const createSkillUser = async (
         skillData.proficiency_level,
     ];
 
-    try {
-        const result = await client.query(insertSkillQuery, values);
-        return result.rows[0].id;
-    } catch (err) {
-        console.error('Error creating skill:', err);
-        throw err;
-    }
+    const result = await executeQuery(query, values);
+    return result[0]?.id;
 };
+
 
 export const getSkillsUser = async (userId: string): Promise<any[]> => {
     const query = `SELECT * FROM skills WHERE user_id = $1`;
-    try {
-        const result = await client.query(query, [userId]);
-        return result.rows;
-    } catch (err) {
-        console.error(`Error retrieving skills for user ${userId}:`, err);
-        throw err;
-    }
+    return await executeQuery(query, [userId]);
 };
+
 
 export const updateSkillUser = async (
     userId: string,
     skillId: string,
     updates: { skill_name?: string; proficiency_level?: string }
 ): Promise<void> => {
-    const setClause: string[] = [];
-    const values: any[] = [];
 
-    if (updates.skill_name) {
-        setClause.push(`skill_name = $${values.length + 1}`);
-        values.push(updates.skill_name);
-    }
-    if (updates.proficiency_level) {
-        setClause.push(`proficiency_level = $${values.length + 1}`);
-        values.push(updates.proficiency_level);
-    }
+    const {query, values} = generateUpdateQueryWithConditions(
+        "skills",
+        updates,
+        {user_id: userId, id: skillId}
+    );
 
-    if (values.length === 0) {
-        throw new Error('No update fields provided');
-    }
-
-    const setClauseStr = setClause.join(', ');
-    const updateQuery = `
-        UPDATE skills
-        SET ${setClauseStr}
-        WHERE user_id = $${values.length + 1} AND id = $${values.length + 2};
-    `;
-    values.push(userId, skillId);
-
-    try {
-        await client.query(updateQuery, values);
-    } catch (err) {
-        console.error(`Error updating skill ${skillId}:`, err);
-        throw err;
-    }
+    await executeQuery(query, values);
 };
 
-export const deleteSkillUser = async (userId: string, skillId: string): Promise<void> => {
-    const deleteSkillQuery = `
-        DELETE FROM skills
-        WHERE user_id = $1 AND id = $2;
-    `;
 
-    try {
-        await client.query(deleteSkillQuery, [userId, skillId]);
-    } catch (err) {
-        console.error(`Ошибка при удалении навыка ${skillId}:`, err);
-        throw err;
-    }
+export const deleteSkillUser = async (userId: string, skillId: string): Promise<void> => {
+    const query = `DELETE FROM skills WHERE user_id = $1 AND id = $2;`;
+    await executeQuery(query, [userId, skillId]);
 };

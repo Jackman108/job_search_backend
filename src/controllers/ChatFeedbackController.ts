@@ -1,66 +1,36 @@
 // server/controllers/ChatFeedbackController.ts
 import {Response} from 'express';
-import {AuthenticatedRequest, handleErrors} from '../server/middlewares.js';
+import {handleErrors} from '../server/middlewares.js';
 import {
     createChatFeedbackTable,
     deleteChatFeedback,
     deleteChatFeedbackTable,
-    getChatFeedback,
-    saveChatFeedback
+    getChatFeedback
 } from '../services/chatService.js';
+import {AuthenticatedRequest} from "../interface/interface";
 
 export class ChatFeedbackController {
     async createFeedbackTable(req: AuthenticatedRequest, res: Response) {
-        const userId = req.body.userId;
-        if (!userId) {
-            return res.status(400).json({message: 'userId is required.'});
-        }
         try {
-            await createChatFeedbackTable(userId);
-            res.status(201).json({message: 'Chat Feedback Table successfully created.'});
+            await createChatFeedbackTable(req.userId!);
+            res.status(201).json(createChatFeedbackTable);
         } catch (error) {
             handleErrors(res, error, 'Error creating Chat Feedback Table.');
         }
     }
 
     async deleteFeedbackTable(req: AuthenticatedRequest, res: Response) {
-        const {userId} = req;
-
-        if (!userId) {
-            return res.status(400).json({message: 'userId is required.'});
-        }
-
         try {
-            await deleteChatFeedbackTable(userId);
+            await deleteChatFeedbackTable(req.userId!);
             res.status(200).json({message: 'Feedback table deleted successfully.'});
         } catch (error) {
             handleErrors(res, error, 'Error deleting feedback table.');
         }
     }
 
-
-    async saveFeedback(req: AuthenticatedRequest, res: Response) {
-        const {userId} = req;
-        const data = req.body;
-        if (!userId || !data) {
-            return res.status(400).json({message: 'userId and feedback data are required.'});
-        }
-        try {
-            await saveChatFeedback(data, userId);
-            res.status(201).json({message: 'Feedback successfully saved.'});
-        } catch (error) {
-            handleErrors(res, error, 'Error saving feedback.');
-        }
-    }
-
     async getFeedback(req: AuthenticatedRequest, res: Response) {
-        const {userId} = req;
-
-        if (!userId) {
-            return res.status(400).json({message: 'userId is required.'});
-        }
         try {
-            const feedbacks = await getChatFeedback(userId);
+            const feedbacks = await getChatFeedback(req.userId!);
             res.status(feedbacks.length ? 200 : 404).json(feedbacks.length ? feedbacks : {message: 'No feedback found.'});
         } catch (error) {
             handleErrors(res, error, 'Error retrieving feedback.');
@@ -68,14 +38,8 @@ export class ChatFeedbackController {
     }
 
     async deleteFeedback(req: AuthenticatedRequest, res: Response) {
-        const {userId} = req;
-        const {feedbackId} = req.params;
-
-        if (!userId || !feedbackId) {
-            return res.status(400).json({message: 'userId and feedbackId are required.'});
-        }
         try {
-            await deleteChatFeedback(feedbackId, userId);
+            await deleteChatFeedback(req.userId!, req.params.feedbackId);
             res.status(200).json({message: 'Feedback deleted successfully.'});
         } catch (error) {
             handleErrors(res, error, 'Error deleting feedback.');

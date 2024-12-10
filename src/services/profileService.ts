@@ -1,40 +1,18 @@
-import client from '../config/dbConfig.js';
 import {ProfileData} from '../interface/interface.js';
 import {broadcast} from '../server/startWebSocketServer.js';
+import {executeQuery} from "../utils/queryHelpers.js";
+
 
 export async function getUserProfile(userId: string | number): Promise<ProfileData> {
-    const query = `
-        SELECT
-            id,
-            first_name AS "firstName",
-            last_name AS "lastName",
-            avatar,
-            balance,
-            spin_count AS "spinCount",
-            successful_responses_count AS "successfulResponsesCount",
-            current_status AS "currentStatus",
-            user_id AS "userId",
-            updated_at AS "updatedAt"
-        FROM
-            profiles
-        WHERE
-            user_id = $1;
-    `;
-
-    try {
-        const result = await client.query(query, [userId]);
-        if (result.rows.length === 0) {
-            throw new Error(`Profile not found for userId: ${userId}`);
-        }
-        return result.rows[0];
-    } catch (err) {
-        throw err;
-    }
+    const query = `SELECT * FROM profiles WHERE user_id = $1`;
+    const result = await executeQuery(query, [userId]);
+    return result[0] || null;
 }
+
 
 export async function createUserProfile(userId: string): Promise<void> {
     const id = userId.toString();
-    const createProfileQuery = `
+    const query = `
         INSERT INTO profiles (
             first_name, last_name, avatar, balance, spin_count, successful_responses_count, current_status, user_id, updated_at
         )
@@ -42,8 +20,8 @@ export async function createUserProfile(userId: string): Promise<void> {
         RETURNING id;
     `;
     const values = [
-        'Иван',
-        'Иванов',
+        'Имя',
+        'Фамилия',
         '',
         0,
         0,
@@ -53,13 +31,10 @@ export async function createUserProfile(userId: string): Promise<void> {
         new Date().toISOString()
     ];
 
-    try {
-        await client.query(createProfileQuery, values);
-        broadcast(`Profile has been successfully created for user ${userId}`);
-    } catch (err) {
-        throw err;
-    }
+    await executeQuery(query, values);
+    broadcast(`Profile has been successfully created for user ${userId}`);
 }
+
 
 export async function updateUserProfile(profileData: Partial<ProfileData>): Promise<ProfileData> {
     const updateFields = [];
@@ -83,70 +58,53 @@ export async function updateUserProfile(profileData: Partial<ProfileData>): Prom
     values.push(new Date().toISOString());
     values.push(profileData.userId);
 
-    const updateProfileQuery = `
+    const query = `
         UPDATE profiles
         SET ${updateFields.join(', ')}
         WHERE user_id = $${index}
         RETURNING id, first_name AS "firstName", last_name AS "lastName", avatar, updated_at AS "updatedAt";
     `;
+    const result = await executeQuery(query, values);
+    if (result.length === 0) throw new Error(`Profile not found for userId: ${profileData.userId}`);
+    broadcast(`Profile with ID ${profileData.userId} has been successfully updated.`);
+    return result[0];
 
-    try {
-        const result = await client.query(updateProfileQuery, values);
-        if (result.rows.length === 0) {
-            throw new Error(`Profile not found for userId: ${profileData.userId}`);
-        }
-
-        broadcast(`Profile with ID ${profileData.userId} has been successfully updated.`);
-        return result.rows[0];
-    } catch (err) {
-        throw err;
-    }
 }
 
-export const deleteUserProfile = async (userId: string | number): Promise<void> => {
-    try {
-        const query = `DELETE FROM user_profiles WHERE user_id = $1`;
-        await client.query(query, [userId]);
-    } catch (err) {
-        console.error(`Error when deleting profile for userId ${userId}:`, err);
-        throw err;
-    }
-};
+
+export async function deleteUserProfile(userId: string | number): Promise<void> {
+    const query = `DELETE FROM profiles WHERE user_id = $1`;
+    await executeQuery(query, [userId]);
+}
+
 
 export async function incrementSpinCount(userId: string | number): Promise<void> {
-    const updateProfileQuery = `
+    const query = `
         UPDATE profiles
         SET spin_count = spin_count + 1, updated_at = NOW()
         WHERE user_id = $1;
     `;
 
-    try {
-        await client.query(updateProfileQuery, [userId]);
-    } catch (err) {
-        console.error('Error when updating spin_count:', err);
-        throw err;
-    }
+    await executeQuery(query, [userId]);
 }
+
 
 export async function updateSuccessfulResponsesCount(userId: string | number): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
-    const countSuccessfulResponsesQuery = `
+    const countQuery = `
         SELECT COUNT(*) AS "successfulResponsesCount"
         FROM ${tableName}
         WHERE vacancy_status = 'true';
     `;
 
-    const updateProfileQuery = `
+    const updateQuery = `
         UPDATE profiles
         SET successful_responses_count = $1
         WHERE user_id = $2;
     `;
-    try {
-        const result = await client.query(countSuccessfulResponsesQuery);
-        const rawCount = result.rows[0].successfulResponsesCount;
-        const successfulResponsesCount = parseInt(rawCount, 10);
-        await client.query(updateProfileQuery, [successfulResponsesCount, userId]);
-    } catch (err) {
-        throw err;
-    }
+
+    const result = await executeQuery(countQuery);
+    const rawCount = result[0]?.successfulResponsesCount || 0;
+    const successfulResponsesCount = parseInt(rawCount, 10);
+    await executeQuery(updateQuery, [successfulResponsesCount, userId]);
 }

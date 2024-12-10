@@ -1,5 +1,5 @@
 import {Response} from 'express';
-import {AuthenticatedRequest, handleErrors} from '../server/middlewares.js';
+import {handleErrors} from '../server/middlewares.js';
 import {
     createSubscription,
     createTableSubscriptions,
@@ -8,6 +8,7 @@ import {
     listSubscription,
     updateSubscription
 } from '../services/subscriptionsService.js';
+import {AuthenticatedRequest} from "../interface/interface";
 
 type SubscriptionType = 'daily' | 'weekly' | 'monthly';
 
@@ -18,8 +19,8 @@ export class SubscriptionController {
             weekly: 15,
             monthly: 50,
         };
-
         const price = prices[subscriptionType];
+
         if (!price) {
             throw new Error('Invalid subscription type');
         }
@@ -28,8 +29,7 @@ export class SubscriptionController {
         if (subscriptionType === 'daily') endDate.setDate(endDate.getDate() + 1);
         if (subscriptionType === 'weekly') endDate.setDate(endDate.getDate() + 7);
         if (subscriptionType === 'monthly') endDate.setMonth(endDate.getMonth() + 1);
-
-        return { price, endDate };
+        return {price, endDate};
     }
 
     async createSubscriptionTable(req: AuthenticatedRequest, res: Response,) {
@@ -44,10 +44,7 @@ export class SubscriptionController {
     async listSubscriptions(req: AuthenticatedRequest, res: Response) {
         try {
             const subscriptions = await listSubscription(req.userId!);
-            if (subscriptions.length === 0) {
-                return res.status(404).json({message: 'No subscriptions found for this user.'});
-            }
-            res.status(200).json(subscriptions);
+            res.status(subscriptions.length ? 200 : 404).json(subscriptions.length ? subscriptions : {message: 'subscriptions not found.'});
         } catch (error) {
             handleErrors(res, error, 'Error fetching subscriptions.');
         }
@@ -57,7 +54,6 @@ export class SubscriptionController {
     async getSubscription(req: AuthenticatedRequest, res: Response,) {
         try {
             const subscription = await getSubscription(req.params.id);
-
             res.status(200).json(subscription);
         } catch (error) {
             handleErrors(res, error, 'Error creating subscription');
@@ -66,17 +62,17 @@ export class SubscriptionController {
 
     async createSubscription(req: AuthenticatedRequest, res: Response,) {
         const {subscriptionType}: { subscriptionType: SubscriptionType } = req.body;
-
         try {
-            const { price, endDate } = this.getSubscriptionDetails(subscriptionType);
+            const {price, endDate} = this.getSubscriptionDetails(subscriptionType);
 
             const subscription = await createSubscription({
-                userId: req.userId,
+                userId: req.userId!,
                 subscriptionType,
                 price,
                 startDate: new Date().toISOString(),
                 endDate: endDate.toISOString(),
             });
+
             res.status(201).json(subscription);
         } catch (error) {
             handleErrors(res, error, 'Error creating subscription');
@@ -85,18 +81,17 @@ export class SubscriptionController {
 
     async updateSubscription(req: AuthenticatedRequest, res: Response) {
         const {subscriptionType}: { subscriptionType: SubscriptionType } = req.body;
-
         try {
-            const { price, endDate } = this.getSubscriptionDetails(subscriptionType);
-
+            const {price, endDate} = this.getSubscriptionDetails(subscriptionType);
 
             const updatedSubscription = await updateSubscription({
-                userId: req.userId,
+                userId: req.userId!,
                 subscriptionType,
                 price,
                 startDate: new Date().toISOString(),
                 endDate: endDate.toISOString(),
             });
+
             res.status(200).json(updatedSubscription);
         } catch (error) {
             handleErrors(res, error, 'Error updating subscription');
