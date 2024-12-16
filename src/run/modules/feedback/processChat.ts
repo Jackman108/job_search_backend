@@ -1,21 +1,21 @@
 // src/processVacancy.js
-import { SELECTORS, SELECTORS_CHAT, TIMEOUTS } from '../../../constants.js';
-import { ProcessChatParams, GetFeedbackParams } from '../../../interface/interface.js';
-import { saveChatFeedback } from '../../../services/chatService.js';
-import { extractFeedbackData } from '../../../utils/chatUtils.js';
+import {SELECTORS_CHAT} from '../../../constants.js';
+import {ProcessChatParams} from '../../../interface/interface.js';
+import {saveChatFeedback} from '../../../services/feedbackService.js';
+import {extractFeedbackData} from '../../../utils/feedbackUtils.js';
 
 export async function processChat({
-    page,
-    chatLinkHandle,
-    chatId,
-    userId
-}: ProcessChatParams): Promise<void> {
-    
-    await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
-    await page.screenshot({ path: 'screenshot-unknown.png' });
-    await chatLinkHandle.click();
+                                      page,
+                                      chatLinkHandle,
+                                      chatId,
+                                      userId
+                                  }: ProcessChatParams): Promise<void> {
 
-    // Получаем все элементы с нужными селекторами и выбираем последний
+
+    await page.screenshot({path: 'screenshot-unknown.png'});
+    await chatLinkHandle.click();
+    await page.waitForSelector(SELECTORS_CHAT.VACANCY_URL);
+
     const vacancyUrlHandles = await page.$$(SELECTORS_CHAT.VACANCY_URL);
     const statusHandles = await page.$$(SELECTORS_CHAT.RESPONSE_STATUS);
     const textHandles = await page.$$(SELECTORS_CHAT.CHAT_TEXT);
@@ -31,10 +31,19 @@ export async function processChat({
     const url_vacancy = vacancyUrlHandle ? await page.evaluate(el => (el as HTMLAnchorElement).href, vacancyUrlHandle) : '';
     const response_status = statusHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), statusHandle) : '';
     const feedback_text = textHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), textHandle) : '';
-    const feedback_date = dateHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), dateHandle) : '';
-    const feedback_time = timeHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), timeHandle) : '';
+    const feedback_date = dateHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), dateHandle) : 'N/A';
+    const feedback_time = timeHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), timeHandle) : '00:00';
 
-    const newData = await extractFeedbackData({ userId, chatId, url_vacancy, response_status, feedback_text, feedback_date, feedback_time });
+
+    const newData = await extractFeedbackData({
+        chatId,
+        url_vacancy,
+        response_status,
+        feedback_text,
+        feedback_date,
+        feedback_time
+    });
+
     await saveChatFeedback(newData, userId);
     console.log(`The Chat with ID ${newData.id} is saved with flag ${newData.response_status}`);
-};
+}

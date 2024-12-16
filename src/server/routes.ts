@@ -1,6 +1,6 @@
 // server/routes.ts
 import express from 'express';
-import {ChatFeedbackController} from '../controllers/ChatFeedbackController.js';
+import {FeedbackController} from '../controllers/FeedbackController.js';
 import {ContactsController} from '../controllers/resume/ContactsController.js';
 import {ProfileController} from '../controllers/ProfileController.js';
 import {ResumeController} from '../controllers/resume/ResumeController.js';
@@ -17,8 +17,8 @@ export const initializeRoutes = (app: express.Application) => {
     registerRoute(app, 'post', '/default/vacancies', VacancyController, 'createVacanciesTable');
     registerRoute(app, 'delete', '/default/vacancies', VacancyController, 'deleteVacanciesTable');
 
-    registerRoute(app, 'post', '/default/feedback', ChatFeedbackController, 'createFeedbackTable');
-    registerRoute(app, 'delete', '/default/feedback', ChatFeedbackController, 'deleteFeedbackTable');
+    registerRoute(app, 'post', '/default/feedback', FeedbackController, 'createFeedbackTable');
+    registerRoute(app, 'delete', '/default/feedback', FeedbackController, 'deleteFeedbackTable');
 
     registerRoute(app, 'post', '/default/payment', PaymentController, 'createPaymentTable');
     registerRoute(app, 'post', '/default/subscription', SubscriptionController, 'createSubscriptionTable');
@@ -29,8 +29,8 @@ export const initializeRoutes = (app: express.Application) => {
     registerRoute(app, 'get', '/vacancy', VacancyController, 'getVacancies');
     registerRoute(app, 'delete', '/vacancy/:vacancyId', VacancyController, 'deleteVacancy');
 
-    registerRoute(app, 'get', '/feedback', ChatFeedbackController, 'getFeedback');
-    registerRoute(app, 'delete', '/feedback/:feedbackId', ChatFeedbackController, 'deleteFeedback');
+    registerRoute(app, 'get', '/feedback', FeedbackController, 'getFeedback');
+    registerRoute(app, 'delete', '/feedback/:feedbackId', FeedbackController, 'deleteFeedback');
 
     registerRoute(app, 'get', '/profile', ProfileController, 'getProfile');
     registerRoute(app, 'post', '/profile', ProfileController, 'createProfile');

@@ -49,15 +49,6 @@ export interface ProfileData {
 // Интерфейсы для обратной связи
 // ------------------------
 
-export interface SendFeedbackParams {
-    userId: string;
-    email: string;
-    password: string;
-    position: string;
-    message: string;
-    vacancyUrl: string;
-}
-
 export interface GetFeedbackParams {
     userId: string;
     email: string;
@@ -66,7 +57,6 @@ export interface GetFeedbackParams {
 
 export interface ExtractFeedbackData {
     chatId: number;
-    userId: string;
     url_vacancy: string;
     response_status: string;
     feedback_text: string;
@@ -90,21 +80,32 @@ export interface VacancyData {
     response_date_date?: string;
 }
 
+/*
 export interface Vacancy {
     data: VacancyData;
     vacancyResponse: ElementHandle;
 }
-
+*/
 export interface VacancyWithResponse {
     data: VacancyData;
     vacancyResponse: ElementHandle | null;
+}
+
+export interface SendFeedbackParams {
+    userId: string;
+    email: string;
+    password: string;
+    position: string;
+    message: string;
+    vacancyUrl: string;
 }
 
 // ------------------------
 // Интерфейсы для чатов
 // ------------------------
 
-export interface ChatData {
+
+export interface FeedbackData {
     id: number;
     vacancy_id: number;
     feedback_text: string;
@@ -112,7 +113,7 @@ export interface ChatData {
     response_status: string;
 }
 
-export interface ChatWithResponse {
+export interface FeedbackWithResponse {
     chatId: number;
     chatLinkHandle: ElementHandle | null;
 }
@@ -161,12 +162,13 @@ export interface Counters {
     unsuccessfullySubmittedCount: number;
 }
 
+/*
 export interface PuppeteerContext {
     browser: Browser | null;
     page: Page | null;
     counters: Counters;
 }
-
+*/
 // ------------------------
 // Интерфейсы для извлечения данных
 // ------------------------

@@ -1,21 +1,21 @@
 // src/navigateAndProcessVacancies.ts
-import { SELECTORS, TIMEOUTS } from '../../../constants.js';
-import { ChatData, ChatWithResponse, navigateAndProcessChats } from '../../../interface/interface.js';
-import { personalData } from '../../../secrets.js';
-import { getChatFeedback } from '../../../services/chatService.js';
-import { isStopped, stop } from '../../../utils/stopManager.js';
-import { getChats } from './getChats.js';
-import { processChat } from './processChat.js';
+import {TIMEOUTS} from '../../../constants.js';
+import {FeedbackWithResponse, navigateAndProcessChats} from '../../../interface/interface.js';
+import {personalData} from '../../../secrets.js';
+import {getChatFeedback} from '../../../services/feedbackService.js';
+import {isStopped, stop} from '../../../utils/stopManager.js';
+import {getChats} from './getChats.js';
+import {processChat} from './processChat.js';
 
 export async function navigateAndProcessChats({
-    userId,
-    page,
-    browser
-}: navigateAndProcessChats): Promise<void> {
+                                                  userId,
+                                                  page,
+                                                  browser
+                                              }: navigateAndProcessChats): Promise<void> {
 
     let currentPage = 0;
     let existingChatsIds: Set<number>;
-    const { totalPages } = personalData;
+    const {totalPages} = personalData;
 
     try {
         const ChatsFromDb = await getChatFeedback(userId);
@@ -33,7 +33,7 @@ export async function navigateAndProcessChats({
         try {
             console.log(`Processing page ${currentPage + 1} из ${totalPages}`);
 
-            let chats: ChatWithResponse[] = await getChats(page);
+            let chats: FeedbackWithResponse[] = await getChats(page);
             chats = chats.filter((data) => data.chatId && !existingChatsIds.has(data.chatId));
             if (chats.length === 0) {
                 console.log('chats.length', chats.length);
@@ -41,9 +41,9 @@ export async function navigateAndProcessChats({
             }
 
             for (let i = 0; i < chats.length; i++) {
-                const { chatId, chatLinkHandle } = chats[i];
+                const {chatId, chatLinkHandle} = chats[i];
 
-                await page.screenshot({ path: 'chats_length.png' });
+                await page.screenshot({path: 'screenshot-chats.png'});
                 if (isStopped()) {
                     await stop(browser);
                     return;
@@ -55,12 +55,12 @@ export async function navigateAndProcessChats({
                 try {
                     existingChatsIds.add(chatId);
                     if (chatLinkHandle) {
-                        await processChat({ page, chatLinkHandle, chatId, userId });
+                        await processChat({page, chatLinkHandle, chatId, userId});
                     } else {
-                        console.error(`Vacancy response for ID ${chatId} is null.`);
+                        console.error(`Feedback response for ID ${chatId} is null.`);
                     }
                 } catch (err) {
-                    console.error(`Error processing vacancy with ID ${chatId}:`, err);
+                    console.error(`Error processing feedback with ID ${chatId}:`, err);
                 }
             }
 

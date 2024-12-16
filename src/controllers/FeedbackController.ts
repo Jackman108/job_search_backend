@@ -1,4 +1,4 @@
-// server/controllers/ChatFeedbackController.ts
+// server/controllers/FeedbackController.ts
 import {Response} from 'express';
 import {handleErrors} from '../server/middlewares.js';
 import {
@@ -6,10 +6,10 @@ import {
     deleteChatFeedback,
     deleteChatFeedbackTable,
     getChatFeedback
-} from '../services/chatService.js';
+} from '../services/feedbackService.js';
 import {AuthenticatedRequest} from "../interface/interface";
 
-export class ChatFeedbackController {
+export class FeedbackController {
     async createFeedbackTable(req: AuthenticatedRequest, res: Response) {
         try {
             await createChatFeedbackTable(req.userId!);

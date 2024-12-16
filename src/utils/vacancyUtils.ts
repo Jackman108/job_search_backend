@@ -1,10 +1,14 @@
 // src/utils/vacancyUtils.ts
-import { ExtractVacancyDataParams, VacancyData } from '../interface/interface.js';
+import {ExtractVacancyDataParams, VacancyData} from '../interface/interface.js';
 
 export async function extractVacancyData({
-    title_vacancy, url_vacancy, title_company, url_company
-}: ExtractVacancyDataParams): Promise<VacancyData> {
+                                             title_vacancy, url_vacancy, title_company, url_company
+                                         }: ExtractVacancyDataParams): Promise<VacancyData> {
     const id = Number(url_vacancy.match(/\/(\d+)\?/)?.[1]) || 0;
+
+    const responseDate = new Date();
+    responseDate.setHours(responseDate.getHours() + 6);
+
     return {
         id,
         title_vacancy: title_vacancy || 'Заголовок не найден',
@@ -12,6 +16,6 @@ export async function extractVacancyData({
         title_company: title_company || 'Название компании не найдено',
         url_company: url_company || 'Ссылка на компанию не найдена',
         vacancy_status: 'false',
-        response_date: new Date().toISOString()
+        response_date: responseDate.toISOString()
     };
 }

@@ -4,7 +4,23 @@ import {executeQuery} from "../utils/queryHelpers.js";
 
 
 export async function getUserProfile(userId: string | number): Promise<ProfileData> {
-    const query = `SELECT * FROM profiles WHERE user_id = $1`;
+    const query = `
+        SELECT
+            id,
+            first_name AS "firstName",
+            last_name AS "lastName",
+            avatar,
+            balance,
+            spin_count AS "spinCount",
+            successful_responses_count AS "successfulResponsesCount",
+            current_status AS "currentStatus",
+            user_id AS "userId",
+            updated_at AS "updatedAt"
+        FROM
+            profiles
+        WHERE
+            user_id = $1;
+    `;
     const result = await executeQuery(query, [userId]);
     return result[0] || null;
 }

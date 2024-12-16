@@ -1,12 +1,11 @@
 // feedbackService.ts
-import {ChatData} from '../interface/interface.js';
+import {FeedbackData} from '../interface/interface.js';
 import {broadcast} from '../server/startWebSocketServer.js';
 import {executeQuery} from "../utils/queryHelpers.js";
 
 
 export const createChatFeedbackTable = async (userId: string | number): Promise<void> => {
-    const id = userId.toString();
-    const tableName = `"${id}_feedbacks"`;
+    const tableName = `"${userId}_feedbacks"`;
 
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS ${tableName} (
@@ -29,14 +28,14 @@ export const deleteChatFeedbackTable = async (userId: string | number): Promise<
 };
 
 
-export const saveChatFeedback = async (data: ChatData, userId: string | number): Promise<void> => {
+export const saveChatFeedback = async (data: FeedbackData, userId: string | number): Promise<void> => {
     const tableName = `"${userId}_feedbacks"`;
 
     const insertOrUpdateQuery = `
     INSERT INTO ${tableName} (id, vacancy_id, feedback_text, feedback_date, response_status)
     VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT (id) DO UPDATE 
-    SET feedback_text = $2, feedback_date = $3, feedback_date = $4, response_status = $5;
+    SET vacancy_id = $2, feedback_text = $3, feedback_date = $4, response_status = $5;
 `;
 
     const values = [
