@@ -33,7 +33,7 @@ export const initializeRoutes = (app: express.Application) => {
     registerRoute(app, 'delete', '/feedback/:feedbackId', FeedbackController, 'deleteFeedback');
 
     registerRoute(app, 'get', '/profile', ProfileController, 'getProfile');
-    registerRoute(app, 'post', '/profile', ProfileController, 'createProfile');
+    registerRoute(app, 'post', '/default/profile', ProfileController, 'createProfile');
     registerRoute(app, 'put', '/profile', ProfileController, 'updateProfile');
     registerRoute(app, 'delete', '/profile', ProfileController, 'deleteProfile');
 

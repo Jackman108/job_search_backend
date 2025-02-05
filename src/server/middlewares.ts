@@ -13,6 +13,15 @@ const corsOptions: CorsOptions = {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 };
+const publicRoutes = new Set([
+    'POST:/default/vacancies',
+    'DELETE:/default/vacancies',
+    'POST:/default/feedback',
+    'DELETE:/default/feedback',
+    'POST:/default/payment',
+    'POST:/default/subscription',
+    'POST:/default/profile',
+]);
 
 export const CorsMiddleware = (app: express.Application) => app.use(cors(corsOptions));
 
@@ -94,8 +103,8 @@ export function registerRoute(
     path: string,
     controller: any,
     action: string,
-    requiresAuth = true,
 ) {
+    const requiresAuth = !publicRoutes.has(`${method.toUpperCase()}:${path}`);
 
     const middlewares = [extractUserId];
     if (requiresAuth) {
