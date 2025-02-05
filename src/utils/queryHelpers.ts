@@ -56,7 +56,7 @@ export const generateUpdateQueryWithConditions = (
 };
 
 // Универсальная функция для генерации SET части запроса
-const generateSetClause = (updates: Record<string, any>): { setClause: string[]; values: any[] } => {
+export const generateSetClause = (updates: Record<string, any>): { setClause: string[]; values: any[] } => {
     const setClause: string[] = [];
     const values: any[] = [];
 
@@ -81,3 +81,17 @@ const generateWhereClause = (conditions: Record<string, any>, values: any[]): st
 
     return whereClause;
 };
+
+// Функция для проверки существования таблицы
+export async function tableExists(tableName: string): Promise<boolean> {
+    const query = `SELECT to_regclass('public.${tableName}');`;
+    const result = await executeQuery(query);
+    return result[0]?.to_regclass !== null;
+}
+
+// Универсальная функция для удаления таблицы
+export async function deleteTable(userId: string | number, tableName: string): Promise<void> {
+    const fullTableName = `"${userId}_${tableName}"`;
+    const query = `DROP TABLE IF EXISTS ${fullTableName}`;
+    await executeQuery(query);
+}

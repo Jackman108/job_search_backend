@@ -4,7 +4,7 @@ import {handleErrors} from '../server/middlewares.js';
 import {
     createChatFeedbackTable,
     deleteChatFeedback,
-    deleteChatFeedbackTable,
+    deleteFeedbackTable,
     getChatFeedback
 } from '../services/feedbackService.js';
 import {AuthenticatedRequest} from "../interface/interface";
@@ -21,7 +21,7 @@ export class FeedbackController {
 
     async deleteFeedbackTable(req: AuthenticatedRequest, res: Response) {
         try {
-            await deleteChatFeedbackTable(req.userId!);
+            await deleteFeedbackTable(req.userId!);
             res.status(200).json({message: 'Feedback table deleted successfully.'});
         } catch (error) {
             handleErrors(res, error, 'Error deleting feedback table.');

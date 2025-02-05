@@ -22,7 +22,12 @@ export async function getUserProfile(userId: string | number): Promise<ProfileDa
             user_id = $1;
     `;
     const result = await executeQuery(query, [userId]);
-    return result[0] || null;
+    if (result.length === 0) {
+        await createUserProfile(userId.toString());
+        return await getUserProfile(userId);  // Повторно вызываем функцию для получения данных
+    }
+
+    return result[0];
 }
 
 
@@ -46,8 +51,8 @@ export async function createUserProfile(userId: string): Promise<void> {
         id,
         new Date().toISOString()
     ];
-
     await executeQuery(query, values);
+
     broadcast(`Profile has been successfully created for user ${userId}`);
 }
 

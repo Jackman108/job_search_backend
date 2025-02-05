@@ -1,7 +1,7 @@
 // feedbackService.ts
 import {FeedbackData} from '../interface/interface.js';
 import {broadcast} from '../server/startWebSocketServer.js';
-import {executeQuery} from "../utils/queryHelpers.js";
+import {deleteTable, executeQuery, tableExists} from "../utils/queryHelpers.js";
 
 
 export const createChatFeedbackTable = async (userId: string | number): Promise<void> => {
@@ -21,11 +21,9 @@ export const createChatFeedbackTable = async (userId: string | number): Promise<
 };
 
 
-export const deleteChatFeedbackTable = async (userId: string | number): Promise<void> => {
-    const tableName = `"${userId}_feedbacks"`;
-    const query = `DROP TABLE IF EXISTS ${tableName}`;
-    await executeQuery(query);
-};
+export async function deleteFeedbackTable(userId: string | number): Promise<void> {
+    await deleteTable(userId, 'feedbacks');
+}
 
 
 export const saveChatFeedback = async (data: FeedbackData, userId: string | number): Promise<void> => {
@@ -53,6 +51,11 @@ export const saveChatFeedback = async (data: FeedbackData, userId: string | numb
 
 export const getChatFeedback = async (userId: string | number): Promise<any[]> => {
     const tableName = `"${userId}_feedbacks"`;
+    const exists = await tableExists(tableName);
+    if (!exists) {
+        await createChatFeedbackTable(userId);
+    }
+
     const query = `SELECT * FROM ${tableName}`;
     const rows = await executeQuery(query);
 

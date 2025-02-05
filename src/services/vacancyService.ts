@@ -1,7 +1,7 @@
 // vacancyService.ts
 import {VacancyData} from '../interface/interface.js';
 import {broadcast} from '../server/startWebSocketServer.js';
-import {executeQuery} from "../utils/queryHelpers.js";
+import {deleteTable, executeQuery, tableExists} from "../utils/queryHelpers.js";
 
 export async function createTableVacanciesUser(userId: string | number): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
@@ -17,14 +17,13 @@ export async function createTableVacanciesUser(userId: string | number): Promise
             response_date TIMESTAMP                
         );
     `;
-    await executeQuery(query);
+
+        await executeQuery(query);
 }
 
 
 export async function deleteVacancyTable(userId: string | number): Promise<void> {
-    const tableName = `"${userId}_vacancy"`;
-    const query = `DROP TABLE IF EXISTS ${tableName}`;
-    await executeQuery(query);
+    await deleteTable(userId, 'vacancy');
 }
 
 
@@ -55,9 +54,15 @@ export async function saveVacancy(data: VacancyData, userId: string | number): P
 
 export async function getVacanciesUser(userId: string | number): Promise<any[]> {
     const tableName = `"${userId}_vacancy"`;
-    const query = `SELECT * FROM ${tableName}`;
-    const result = await executeQuery(query);
-    return result.length > 0 ? result : [];
+    const exists = await tableExists(tableName);
+    if (!exists) {
+        await createTableVacanciesUser(userId);
+    }
+        const query = `SELECT * FROM ${tableName}`;
+        const result = await executeQuery(query);
+        return result.length > 0 ? result : [];
+
+
 }
 
 
