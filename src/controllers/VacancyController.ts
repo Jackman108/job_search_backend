@@ -1,23 +1,10 @@
 // server/controllers/VacancyController.ts
 import {Response} from 'express';
 import {handleErrors} from '../server/middlewares.js';
-import {
-    createTableVacanciesUser,
-    deleteVacancyTable,
-    deleteVacancyUser,
-    getVacanciesUser
-} from '../services/vacancyService.js';
+import {deleteVacancyTable, deleteVacancyUser, getVacanciesUser} from '../services/vacancyService.js';
 import {AuthenticatedRequest} from "../interface/interface";
 
 export class VacancyController {
-    async createVacanciesTable(req: AuthenticatedRequest, res: Response,) {
-        try {
-            await createTableVacanciesUser(req.userId!);
-            res.status(201).json({message: 'Vacancy Table successfully created.'});
-        } catch (error) {
-            handleErrors(res, error, 'Error creating a Vacancy Table.');
-        }
-    }
 
     async deleteVacanciesTable(req: AuthenticatedRequest, res: Response) {
         try {

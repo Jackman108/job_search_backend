@@ -2,7 +2,7 @@
 import {Response} from 'express';
 import {AuthenticatedRequest, AvatarUploadParams, UserProfileUpdateFields} from '../interface/interface.js';
 import {handleErrors} from '../server/middlewares.js';
-import {createUserProfile, deleteUserProfile, getUserProfile, updateUserProfile} from '../services/profileService.js';
+import {deleteUserProfile, getUserProfile, updateUserProfile} from '../services/profileService.js';
 import {handleAvatarUpload} from '../utils/avatarUpload.js';
 
 export class ProfileController {
@@ -12,15 +12,6 @@ export class ProfileController {
             res.status(200).json(profile);
         } catch (error) {
             handleErrors(res, error, 'Error fetching profile.');
-        }
-    }
-
-    async createProfile(req: AuthenticatedRequest, res: Response) {
-        try {
-            await createUserProfile(req.userId!);
-            res.status(201).json({message: 'Profile successfully created.'});
-        } catch (error) {
-            handleErrors(res, error, 'Error creating a user profile.');
         }
     }
 

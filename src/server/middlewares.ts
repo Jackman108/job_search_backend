@@ -13,15 +13,6 @@ const corsOptions: CorsOptions = {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 };
-const publicRoutes = new Set([
-    'POST:/default/vacancies',
-    'DELETE:/default/vacancies',
-    'POST:/default/feedback',
-    'DELETE:/default/feedback',
-    'POST:/default/payment',
-    'POST:/default/subscription',
-    'POST:/default/profile',
-]);
 
 export const CorsMiddleware = (app: express.Application) => app.use(cors(corsOptions));
 
@@ -73,15 +64,15 @@ export const extractUserId = (req: AuthenticatedRequest, res: Response, next: Ne
         }
 
         const secret = process.env.JWT_SECRET
-        if (!secret) throw new Error('The secret key was not found');
-
+        if (!secret) {
+            return res.status(500).json({message: 'The secret key was not found'});
+        }
         try {
             const decoded = jwt.verify(token, secret) as { id: string };
             if (!decoded || !decoded.id) {
                 return res.status(401).json({message: 'Invalid token'});
             }
             req.userId = decoded.id;
-
             next();
         } catch (err: any) {
             if (err instanceof jwt.TokenExpiredError) {
@@ -103,8 +94,8 @@ export function registerRoute(
     path: string,
     controller: any,
     action: string,
+    requiresAuth = true,
 ) {
-    const requiresAuth = !publicRoutes.has(`${method.toUpperCase()}:${path}`);
 
     const middlewares = [extractUserId];
     if (requiresAuth) {

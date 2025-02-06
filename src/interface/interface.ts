@@ -184,10 +184,6 @@ export interface ExtractChatDataParams {
     chatUrl: string;
 }
 
-export interface ExtractChatIdParams {
-    chatId: number;
-}
-
 export interface AvatarUploadParams {
     avatar: string;
     updateFields: UserProfileUpdateFields;

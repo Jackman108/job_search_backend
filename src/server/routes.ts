@@ -14,10 +14,8 @@ import {SubscriptionController} from "../controllers/SubscriptionController.js";
 
 
 export const initializeRoutes = (app: express.Application) => {
-    registerRoute(app, 'post', '/default/vacancies', VacancyController, 'createVacanciesTable');
     registerRoute(app, 'delete', '/default/vacancies', VacancyController, 'deleteVacanciesTable');
 
-    registerRoute(app, 'post', '/default/feedback', FeedbackController, 'createFeedbackTable');
     registerRoute(app, 'delete', '/default/feedback', FeedbackController, 'deleteFeedbackTable');
 
     registerRoute(app, 'post', '/default/payment', PaymentController, 'createPaymentTable');
@@ -33,7 +31,6 @@ export const initializeRoutes = (app: express.Application) => {
     registerRoute(app, 'delete', '/feedback/:feedbackId', FeedbackController, 'deleteFeedback');
 
     registerRoute(app, 'get', '/profile', ProfileController, 'getProfile');
-    registerRoute(app, 'post', '/default/profile', ProfileController, 'createProfile');
     registerRoute(app, 'put', '/profile', ProfileController, 'updateProfile');
     registerRoute(app, 'delete', '/profile', ProfileController, 'deleteProfile');
 

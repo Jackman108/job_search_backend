@@ -1,20 +1,21 @@
 # Puppeteer Parser
 
-Проект Puppeteer Parser предназначен для автоматизации процесса отклика на вакансии на сайте [HeadHunter](https://hh.ru).
+Проект Puppeteer Parser предназначен для автоматизации процесса отклика на вакансии на
+сайте [HeadHunter](https://hh.ru).
 
 ## Установка
 
-Для начала убедитесь, что у вас установлены [Node.js](https://nodejs.org/) и [npm](https://www.npmjs.com/). Затем выполните следующие шаги:
+Для начала убедитесь, что у вас установлены [Node.js](https://nodejs.org/) и [npm](https://www.npmjs.com/). Затем
+выполните следующие шаги:
 
 1. Клонируйте репозиторий:
-
-git clone https://github.com/Jackman108/puppeteer-parser.git
+   git clone https://github.com/Jackman108/puppeteer-parser.git
 
 2. Перейдите в директорию проекта:
-cd puppeteer-parser
+   cd backend
 
 3. Установите и обновите зависимости:
-npm install
+   npm install
 
 npm update
 
@@ -45,7 +46,6 @@ export const personalData = {
 Выполните скрипт командой:
 
 npm start
-
 
 ## Описание работы скрипта
 

@@ -1,19 +1,19 @@
 // src/processVacancy.js
-import { SELECTORS, TIMEOUTS } from '../../../constants.js';
-import { ProcessVacancyParams } from '../../../interface/interface.js';
-import { saveVacancy } from '../../../services/vacancyService.js';
+import {SELECTORS, TIMEOUTS} from '../../../constants.js';
+import {ProcessVacancyParams} from '../../../interface/interface.js';
+import {saveVacancy} from '../../../services/vacancyService.js';
 
 export async function processVacancy({
-    page,
-    vacancyResponse,
-    data,
-    counters,
-    message,
-    userId
-}: ProcessVacancyParams): Promise<void> {
+                                         page,
+                                         vacancyResponse,
+                                         data,
+                                         counters,
+                                         message,
+                                         userId
+                                     }: ProcessVacancyParams): Promise<void> {
     try {
         await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
-        await page.screenshot({ path: 'screenshot-uncknoun.png' });
+        await page.screenshot({path: 'screenshot-uncknoun.png'});
         await vacancyResponse.click();
 
         const relocationModalSelector = SELECTORS.RELOCATION_MODAL_TITLE;
@@ -21,7 +21,7 @@ export async function processVacancy({
 
         const relocationModalHandle = await page.waitForSelector(
             relocationModalSelector,
-            { timeout: TIMEOUTS.MODAL }
+            {timeout: TIMEOUTS.MODAL}
         ).catch(() => null);
 
         if (relocationModalHandle) {
@@ -37,7 +37,7 @@ export async function processVacancy({
 
         const coverLetterButtonHandle = await page.waitForSelector(
             coverLetterToggleSelector,
-            { timeout: TIMEOUTS.SEARCH }).catch(() => null);
+            {timeout: TIMEOUTS.SEARCH}).catch(() => null);
 
         if (coverLetterButtonHandle) {
             await coverLetterButtonHandle.click()
@@ -45,19 +45,19 @@ export async function processVacancy({
 
         const coverLetterInputHandle = await page.waitForSelector(
             coverLetterInputSelector,
-            { timeout: TIMEOUTS.SEARCH }).catch(() => null);
+            {timeout: TIMEOUTS.SEARCH}).catch(() => null);
 
         if (coverLetterInputHandle) {
             await page.type(coverLetterInputSelector, message);
         } else {
             console.log('An error was detected in the cover letter');
             counters.unsuccessfullySubmittedCount++;
-            await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
+            await page.goBack({waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG});
         }
 
         const responseSubmitHandle = await page.waitForSelector(
             responseSubmitSelector,
-            { timeout: TIMEOUTS.SEARCH }
+            {timeout: TIMEOUTS.SEARCH}
         );
         if (responseSubmitHandle) {
             await responseSubmitHandle.click();
@@ -83,7 +83,7 @@ export async function processVacancy({
         if (isInvalidTextareaVisible || isInvalidRadioVisible || isInvalidCheckboxVisible) {
             console.log('An error was detected in the response form');
             counters.unsuccessfullySubmittedCount++;
-            await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
+            await page.goBack({waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG});
 
             await saveVacancy(data, userId);
             console.log(`The vacancy with ID ${data.id} is saved with flag N for ${data.title_vacancy}`);
@@ -94,8 +94,8 @@ export async function processVacancy({
             console.log(`The vacancy with ID ${data.id} is saved with flag Y for ${data.title_vacancy}`);
         }
     } catch (error) {
-        await page.screenshot({ path: 'screenshot-during.png' });
+        await page.screenshot({path: 'screenshot-during.png'});
 
         console.error('An error during the processing of a vacancy:', error);
     }
-};
+}
