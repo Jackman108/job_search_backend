@@ -1,9 +1,30 @@
 import {ProfileData} from '../interface/interface.js';
 import {broadcast} from '../server/startWebSocketServer.js';
 import {executeQuery} from "../utils/queryHelpers.js";
+import {invalidateUserProfileCache, userProfileCache} from "../utils/cacheQueryHelpers.js";
 
+async function createUserProfile(userId: string | number): Promise<void> {
+    const query = `
+        INSERT INTO profiles (
+            first_name, last_name, avatar, balance, spin_count, successful_responses_count, current_status, user_id, updated_at
+        )
+        VALUES ($1, $2, $3, 0, 0, 0, 'inactive', $4, NOW())
+        RETURNING id;
+    `;
+    const values = ['Имя', 'Фамилия', '', userId];
+
+    await executeQuery(query, values);
+
+    broadcast(`Profile has been successfully created for user ${userId}`);
+}
 
 export async function getUserProfile(userId: string | number): Promise<ProfileData> {
+    const userIdStr = userId.toString();
+
+    if (userProfileCache.has(userIdStr)) {
+        return userProfileCache.get(userIdStr)!;
+    }
+
     const query = `
         SELECT
             id,
@@ -19,43 +40,18 @@ export async function getUserProfile(userId: string | number): Promise<ProfileDa
         FROM
             profiles
         WHERE
-            user_id = $1;
+            user_id = $1 LIMIT 1;
     `;
     const result = await executeQuery(query, [userId]);
     if (result.length === 0) {
-        await createUserProfile(userId.toString());
-        return await getUserProfile(userId);  // Повторно вызываем функцию для получения данных
+        await createUserProfile(userId);
+        return await getUserProfile(userId);
     }
 
-    return result[0];
+    const userProfile = result[0];
+    userProfileCache.set(userIdStr, userProfile);
+    return userProfile;
 }
-
-
-export async function createUserProfile(userId: string): Promise<void> {
-    const id = userId.toString();
-    const query = `
-        INSERT INTO profiles (
-            first_name, last_name, avatar, balance, spin_count, successful_responses_count, current_status, user_id, updated_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING id;
-    `;
-    const values = [
-        'Имя',
-        'Фамилия',
-        '',
-        0,
-        0,
-        0,
-        'inactive',
-        id,
-        new Date().toISOString()
-    ];
-    await executeQuery(query, values);
-
-    broadcast(`Profile has been successfully created for user ${userId}`);
-}
-
 
 export async function updateUserProfile(profileData: Partial<ProfileData>): Promise<ProfileData> {
     const updateFields = [];
@@ -87,15 +83,15 @@ export async function updateUserProfile(profileData: Partial<ProfileData>): Prom
     `;
     const result = await executeQuery(query, values);
     if (result.length === 0) throw new Error(`Profile not found for userId: ${profileData.userId}`);
-    broadcast(`Profile with ID ${profileData.userId} has been successfully updated.`);
+    invalidateUserProfileCache(profileData.userId!);
     return result[0];
-
 }
 
 
 export async function deleteUserProfile(userId: string | number): Promise<void> {
     const query = `DELETE FROM profiles WHERE user_id = $1`;
     await executeQuery(query, [userId]);
+    invalidateUserProfileCache(userId);
 }
 
 
@@ -125,7 +121,6 @@ export async function updateSuccessfulResponsesCount(userId: string | number): P
     `;
 
     const result = await executeQuery(countQuery);
-    const rawCount = result[0]?.successfulResponsesCount || 0;
-    const successfulResponsesCount = parseInt(rawCount, 10);
+    const successfulResponsesCount = parseInt(result[0]?.successfulResponsesCount || 0, 10);
     await executeQuery(updateQuery, [successfulResponsesCount, userId]);
 }

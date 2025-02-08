@@ -1,10 +1,13 @@
 // workExperienceService.ts
 import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
+import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/cacheQueryHelpers.js";
 
 
 export const getExperienceUser = async (userId: string): Promise<any[]> => {
-    const query = `SELECT * FROM work_experience WHERE user_id = $1`;
-    return await executeQuery(query, [userId]);
+
+    const resumeId = await getResumeIdCacheByUserId(userId);
+    const query = `SELECT * FROM work_experience WHERE resume_id = $1`;
+    return await executeQuery(query, [resumeId]);
 };
 
 
@@ -18,15 +21,16 @@ export const createExperienceUser = async (
         description: string;
     }
 ): Promise<string> => {
-
+    const resumeId = await getResumeIdCacheByUserId(userId);
+    if (!resumeId) {
+        throw new Error("Контакт не создан. Возможно, у пользователя нет резюме.");
+    }
     const query = `
-        INSERT INTO work_experience (user_id, company_name, position, start_date, end_date, description)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id;
-    `;
+        INSERT INTO work_experience (resume_id, company_name, position, start_date, end_date, description)
+        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;`;
 
     const values = [
-        userId,
+        resumeId,
         experienceData.company_name,
         experienceData.position,
         experienceData.start_date,
@@ -43,25 +47,29 @@ export const updateExperienceUser = async (
     userId: string,
     experienceId: string,
     updates: {
-        company_name?: string;
-        position?: string;
-        start_date?: Date;
-        end_date?: Date;
+        resume_id: string;
+        company_name: string;
+        position: string;
+        start_date: Date;
+        end_date: Date;
         description?: string;
     }
 ): Promise<void> => {
-
-    const {query, values} = generateUpdateQueryWithConditions(
+        const {query, values} = generateUpdateQueryWithConditions(
         "work_experience",
         updates,
-        {user_id: userId, id: experienceId}
+        {resume_id: updates.resume_id, id: experienceId}
     );
 
     await executeQuery(query, values);
+    await invalidateResumeIdCache(userId);
 };
 
 
 export const deleteExperienceUser = async (userId: string, experienceId: string): Promise<void> => {
-    const query = `DELETE FROM work_experience WHERE user_id = $1 AND id = $2;`;
-    await executeQuery(query, [userId, experienceId]);
+    const resumeId = await getResumeIdCacheByUserId(userId);
+    const query = `DELETE FROM work_experience WHERE resume_id = $1 AND id = $2;`;
+
+    await executeQuery(query, [resumeId, experienceId]);
+    await invalidateResumeIdCache(userId);
 };

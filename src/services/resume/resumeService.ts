@@ -10,7 +10,7 @@ export const createResumeUser = async (
         employment_type?: string,
         work_schedule?: string,
         travel_time?: string,
-        business_trip_readiness?: boolean
+        business_trip_readiness: boolean
     }
 ): Promise<string> => {
 
@@ -36,14 +36,14 @@ export const createResumeUser = async (
 
 
 export const getResumeUser = async (userId: string): Promise<any> => {
-    const query = `SELECT * FROM resumes WHERE user_id = $1`;
+    const query = `SELECT * FROM resumes WHERE user_id = $1 LIMIT 1`;
     const result = await executeQuery(query, [userId]);
     return result[0] || null;
 };
 
 
 export const updateResumeUser = async (userId: string, updates: {
-    full_name?: string,
+    full_name: string,
     position?: string,
     employment_type?: string,
     work_schedule?: string,
