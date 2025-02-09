@@ -28,15 +28,15 @@ export async function getUserProfile(userId: string | number): Promise<ProfileDa
     const query = `
         SELECT
             id,
-            first_name AS "firstName",
-            last_name AS "lastName",
+            first_name ,
+            last_name ,
             avatar,
             balance,
-            spin_count AS "spinCount",
-            successful_responses_count AS "successfulResponsesCount",
-            current_status AS "currentStatus",
-            user_id AS "userId",
-            updated_at AS "updatedAt"
+            spin_count,
+            successful_responses_count,
+            current_status,
+            user_id,
+            updated_at
         FROM
             profiles
         WHERE
@@ -58,13 +58,13 @@ export async function updateUserProfile(profileData: Partial<ProfileData>): Prom
     const values = [];
     let index = 1;
 
-    if (profileData.firstName) {
+    if (profileData.first_name) {
         updateFields.push(`first_name = $${index++}`);
-        values.push(profileData.firstName);
+        values.push(profileData.first_name);
     }
-    if (profileData.lastName) {
+    if (profileData.last_name) {
         updateFields.push(`last_name = $${index++}`);
-        values.push(profileData.lastName);
+        values.push(profileData.last_name);
     }
     if (profileData.avatar) {
         updateFields.push(`avatar = $${index++}`);
@@ -73,17 +73,17 @@ export async function updateUserProfile(profileData: Partial<ProfileData>): Prom
 
     updateFields.push(`updated_at = $${index++}`);
     values.push(new Date().toISOString());
-    values.push(profileData.userId);
+    values.push(profileData.user_id);
 
     const query = `
         UPDATE profiles
         SET ${updateFields.join(', ')}
         WHERE user_id = $${index}
-        RETURNING id, first_name AS "firstName", last_name AS "lastName", avatar, updated_at AS "updatedAt";
+        RETURNING id, first_name , last_name, avatar, updated_at;
     `;
     const result = await executeQuery(query, values);
-    if (result.length === 0) throw new Error(`Profile not found for userId: ${profileData.userId}`);
-    invalidateUserProfileCache(profileData.userId!);
+    if (result.length === 0) throw new Error(`Profile not found for userId: ${profileData.user_id}`);
+    invalidateUserProfileCache(profileData.user_id!);
     return result[0];
 }
 
@@ -109,7 +109,7 @@ export async function incrementSpinCount(userId: string | number): Promise<void>
 export async function updateSuccessfulResponsesCount(userId: string | number): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
     const countQuery = `
-        SELECT COUNT(*) AS "successfulResponsesCount"
+        SELECT COUNT(*)
         FROM ${tableName}
         WHERE vacancy_status = 'true';
     `;
@@ -121,6 +121,6 @@ export async function updateSuccessfulResponsesCount(userId: string | number): P
     `;
 
     const result = await executeQuery(countQuery);
-    const successfulResponsesCount = parseInt(result[0]?.successfulResponsesCount || 0, 10);
+    const successfulResponsesCount = parseInt(result[0]?.successful_responses_count || 0, 10);
     await executeQuery(updateQuery, [successfulResponsesCount, userId]);
 }

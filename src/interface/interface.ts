@@ -28,21 +28,22 @@ export interface AuthenticatedRequest extends Request {
 // ------------------------
 
 export interface UserProfileUpdateFields {
-    firstName?: string;
-    lastName?: string;
+    first_name?: string;
+    last_name?: string;
     avatar?: string;
 }
 
 export interface ProfileData {
-    userId: string | number;
-    firstName?: string;
-    lastName?: string;
-    avatar?: string;
-    balance?: number;
-    spinCount?: number;
-    successfulResponsesCount?: number;
-    currentStatus?: string;
-    updatedAt?: string | Date;
+    id: number;
+    first_name: string;
+    last_name: string;
+    avatar: string;
+    balance: number;
+    spin_count: number;
+    successful_responses_count: number;
+    current_status: string;
+    user_id: string | number;
+    updated_at: string | Date;
 }
 
 // ------------------------
