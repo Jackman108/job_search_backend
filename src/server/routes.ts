@@ -11,18 +11,12 @@ import {WorkExperienceController} from '../controllers/resume/WorkExperienceCont
 import {registerRoute} from './middlewares.js';
 import {PaymentController} from '../controllers/PaymentController.js';
 import {SubscriptionController} from "../controllers/SubscriptionController.js";
+import {VacancyAuthController} from "../controllers/sending/VacancyAuthController.js";
+import {VacancySubmitController} from "../controllers/sending/VacancySubmitController.js";
 
 
 export const initializeRoutes = (app: express.Application) => {
-    registerRoute(app, 'delete', '/default/vacancies', VacancyController, 'deleteVacanciesTable');
 
-    registerRoute(app, 'delete', '/default/feedback', FeedbackController, 'deleteFeedbackTable');
-
-    registerRoute(app, 'post', '/default/payment', PaymentController, 'createPaymentTable');
-    registerRoute(app, 'post', '/default/subscription', SubscriptionController, 'createSubscriptionTable');
-
-    registerRoute(app, 'post', '/payments', PaymentController, 'listPayments');
-    registerRoute(app, 'post', '/subscriptions', SubscriptionController, 'listSubscriptions');
 
     registerRoute(app, 'get', '/vacancy', VacancyController, 'getVacancies');
     registerRoute(app, 'delete', '/vacancy/:vacancyId', VacancyController, 'deleteVacancy');
@@ -54,9 +48,30 @@ export const initializeRoutes = (app: express.Application) => {
     registerRoute(app, 'put', '/work_experience/:experienceId', WorkExperienceController, 'updateExperience');
     registerRoute(app, 'delete', '/work_experience/:experienceId', WorkExperienceController, 'deleteExperience');
 
+    registerRoute(app, 'get', '/vacancy-auth', VacancyAuthController, 'getVacancyAuth');
+    registerRoute(app, 'post', '/vacancy-auth', VacancyAuthController, 'createVacancyAuth');
+    registerRoute(app, 'put', '/vacancy-auth/:authId', VacancyAuthController, 'updateVacancyAuth');
+    registerRoute(app, 'delete', '/vacancy-auth/:authId', VacancyAuthController, 'deleteVacancyAuth');
+
+    registerRoute(app, 'get', '/vacancy-submit', VacancySubmitController, 'getVacancySubmit');
+    registerRoute(app, 'post', '/vacancy-submit', VacancySubmitController, 'createVacancySubmit');
+    registerRoute(app, 'put', '/vacancy-submit/:submitId', VacancySubmitController, 'updateVacancySubmit');
+    registerRoute(app, 'delete', '/vacancy-submit/:submitId', VacancySubmitController, 'deleteVacancySubmit');
+
     registerRoute(app, 'post', '/start', ScriptController, 'startScript');
     registerRoute(app, 'post', '/stop', ScriptController, 'stopScript');
     registerRoute(app, 'post', '/refresh', ScriptController, 'refreshData');
+
+
+    registerRoute(app, 'delete', '/default/vacancies', VacancyController, 'deleteVacanciesTable');
+    registerRoute(app, 'delete', '/default/feedback', FeedbackController, 'deleteFeedbackTable');
+
+
+    registerRoute(app, 'post', '/default/payment', PaymentController, 'createPaymentTable');
+    registerRoute(app, 'post', '/default/subscription', SubscriptionController, 'createSubscriptionTable');
+
+    registerRoute(app, 'post', '/payments', PaymentController, 'listPayments');
+    registerRoute(app, 'post', '/subscriptions', SubscriptionController, 'listSubscriptions');
 
     registerRoute(app, 'get', '/payment/:id', PaymentController, 'getPayment');
     registerRoute(app, 'post', '/payment', PaymentController, 'createPayment');

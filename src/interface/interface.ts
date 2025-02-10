@@ -28,13 +28,15 @@ export interface AuthenticatedRequest extends Request {
 // ------------------------
 
 export interface UserProfileUpdateFields {
-    first_name?: string;
-    last_name?: string;
+    user_id: string;
+    first_name: string;
+    last_name: string;
     avatar?: string;
 }
 
 export interface ProfileData {
     id: number;
+    user_id: string | number;
     first_name: string;
     last_name: string;
     avatar: string;
@@ -42,8 +44,6 @@ export interface ProfileData {
     spin_count: number;
     successful_responses_count: number;
     current_status: string;
-    user_id: string | number;
-    updated_at: string | Date;
 }
 
 // ------------------------
@@ -212,4 +212,52 @@ export interface Payment {
     paymentMethod?: string;
     createdAt: string;
     updatedAt: string;
+}
+
+// Интерфейс для данных vacancy_auth
+export interface VacancyAuthData {
+    id?: number;
+    email: string;
+    password: string;
+    user_id: string;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+// Интерфейс для данных vacancy_submit
+export interface VacancySubmitData {
+    id?: number;
+    user_id: string;
+    position: string;
+    message: string;
+    vacancy_url: string;
+    schedule: string;
+    order_by: string;
+    search_field: string;
+    experience: string;
+    search_period: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+// Интерфейс для обновления vacancy_auth
+export interface UpdateVacancyAuthData {
+    id: number;
+    user_id: string;
+    email?: string;
+    password?: string;
+}
+
+// Интерфейс для обновления vacancy_submit
+export interface UpdateVacancySubmitData {
+    id: number;
+    user_id: string;
+    position?: string;
+    message?: string;
+    vacancy_url?: string;
+    schedule?: string;
+    order_by?: string;
+    search_field?: string;
+    experience?: string;
+    search_period?: string;
 }

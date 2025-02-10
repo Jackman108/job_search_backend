@@ -2,6 +2,7 @@
 import {SELECTORS, TIMEOUTS} from '../../../constants.js';
 import {ProcessVacancyParams} from '../../../interface/interface.js';
 import {saveVacancy} from '../../../services/vacancyService.js';
+import {scrollToElementIfNotFound} from "../../helpers/scrollToElementIfNotFound.js";
 
 export async function processVacancy({
                                          page,
@@ -16,75 +17,41 @@ export async function processVacancy({
         await page.screenshot({path: 'screenshot-uncknoun.png'});
         await vacancyResponse.click();
 
-        const relocationModalSelector = SELECTORS.RELOCATION_MODAL_TITLE;
-        const confirmButtonSelector = SELECTORS.RELOCATION_CONFIRM;
+        const relocationModal = await page.waitForSelector(SELECTORS.RELOCATION_MODAL_TITLE, {
+            timeout: TIMEOUTS.MODAL
+        }).catch(() => null);
 
-        const relocationModalHandle = await page.waitForSelector(
-            relocationModalSelector,
-            {timeout: TIMEOUTS.MODAL}
-        ).catch(() => null);
-
-        if (relocationModalHandle) {
-            const modalContent = await page.evaluate(titleModal => titleModal.textContent, relocationModalHandle);
-            if (modalContent && modalContent.includes('Вы откликаетесь на вакансию в другой стране')) {
-                await page.click(confirmButtonSelector);
+        if (relocationModal) {
+            const modalText = await page.evaluate(el => el.textContent, relocationModal);
+            if (modalText?.includes('Вы откликаетесь на вакансию в другой стране')) {
+                await page.click(SELECTORS.RELOCATION_CONFIRM);
             }
         }
 
-        const coverLetterToggleSelector = SELECTORS.COVER_LETTER_TOGGLE;
-        const responseSubmitSelector = SELECTORS.RESPONSE_SUBMIT;
-        const coverLetterInputSelector = SELECTORS.COVER_LETTER_INPUT;
+        const coverLetterButton = await scrollToElementIfNotFound(page, SELECTORS.COVER_LETTER_TOGGLE);
+        if (coverLetterButton) await coverLetterButton.click();
 
-        const coverLetterButtonHandle = await page.waitForSelector(
-            coverLetterToggleSelector,
-            {timeout: TIMEOUTS.SEARCH}).catch(() => null);
-
-        if (coverLetterButtonHandle) {
-            await coverLetterButtonHandle.click()
+        const coverLetterInput = await scrollToElementIfNotFound(page, SELECTORS.COVER_LETTER_INPUT);
+        if (coverLetterInput) {
+            await page.type(SELECTORS.COVER_LETTER_INPUT, message);
         }
-
-        const coverLetterInputHandle = await page.waitForSelector(
-            coverLetterInputSelector,
-            {timeout: TIMEOUTS.SEARCH}).catch(() => null);
-
-        if (coverLetterInputHandle) {
-            await page.type(coverLetterInputSelector, message);
-        } else {
-            console.log('An error was detected in the cover letter');
-            counters.unsuccessfullySubmittedCount++;
-            await page.goBack({waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG});
-        }
-
-        const responseSubmitHandle = await page.waitForSelector(
-            responseSubmitSelector,
-            {timeout: TIMEOUTS.SEARCH}
-        );
-        if (responseSubmitHandle) {
-            await responseSubmitHandle.click();
-        }
+        const responseSubmitButton = await scrollToElementIfNotFound(page, SELECTORS.RESPONSE_SUBMIT);
+        if (responseSubmitButton) await responseSubmitButton.click();
 
         await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
 
-        const isInvalidTextareaVisible = await page.evaluate((SELECTORS) => {
-            const textarea = document.querySelector(SELECTORS.BLOK_TEXTAREA);
-            return textarea && textarea.classList.contains(SELECTORS.TEXTAREA_INVALID);
+        const isInvalid = await page.evaluate((SELECTORS) => {
+            return [
+                document.querySelector(SELECTORS.BLOK_TEXTAREA)?.classList.contains(SELECTORS.TEXTAREA_INVALID),
+                document.querySelector(SELECTORS.BLOK_RADIO)?.classList.contains(SELECTORS.RADIO_INVALID),
+                document.querySelector(SELECTORS.BLOCK_CHECKBOX)?.classList.contains(SELECTORS.BLOCK_CHECKBOX_INVALID),
+            ].some(Boolean);
         }, SELECTORS);
 
-        const isInvalidRadioVisible = await page.evaluate((SELECTORS) => {
-            const radioLabel = document.querySelector(SELECTORS.BLOK_RADIO);
-            return radioLabel && radioLabel.classList.contains(SELECTORS.RADIO_INVALID);
-        }, SELECTORS);
-
-        const isInvalidCheckboxVisible = await page.evaluate((SELECTORS) => {
-            const radioLabel = document.querySelector(SELECTORS.BLOCK_CHECKBOX);
-            return radioLabel && radioLabel.classList.contains(SELECTORS.BLOCK_CHECKBOX_INVALID);
-        }, SELECTORS);
-
-        if (isInvalidTextareaVisible || isInvalidRadioVisible || isInvalidCheckboxVisible) {
+        if (isInvalid) {
             console.log('An error was detected in the response form');
             counters.unsuccessfullySubmittedCount++;
             await page.goBack({waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG});
-
             await saveVacancy(data, userId);
             console.log(`The vacancy with ID ${data.id} is saved with flag N for ${data.title_vacancy}`);
         } else {
@@ -95,7 +62,6 @@ export async function processVacancy({
         }
     } catch (error) {
         await page.screenshot({path: 'screenshot-during.png'});
-
         console.error('An error during the processing of a vacancy:', error);
     }
 }

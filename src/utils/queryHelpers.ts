@@ -1,20 +1,16 @@
 import pool from "../config/dbConfig.js";
+import {logError} from "./errorLogger.js";
 
-const logError = (error: Error, query: string, values: any[]) => {
-    console.error("Database query error:", error.message);
-    console.error("Failed query:", query);
-    console.error("With values:", values);
-};
 
-export const executeQuery = async (query: string, values: any[] = []) => {
+export const executeQuery = async <T = any>(query: string, values: any[] = []): Promise<T[]> => {
     const client = await pool.connect();
 
     try {
         const result = await client.query(query, values);
-        return result.rows;
+        return result.rows as T[];
     } catch (err) {
         logError(err as Error, query, values);
-        throw err;
+        throw new Error("Database operation failed");
     } finally {
         client.release();
     }

@@ -1,6 +1,6 @@
-import {ProfileData} from '../interface/interface.js';
+import {ProfileData, UserProfileUpdateFields} from '../interface/interface.js';
 import {broadcast} from '../server/startWebSocketServer.js';
-import {executeQuery} from "../utils/queryHelpers.js";
+import {executeQuery, generateUpdateQuery} from "../utils/queryHelpers.js";
 import {invalidateUserProfileCache, userProfileCache} from "../utils/cacheQueryHelpers.js";
 
 async function createUserProfile(userId: string | number): Promise<void> {
@@ -25,23 +25,7 @@ export async function getUserProfile(userId: string | number): Promise<ProfileDa
         return userProfileCache.get(userIdStr)!;
     }
 
-    const query = `
-        SELECT
-            id,
-            first_name ,
-            last_name ,
-            avatar,
-            balance,
-            spin_count,
-            successful_responses_count,
-            current_status,
-            user_id,
-            updated_at
-        FROM
-            profiles
-        WHERE
-            user_id = $1 LIMIT 1;
-    `;
+    const query = `SELECT * FROM profiles WHERE user_id = $1 LIMIT 1;`;
     const result = await executeQuery(query, [userId]);
     if (result.length === 0) {
         await createUserProfile(userId);
@@ -53,37 +37,17 @@ export async function getUserProfile(userId: string | number): Promise<ProfileDa
     return userProfile;
 }
 
-export async function updateUserProfile(profileData: Partial<ProfileData>): Promise<ProfileData> {
-    const updateFields = [];
-    const values = [];
-    let index = 1;
-
-    if (profileData.first_name) {
-        updateFields.push(`first_name = $${index++}`);
-        values.push(profileData.first_name);
-    }
-    if (profileData.last_name) {
-        updateFields.push(`last_name = $${index++}`);
-        values.push(profileData.last_name);
-    }
-    if (profileData.avatar) {
-        updateFields.push(`avatar = $${index++}`);
-        values.push(profileData.avatar);
-    }
-
-    updateFields.push(`updated_at = $${index++}`);
-    values.push(new Date().toISOString());
-    values.push(profileData.user_id);
-
-    const query = `
-        UPDATE profiles
-        SET ${updateFields.join(', ')}
-        WHERE user_id = $${index}
-        RETURNING id, first_name , last_name, avatar, updated_at;
-    `;
+export async function updateUserProfile(
+    profileData: UserProfileUpdateFields,
+    user_id: string): Promise<void> {
+    const {query, values} = generateUpdateQuery(
+        "profiles",
+        profileData,
+        "user_id",
+        user_id
+    );
     const result = await executeQuery(query, values);
-    if (result.length === 0) throw new Error(`Profile not found for userId: ${profileData.user_id}`);
-    invalidateUserProfileCache(profileData.user_id!);
+    invalidateUserProfileCache(user_id);
     return result[0];
 }
 
