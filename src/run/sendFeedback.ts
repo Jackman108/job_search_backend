@@ -55,7 +55,7 @@ export async function sendFeedback({
     } catch (err) {
         console.error('Error during script execution:', err);
     } finally {
-        if (browser) {
+        if (browser && page) {
             await stop(browser);
         }
     }

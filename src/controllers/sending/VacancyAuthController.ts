@@ -30,7 +30,7 @@ export class VacancyAuthController {
     async updateVacancyAuth(req: AuthenticatedRequest, res: Response) {
         try {
             await updateVacancyAuth(req.userId!, req.body);
-            res.status(200).json(updateVacancyAuth);
+            res.status(200).json({ message: 'Vacancy auth data updated successfully.' });
         } catch (error) {
             handleErrors(res, error, 'Error updating vacancy auth data.');
         }
