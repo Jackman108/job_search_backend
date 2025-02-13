@@ -2,7 +2,7 @@ import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/query
 import {UpdateVacancySubmitData, VacancySubmitData} from "../../interface/interface.js";
 import {deleteFromCache, getFromCache, setToCache} from "../../utils/cacheService.js";
 
-const vacancySubmitCache = new Map<string, VacancySubmitData | null>();
+const vacancySubmitCache = new Map<string, VacancySubmitData[] | null>();
 
 export const createVacancySubmit = async (
     userId: string,
@@ -34,15 +34,15 @@ export const createVacancySubmit = async (
     return id;
 };
 
-export const getVacancySubmitByUserId = async (userId: string): Promise<VacancySubmitData | null> => {
+export const getVacancySubmitByUserId = async (userId: string): Promise<VacancySubmitData[] | null> => {
     const cachedData = getFromCache(vacancySubmitCache, userId);
     if (cachedData) {
         return cachedData;
     }
 
-    const query = `SELECT * FROM vacancy_submit WHERE user_id = $1 LIMIT 1;`;
+    const query = `SELECT * FROM vacancy_submit WHERE user_id = $1;`;
     const result = await executeQuery<VacancySubmitData>(query, [userId]);
-    const data = result[0] || null;
+    const data = result || [];
     setToCache(vacancySubmitCache, userId, data);
 
     return data;
@@ -55,16 +55,16 @@ export const updateVacancySubmit = async (
     const {query, values} = generateUpdateQueryWithConditions(
         "vacancy_submit",
         updates,
-        {user_id: updates.user_id, id: updates.id})
+        {user_id: userId, id: updates.id})
 
     await executeQuery(query, values);
 
     deleteFromCache(vacancySubmitCache, userId);
 };
 
-export const deleteVacancySubmit = async (userId: string): Promise<void> => {
-    const query = `DELETE FROM vacancy_submit WHERE user_id = $1;`;
-    await executeQuery(query, [userId]);
+export const deleteVacancySubmit = async (userId: string, fieldId: string): Promise<void> => {
+    const query = `DELETE FROM vacancy_submit  WHERE user_id = $1 AND id = $2;`;
+    await executeQuery(query, [userId, fieldId]);
 
     deleteFromCache(vacancySubmitCache, userId);
 };

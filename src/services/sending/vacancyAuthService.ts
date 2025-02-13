@@ -42,7 +42,7 @@ export const updateVacancyAuth = async (
     const {query, values} = generateUpdateQueryWithConditions(
         "vacancy_auth",
         updates,
-        {user_id: updates.user_id, id: updates.id})
+        {user_id: userId, id: updates.id})
 
     await executeQuery(query, values);
 

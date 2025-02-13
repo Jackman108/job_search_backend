@@ -55,7 +55,7 @@ export const initializeRoutes = (app: express.Application) => {
 
     registerRoute(app, 'get', '/vacancy-field', VacancySubmitController, 'getVacancySubmit');
     registerRoute(app, 'post', '/vacancy-field', VacancySubmitController, 'createVacancySubmit');
-    registerRoute(app, 'put', '/vacancy-field/:submitId', VacancySubmitController, 'updateVacancySubmit');
+    registerRoute(app, 'put', '/vacancy-field/:fieldId', VacancySubmitController, 'updateVacancySubmit');
     registerRoute(app, 'delete', '/vacancy-field/:fieldId', VacancySubmitController, 'deleteVacancySubmit');
 
     registerRoute(app, 'post', '/start', ScriptController, 'startScript');

@@ -30,7 +30,7 @@ export class VacancySubmitController {
     async updateVacancySubmit(req: AuthenticatedRequest, res: Response) {
         try {
             await updateVacancySubmit(req.userId!, req.body);
-            res.status(200).json(updateVacancySubmit);
+            res.status(200).json({ message: 'Vacancy submit data updated successfully.' });
         } catch (error) {
             handleErrors(res, error, 'Error updating vacancy submit data.');
         }
@@ -38,7 +38,7 @@ export class VacancySubmitController {
 
     async deleteVacancySubmit(req: AuthenticatedRequest, res: Response) {
         try {
-            await deleteVacancySubmit(req.userId!);
+            await deleteVacancySubmit(req.userId!, req.params.fieldId);
             res.status(200).json({message: 'Vacancy submit data deleted successfully.'});
         } catch (error) {
             handleErrors(res, error, 'Error deleting vacancy submit data.');
