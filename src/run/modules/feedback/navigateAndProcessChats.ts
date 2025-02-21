@@ -1,4 +1,3 @@
-// src/navigateAndProcessVacancies.ts
 import {TIMEOUTS} from '../../../constants.js';
 import {FeedbackWithResponse, navigateAndProcessChats} from '../../../interface/interface.js';
 import {personalData} from '../../../secrets.js';
@@ -63,7 +62,10 @@ export async function navigateAndProcessChats({
                     console.error(`Error processing feedback with ID ${chatId}:`, err);
                 }
             }
-
+            if (isStopped()) {
+                await stop(browser);
+                return;
+            }
         } catch (err) {
             console.error('Error during page processing:', err);
         }

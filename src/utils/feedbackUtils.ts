@@ -15,13 +15,12 @@ export async function extractFeedbackData({
                                               feedback_date,
                                               feedback_time
                                           }: ExtractFeedbackData): Promise<FeedbackData> {
-    const vacancyId = Number(url_vacancy.match(/\/vacancy\/(\d+)/)?.[1]) || 0;
 
     if (!feedback_date || !feedback_time) {
         console.error('Invalid feedback date or time:', feedback_date, feedback_time);
         throw new Error('Feedback date or time is missing');
     }
-
+    const vacancyId = Number(url_vacancy.match(/\/vacancy\/(\d+)/)?.[1]) || 0;
 
     const feedbackDate = parseDate(feedback_date, feedback_time);
     let status = 'Не рассмотрен';
@@ -37,11 +36,16 @@ export async function extractFeedbackData({
         feedback_date: feedbackDate,
         response_status: status,
     };
+
 }
 
 
-function parseDate(feedbackDate: string, feedbackTime: string): Date {
+function parseDate(feedbackDate: string | undefined, feedbackTime: string | undefined): Date {
     const now = new Date();
+
+    if (!feedbackDate || !feedbackTime) {
+        throw new Error('Feedback date or time is missing');
+    }
 
     const timeMatch = feedbackTime.match(/^(\d{1,2}):(\d{2})$/);
     if (!timeMatch) {
@@ -50,12 +54,12 @@ function parseDate(feedbackDate: string, feedbackTime: string): Date {
 
     const [hours, minutes] = feedbackTime.split(':').map(Number);
 
-    if (feedbackDate === 'сегодня') {
+    if (feedbackDate.toLowerCase() === 'сегодня') {
         now.setHours(hours, minutes, 0, 0);
         return now;
     }
 
-    if (feedbackDate === 'вчера') {
+    if (feedbackDate.toLowerCase() === 'вчера') {
         now.setDate(now.getDate() - 1);
         now.setHours(hours, minutes, 0, 0);
         return now;

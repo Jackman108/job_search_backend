@@ -47,6 +47,6 @@ export const SELECTORS_CHAT = {
     VACANCY_URL: '[data-qa="chatik-header-vacancy-link"]',
     RESPONSE_STATUS: '[data-qa="chat-bubble-title"]',
     CHAT_TEXT: '[data-qa="chat-bubble-text"]',
-    CHAT_DATE: '.vY_8KMJ___chat-date',
+    CHAT_DATE: '[class*="chat-date"]',
     CHAT_TIME: '[data-qa="chat-buble-display-time"]',
 };
