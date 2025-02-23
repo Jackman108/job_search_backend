@@ -35,15 +35,15 @@ export async function sendFeedback({
         if (!isInitialized) return;
 
         await authorize(page, email, password, browser);
-        await page.screenshot({path: 'screenshot-authorize.png'});
         if (isStopped()) {
+            console.log('🛑 Script stopped before authorization.');
             await stop(browser);
             return;
         }
 
         await searchForVacancy({page, position});
-        await page.screenshot({path: 'screenshot-search.png'});
         if (isStopped()) {
+            console.log('🛑 Script stopped before searching for a vacancy.');
             await stop(browser);
             return;
         }

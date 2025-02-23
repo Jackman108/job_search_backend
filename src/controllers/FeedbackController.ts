@@ -26,7 +26,11 @@ export class FeedbackController {
 
     async deleteFeedback(req: AuthenticatedRequest, res: Response) {
         try {
-            await deleteChatFeedback(req.userId!, req.params.feedbackId);
+            const feedbackId = Number(req.params.feedbackId);
+            if (isNaN(feedbackId)) {
+                return res.status(400).json({ message: 'Invalid feedback ID.' });
+            }
+            await deleteChatFeedback(req.userId!, feedbackId);
             res.status(200).json({message: 'Feedback deleted successfully.'});
         } catch (error) {
             handleErrors(res, error, 'Error deleting feedback.');

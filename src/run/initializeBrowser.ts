@@ -3,7 +3,7 @@
 import { Browser, Page } from 'puppeteer';
 import { SELECTORS, TIMEOUTS } from '../constants.js';
 import { broadcast } from '../server/startWebSocketServer.js';
-import { isStopped, reset, stop } from '../utils/stopManager.js';
+import { reset, stop } from '../utils/stopManager.js';
 
 export async function initializeBrowser(vacancyUrl: string, browser: Browser, page: Page) {
     try {
@@ -18,7 +18,7 @@ export async function initializeBrowser(vacancyUrl: string, browser: Browser, pa
             { timeout: TIMEOUTS.SEARCH, visible: true }
         ).catch(() => null);
 
-        if (!cookieHandle || isStopped()) {
+        if (!cookieHandle) {
             broadcast('hh closed');
             await page.screenshot({ path: 'screenshot-closed.png' });
             await stop(browser);

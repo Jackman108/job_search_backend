@@ -4,7 +4,7 @@ import {broadcast} from '../server/startWebSocketServer.js';
 import {deleteTable, executeQuery, tableExists} from "../utils/queryHelpers.js";
 
 
-export const createChatFeedbackTable = async (userId: string | number): Promise<void> => {
+export const createChatFeedbackTable = async (userId: string): Promise<void> => {
     const tableName = `"${userId}_feedbacks"`;
 
     const createTableQuery = `
@@ -21,12 +21,12 @@ export const createChatFeedbackTable = async (userId: string | number): Promise<
 };
 
 
-export async function deleteFeedbackTable(userId: string | number): Promise<void> {
+export async function deleteFeedbackTable(userId: string): Promise<void> {
     await deleteTable(userId, 'feedbacks');
 }
 
 
-export const saveChatFeedback = async (data: FeedbackData, userId: string | number): Promise<void> => {
+export const saveChatFeedback = async (data: FeedbackData, userId: string): Promise<void> => {
     const tableName = `"${userId}_feedbacks"`;
 
     const insertOrUpdateQuery = `
@@ -49,7 +49,7 @@ export const saveChatFeedback = async (data: FeedbackData, userId: string | numb
 };
 
 
-export const getChatFeedback = async (userId: string | number): Promise<any[]> => {
+export const getChatFeedback = async (userId: string): Promise<any[]> => {
     const tableName = `"${userId}_feedbacks"`;
     const exists = await tableExists(tableName);
     if (!exists) {
@@ -63,7 +63,7 @@ export const getChatFeedback = async (userId: string | number): Promise<any[]> =
 };
 
 
-export const deleteChatFeedback = async (userId: string | number, feedbackId: string | number): Promise<void> => {
+export const deleteChatFeedback = async (userId: string, feedbackId: number): Promise<void> => {
     const tableName = `"${userId}_feedbacks"`;
     const deleteQuery = `DELETE FROM ${tableName} WHERE id = $1;`;
 

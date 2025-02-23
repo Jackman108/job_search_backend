@@ -1,4 +1,3 @@
-// stopManager.ts
 import {Browser} from "puppeteer";
 
 let shouldStop = false;
@@ -14,9 +13,12 @@ export async function stop(browser: Browser) {
                 }
             }
             await browser.close();
+            console.log('✅ Browser successfully stopped.');
         } catch (err) {
-            console.error('Error stopping browser:', err);
+            console.error('❌ Error stopping browser:', err);
         }
+    } else {
+        console.warn('⚠️ No browser instance found.');
     }
 }
 

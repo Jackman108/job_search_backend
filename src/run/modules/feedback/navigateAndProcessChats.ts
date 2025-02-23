@@ -55,6 +55,8 @@ export async function navigateAndProcessChats({
                     existingChatsIds.add(chatId);
                     if (chatLinkHandle) {
                         await processChat({page, chatLinkHandle, chatId, userId});
+                        chats = (await getChats(page)).filter(({chatId}) => chatId && !existingChatsIds.has(chatId));
+
                     } else {
                         console.error(`Feedback response for ID ${chatId} is null.`);
                     }

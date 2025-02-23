@@ -29,12 +29,12 @@ export async function getFeedback({
         await authorize(page, email, password, browser);
         await page.screenshot({path: 'screenshot-authorize.png'});
         if (isStopped()) {
+            console.log('🛑 Script stopped before authorization.');
             await stop(browser);
             return;
         }
 
         await navigateAndProcessChats({userId, page, browser});
-        await page.screenshot({path: 'screenshot-navigate.png'});
 
     } catch (err) {
         console.error('Error during script execution:', err);
