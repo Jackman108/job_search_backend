@@ -1,5 +1,3 @@
-// src/modules/initializeBrowser.ts
-
 import { Browser, Page } from 'puppeteer';
 import { SELECTORS, TIMEOUTS } from '../constants.js';
 import { broadcast } from '../server/startWebSocketServer.js';

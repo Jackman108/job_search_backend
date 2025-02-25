@@ -70,12 +70,12 @@ export const initializeRoutes = (app: express.Application) => {
     registerRoute(app, 'post', '/default/payment', PaymentController, 'createPaymentTable');
     registerRoute(app, 'post', '/default/subscription', SubscriptionController, 'createSubscriptionTable');
 
-    registerRoute(app, 'post', '/payments', PaymentController, 'listPayments');
+    registerRoute(app, 'get', '/payment', PaymentController, 'listPayments');
     registerRoute(app, 'post', '/subscriptions', SubscriptionController, 'listSubscriptions');
 
     registerRoute(app, 'get', '/payment/:id', PaymentController, 'getPayment');
     registerRoute(app, 'post', '/payment', PaymentController, 'createPayment');
-    registerRoute(app, 'put', '/payment', PaymentController, 'updatePayment');
+    registerRoute(app, 'put', '/payment/:id', PaymentController, 'updatePayment');
     registerRoute(app, 'delete', '/payment/:id', PaymentController, 'deletePayment');
     registerRoute(app, 'patch', '/payment/:id', PaymentController, 'updatePaymentStatus');
 
