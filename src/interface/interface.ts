@@ -193,25 +193,32 @@ export interface AvatarUploadParams {
 // ------------------------
 // Интерфейсы для подписок
 // ------------------------
+export type SubscriptionType = 'daily' | 'weekly' | 'monthly';
+
+export interface SubscriptionRequestBody {
+    subscription_type: SubscriptionType;
+    start_date: Date;
+}
+
 export interface Subscription {
     id: string;
-    userId: string;
-    subscriptionType: string;
+    user_id: string;
+    subscription_type: SubscriptionType;
     price: number;
-    startDate: string;
-    endDate?: string;
-    createdAt: string;
-    updatedAt: string;
+    start_date: Date;
+    end_date: Date;
+    created_at: Date;
+    updated_at: Date;
 }
 
 export interface Payment {
-    id: number;
-    userId: string;
+    id: string;
+    subscription_id: string;
     amount: number;
-    paymentStatus: string;
-    paymentMethod?: string;
-    createdAt: string;
-    updatedAt: string;
+    payment_status: 'pending' | 'completed' | 'failed';
+    payment_method: string;
+    created_at: Date;
+    updated_at: Date;
 }
 
 // Интерфейс для данных vacancy_auth

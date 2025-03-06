@@ -1,18 +1,15 @@
-// skillService.ts
 import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
-import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/cacheQueryHelpers.js";
+import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/resumeCacheQuery.js";
+import {CreateSkillInput, Skill, UpdateSkillInput} from "../../interface/lInterfacesSkil.js";
 
 
 export const createSkillUser = async (
     userId: string,
-    skillData: {
-        skill_name: string;
-        proficiency_level: string
-    }
+    skillData: CreateSkillInput
 ): Promise<string> => {
     const resumeId = await getResumeIdCacheByUserId(userId);
     if (!resumeId) {
-        throw new Error("Контакт не создан. Возможно, у пользователя нет резюме.");
+        throw new Error("Навык не создан. Возможно, у пользователя нет резюме.");
     }
     const query = `
         INSERT INTO skills (resume_id, skill_name, proficiency_level)
@@ -30,7 +27,7 @@ export const createSkillUser = async (
 };
 
 
-export const getSkillsUser = async (userId: string): Promise<any[]> => {
+export const getSkillsUser = async (userId: string): Promise<Skill[]> => {
     const resumeId = await getResumeIdCacheByUserId(userId);
     const query = `SELECT * FROM skills WHERE resume_id = $1`;
 
@@ -41,12 +38,14 @@ export const getSkillsUser = async (userId: string): Promise<any[]> => {
 export const updateSkillUser = async (
     userId: string,
     skillId: string,
-    updates: { resume_id: string; skill_name: string; proficiency_level: string }
+    updates:  UpdateSkillInput
 ): Promise<void> => {
-        const {query, values} = generateUpdateQueryWithConditions(
+    const resumeId = await getResumeIdCacheByUserId(userId);
+
+    const {query, values} = generateUpdateQueryWithConditions(
         "skills",
         updates,
-        {resume_id: updates.resume_id, id: skillId}
+        {resume_id: resumeId, id: skillId}
     );
 
     await executeQuery(query, values);

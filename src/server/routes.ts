@@ -66,22 +66,17 @@ export const initializeRoutes = (app: express.Application) => {
     registerRoute(app, 'delete', '/default/vacancies', VacancyController, 'deleteVacanciesTable');
     registerRoute(app, 'delete', '/default/feedback', FeedbackController, 'deleteFeedbackTable');
 
-
-    registerRoute(app, 'post', '/default/payment', PaymentController, 'createPaymentTable');
-    registerRoute(app, 'post', '/default/subscription', SubscriptionController, 'createSubscriptionTable');
-
     registerRoute(app, 'get', '/payment', PaymentController, 'listPayments');
-    registerRoute(app, 'post', '/subscriptions', SubscriptionController, 'listSubscriptions');
-
     registerRoute(app, 'get', '/payment/:id', PaymentController, 'getPayment');
     registerRoute(app, 'post', '/payment', PaymentController, 'createPayment');
     registerRoute(app, 'put', '/payment/:id', PaymentController, 'updatePayment');
     registerRoute(app, 'delete', '/payment/:id', PaymentController, 'deletePayment');
     registerRoute(app, 'patch', '/payment/:id', PaymentController, 'updatePaymentStatus');
 
+    registerRoute(app, 'get', '/subscription', SubscriptionController, 'listSubscriptions');
     registerRoute(app, 'get', '/subscription/:id', SubscriptionController, 'getSubscription');
     registerRoute(app, 'post', '/subscription', SubscriptionController, 'createSubscription');
-    registerRoute(app, 'put', '/subscription', SubscriptionController, 'updateSubscription');
+    registerRoute(app, 'put', '/subscription/:id', SubscriptionController, 'updateSubscription');
     registerRoute(app, 'delete', '/subscription/:id', SubscriptionController, 'deleteSubscription');
 
 

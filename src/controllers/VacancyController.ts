@@ -2,7 +2,7 @@
 import {Response} from 'express';
 import {handleErrors} from '../server/middlewares.js';
 import {deleteVacancyTable, deleteVacancyUser, getVacanciesUser} from '../services/vacancyService.js';
-import {AuthenticatedRequest} from "../interface/interface";
+import {AuthenticatedRequest} from "../interface/interface.js";
 
 export class VacancyController {
 

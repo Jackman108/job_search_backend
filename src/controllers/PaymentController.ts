@@ -1,30 +1,19 @@
 import {Response} from 'express';
-import {handleErrors} from '../server/middlewares.js';
+import {handleErrors, handleSuccess} from '../server/middlewares.js';
 import {
     createPayment,
-    createTablePayments,
     deletePayment,
     getPayment,
     listPayments,
     updatePayment,
     updatePaymentStatus
 } from '../services/paymentService.js';
-import {AuthenticatedRequest} from "../interface/interface";
+import {AuthenticatedRequest} from "../interface/interface.js";
 
 export class PaymentController {
-    async createPaymentTable(req: AuthenticatedRequest, res: Response) {
-        try {
-            await createTablePayments();
-            res.status(201).json({message: 'Payments table created successfully.'});
-        } catch (error) {
-            handleErrors(res, error, 'Error creating payments table.');
-        }
-    }
-
     async listPayments(req: AuthenticatedRequest, res: Response) {
-        const {status} = req.query;
         try {
-            const payments = await listPayments(status as string);
+            const payments = await listPayments(req.userId!);
             res.status(200).json(payments);
         } catch (error) {
             handleErrors(res, error, 'Error fetching payments.');
@@ -33,7 +22,7 @@ export class PaymentController {
 
     async getPayment(req: AuthenticatedRequest, res: Response) {
         try {
-            const payment = await getPayment(req.params.id);
+            const payment = await getPayment(req.userId!, req.params.id);
             res.status(200).json(payment);
         } catch (error) {
             handleErrors(res, error, 'Error fetching payment.');
@@ -41,15 +30,14 @@ export class PaymentController {
     }
 
     async createPayment(req: AuthenticatedRequest, res: Response) {
-        const {amount, paymentMethod}: { amount: number, paymentMethod: string } = req.body;
         try {
-            const payment = await createPayment({
-                userId: req.userId,
-                amount,
-                paymentStatus: 'pending',
-                paymentMethod
+            await createPayment(req.userId!, {
+                subscription_id: req.body.subscription_id,
+                amount: req.body.amount,
+                payment_status: req.body.payment_status,
+                payment_method: req.body.payment_method,
             });
-            res.status(201).json(payment);
+            handleSuccess(res, 'Payment successfully creating.');
         } catch (error) {
             handleErrors(res, error, 'Error creating payment.');
         }
@@ -57,18 +45,17 @@ export class PaymentController {
 
     async updatePayment(req: AuthenticatedRequest, res: Response) {
         try {
-            const updatedPayment = await updatePayment(req.body.id, req.body);
-            res.status(200).json(updatedPayment);
+            await updatePayment(req.userId!, req.params.id, req.body);
+            handleSuccess(res, 'Payment successfully updating.');
         } catch (error) {
             handleErrors(res, error, 'Error updating payment.');
         }
     }
 
     async updatePaymentStatus(req: AuthenticatedRequest, res: Response) {
-        const {paymentId, status} = req.body;
         try {
-            const updatedPayment = await updatePaymentStatus(paymentId, status);
-            res.status(200).json(updatedPayment);
+            await updatePaymentStatus(req.userId!, req.params.id, req.body.status);
+            handleSuccess(res, 'Payment status successfully updating.');
         } catch (error) {
             handleErrors(res, error, 'Error updating payment status');
         }
@@ -76,8 +63,8 @@ export class PaymentController {
 
     async deletePayment(req: AuthenticatedRequest, res: Response) {
         try {
-            await deletePayment(req.params.id);
-            res.status(200).json({message: 'Payment successfully deleted.'});
+            await deletePayment(req.userId!, req.params.id);
+            handleSuccess(res, 'Payment successfully deleted.');
         } catch (error) {
             handleErrors(res, error, 'Error deleting payment.');
         }

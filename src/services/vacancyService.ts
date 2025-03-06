@@ -1,9 +1,8 @@
-// vacancyService.ts
 import {VacancyData} from '../interface/interface.js';
 import {broadcast} from '../server/startWebSocketServer.js';
-import {deleteTable, executeQuery, tableExists} from "../utils/queryHelpers.js";
+import {deleteTable, executeQuery, checkTableExists} from "../utils/queryHelpers.js";
 
-export async function createTableVacanciesUser(userId: string | number): Promise<void> {
+export async function createTableVacanciesUser(userId: string): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
 
     const query = `
@@ -22,12 +21,12 @@ export async function createTableVacanciesUser(userId: string | number): Promise
 }
 
 
-export async function deleteVacancyTable(userId: string | number): Promise<void> {
+export async function deleteVacancyTable(userId: string): Promise<void> {
     await deleteTable(userId, 'vacancy');
 }
 
 
-export async function saveVacancy(data: VacancyData, userId: string | number): Promise<void> {
+export async function saveVacancy(data: VacancyData, userId: string): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
 
     const insertOrUpdateQuery = `
@@ -52,9 +51,9 @@ export async function saveVacancy(data: VacancyData, userId: string | number): P
 }
 
 
-export async function getVacanciesUser(userId: string | number): Promise<any[]> {
+export async function getVacanciesUser(userId: string): Promise<any[]> {
     const tableName = `"${userId}_vacancy"`;
-    const exists = await tableExists(tableName);
+    const exists = await checkTableExists(tableName);
     if (!exists) {
         await createTableVacanciesUser(userId);
     }
@@ -66,7 +65,7 @@ export async function getVacanciesUser(userId: string | number): Promise<any[]> 
 }
 
 
-export async function deleteVacancyUser(userId: string | number, vacancyId: string | number): Promise<void> {
+export async function deleteVacancyUser(userId: string, vacancyId: string | number): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
     const query = `DELETE FROM ${tableName} WHERE id = $1;`;
     await executeQuery(query, [vacancyId]);

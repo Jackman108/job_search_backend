@@ -6,7 +6,7 @@ import {personalData} from '../secrets.js';
 import {handleErrors} from '../server/middlewares.js';
 import {incrementSpinCount, updateSuccessfulResponsesCount} from '../services/profileService.js';
 import {stop} from '../utils/stopManager.js';
-import {AuthenticatedRequest} from "../interface/interface";
+import {AuthenticatedRequest} from "../interface/interface.js";
 
 export class ScriptController {
     async startScript(req: AuthenticatedRequest, res: Response) {

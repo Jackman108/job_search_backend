@@ -52,7 +52,9 @@ export const generateUpdateQueryWithConditions = (
     }
 
     const whereClause = generateWhereClause(conditions, values);
-
+    if (whereClause.length === 0) {
+        throw new Error('No conditions provided');
+    }
     const query = `
         UPDATE ${tableName}
         SET ${setClause.join(', ')}
@@ -92,14 +94,14 @@ const generateWhereClause = (conditions: Record<string, any>, values: any[]): st
 };
 
 
-export async function tableExists(tableName: string): Promise<boolean> {
+export async function checkTableExists(tableName: string): Promise<boolean> {
     const query = `SELECT to_regclass('public.${tableName}');`;
     const result = await executeQuery(query);
     return result[0]?.to_regclass !== null;
 }
 
 
-export async function deleteTable(userId: string | number, tableName: string): Promise<void> {
+export async function deleteTable(userId: string, tableName: string): Promise<void> {
     const fullTableName = `"${userId}_${tableName}"`;
     const query = `DROP TABLE IF EXISTS ${fullTableName}`;
     await executeQuery(query);

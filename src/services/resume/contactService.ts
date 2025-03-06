@@ -1,5 +1,5 @@
 import {executeQuery, generateUpdateQuery} from "../../utils/queryHelpers.js";
-import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/cacheQueryHelpers.js";
+import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/resumeCacheQuery.js";
 
 
 export const createContactUser = async (

@@ -1,4 +1,3 @@
-// resumeService.ts
 import {executeQuery, generateUpdateQuery} from "../../utils/queryHelpers.js";
 
 

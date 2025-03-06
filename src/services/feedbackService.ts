@@ -1,7 +1,6 @@
-// feedbackService.ts
 import {FeedbackData} from '../interface/interface.js';
 import {broadcast} from '../server/startWebSocketServer.js';
-import {deleteTable, executeQuery, tableExists} from "../utils/queryHelpers.js";
+import {checkTableExists, deleteTable, executeQuery} from "../utils/queryHelpers.js";
 
 
 export const createChatFeedbackTable = async (userId: string): Promise<void> => {
@@ -51,7 +50,7 @@ export const saveChatFeedback = async (data: FeedbackData, userId: string): Prom
 
 export const getChatFeedback = async (userId: string): Promise<any[]> => {
     const tableName = `"${userId}_feedbacks"`;
-    const exists = await tableExists(tableName);
+    const exists = await checkTableExists(tableName);
     if (!exists) {
         await createChatFeedbackTable(userId);
     }

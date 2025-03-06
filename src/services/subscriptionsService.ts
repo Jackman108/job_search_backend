@@ -1,8 +1,45 @@
 import {Subscription} from '../interface/interface.js';
-import {executeQuery} from "../utils/queryHelpers.js";
+import {checkTableExists, executeQuery, generateUpdateQueryWithConditions} from "../utils/queryHelpers.js";
+
+const SUBSCRIPTION_PRICES: Record<string, number> = {
+    daily: 3,
+    weekly: 15,
+    monthly: 50,
+};
+
+
+const calculateSubscriptionDetails = (subscriptionType: string, endDate: Date | string = new Date()) => {
+    const price = SUBSCRIPTION_PRICES[subscriptionType];
+
+    if (!price) {
+        throw new Error('Invalid subscription type');
+    }
+
+    const endDateObj = typeof endDate === 'string' ? new Date(endDate) : endDate;
+
+    switch (subscriptionType) {
+        case 'daily':
+            endDateObj.setDate(endDateObj.getDate() + 1);
+            break;
+        case 'weekly':
+            endDateObj.setDate(endDateObj.getDate() + 7);
+            break;
+        case 'monthly':
+            endDateObj.setMonth(endDateObj.getMonth() + 1);
+            break;
+    }
+
+    return {price, endDate: endDateObj};
+};
 
 
 export const createTableSubscriptions = async (): Promise<void> => {
+    const tableExists = await checkTableExists('subscriptions');
+    if (tableExists) {
+        console.log('Table "subscriptions" already exists.');
+        return;
+    }
+
     const query = `
     CREATE TABLE IF NOT EXISTS subscriptions (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -20,24 +57,41 @@ export const createTableSubscriptions = async (): Promise<void> => {
 };
 
 
-export async function listSubscription(userId: string): Promise<Subscription[]> {
+export const listSubscription = async (userId: string): Promise<Subscription[]> => {
     const query = `SELECT * FROM subscriptions WHERE user_id = $1;`;
-    return await executeQuery(query, [userId]);
+    return await executeQuery<Subscription>(query, [userId]);
 }
 
 
-export async function getSubscription(subscriptionId: string | number): Promise<Subscription> {
-    const query = `SELECT * FROM subscriptions WHERE id = $1;`;
-    const result = await executeQuery(query, [subscriptionId]);
+export const getActiveSubscription = async (userId: string): Promise<Subscription[]> => {
+    const query = `
+        SELECT * FROM subscriptions 
+        WHERE user_id = $1 AND end_date > NOW()
+        ORDER BY end_date DESC
+        LIMIT 1;
+    `;
+    return await executeQuery<Subscription>(query, [userId]);
+};
 
-    if (result.length === 0) {
-        throw new Error(`Subscription not found for ID: ${subscriptionId}`);
-    }
+
+export const getSubscription = async (userId: string, subscriptionId: string): Promise<Subscription> => {
+    const query = `SELECT * FROM subscriptions WHERE user_id = $1 AND id = $2;`;
+    const result = await executeQuery<Subscription>(query, [userId, subscriptionId]);
+
+    if (result.length === 0) throw new Error(`Subscription not found for ID: ${subscriptionId}`);
     return result[0];
 }
 
 
-export async function createSubscription(subscriptionData: Partial<Subscription>): Promise<Subscription> {
+export const createSubscription = async (subscriptionData: Partial<Subscription>): Promise<void> => {
+    const activeSubscription = await getActiveSubscription(subscriptionData.user_id!);
+
+    if (activeSubscription.length !== 0) {
+        throw new Error('User already has an active subscription.');
+    }
+
+    const {price, endDate} = calculateSubscriptionDetails(subscriptionData.subscription_type!);
+
     const query = `
         INSERT INTO subscriptions (user_id, subscription_type, price, start_date, end_date)
         VALUES ($1, $2, $3, $4, $5)
@@ -45,62 +99,41 @@ export async function createSubscription(subscriptionData: Partial<Subscription>
     `;
 
     const values = [
-        subscriptionData.userId,
-        subscriptionData.subscriptionType,
-        subscriptionData.price,
-        subscriptionData.startDate || new Date().toISOString(),
-        subscriptionData.endDate,
+        subscriptionData.user_id,
+        subscriptionData.subscription_type,
+        price,
+        subscriptionData.start_date || new Date().toISOString(),
+        endDate.toISOString(),
     ];
 
-    const result = await executeQuery(query, values);
-    return result[0];
+    await executeQuery<Subscription>(query, values);
 }
 
 
-export async function updateSubscription(subscriptionData: Partial<Subscription>): Promise<Subscription> {
-    const updateFields = [];
-    const values = [];
-    let index = 1;
-
-    if (subscriptionData.subscriptionType) {
-        updateFields.push(`subscription_type  = $${index++}`);
-        values.push(subscriptionData.subscriptionType);
-    }
-    if (subscriptionData.price) {
-        updateFields.push(`price = $${index++}`);
-        values.push(subscriptionData.price);
-    }
-    if (subscriptionData.startDate) {
-        updateFields.push(`start_date = $${index++}`);
-        values.push(subscriptionData.startDate);
+export const updateSubscription = async (
+    userId: string, subscriptionId: string, updates: Partial<Subscription>
+): Promise<void> => {
+    const subscription = await getSubscription(userId, subscriptionId);
+    if (new Date(subscription.end_date) < new Date()) {
+        throw new Error('Cannot update expired subscription.');
     }
 
-    if (subscriptionData.endDate) {
-        updateFields.push(`end_date = $${index++}`);
-        values.push(subscriptionData.endDate);
-    }
+    const {price, endDate} = calculateSubscriptionDetails(
+        updates.subscription_type || subscription.subscription_type, subscription.end_date
+    );
 
-    if (updateFields.length === 0) {
-        throw new Error('No fields to update');
-    }
-
-    const query = `
-        UPDATE subscriptions
-        SET ${updateFields.join(', ')}
-        WHERE id = $${index}
-        RETURNING *;
-    `;
-
-    values.push(subscriptionData.id);
-    const result = await executeQuery(query, values);
-    if (result.length === 0) {
-        throw new Error(`Subscription with ID ${subscriptionData.id} not found.`);
-    }
-    return result[0];
+    const {query, values} = generateUpdateQueryWithConditions(
+        "subscriptions",
+        {...updates, price, end_date: endDate},
+        {user_id: userId, id: subscriptionId}
+    );
+    await executeQuery<Subscription>(query, values);
 }
 
 
-export const deleteSubscription = async (id: string | number): Promise<void> => {
-    const query = `DELETE FROM subscriptions WHERE id = $1;`;
-    await executeQuery(query, [id]);
+export const deleteSubscription = async (
+    userId: string, subscriptionId: string
+): Promise<void> => {
+    const query = `DELETE FROM subscriptions WHERE user_id = $1 AND id = $2;`;
+    await executeQuery<Subscription>(query, [userId, subscriptionId]);
 }

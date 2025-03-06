@@ -1,9 +1,9 @@
 import {ProfileData, UserProfileUpdateFields} from '../interface/interface.js';
 import {broadcast} from '../server/startWebSocketServer.js';
 import {executeQuery, generateUpdateQuery} from "../utils/queryHelpers.js";
-import {invalidateUserProfileCache, userProfileCache} from "../utils/cacheQueryHelpers.js";
+import {invalidateUserProfileCache, userProfileCache} from "../utils/resumeCacheQuery.js";
 
-async function createUserProfile(userId: string | number): Promise<void> {
+async function createUserProfile(userId: string): Promise<void> {
     const query = `
         INSERT INTO profiles (
             first_name, last_name, avatar, balance, spin_count, successful_responses_count, current_status, user_id, updated_at
@@ -18,7 +18,8 @@ async function createUserProfile(userId: string | number): Promise<void> {
     broadcast(`Profile has been successfully created for user ${userId}`);
 }
 
-export async function getUserProfile(userId: string | number): Promise<ProfileData> {
+
+export async function getUserProfile(userId: string): Promise<ProfileData> {
     const userIdStr = userId.toString();
 
     if (userProfileCache.has(userIdStr)) {
@@ -37,6 +38,7 @@ export async function getUserProfile(userId: string | number): Promise<ProfileDa
     return userProfile;
 }
 
+
 export async function updateUserProfile(
     profileData: UserProfileUpdateFields,
     user_id: string): Promise<void> {
@@ -52,14 +54,14 @@ export async function updateUserProfile(
 }
 
 
-export async function deleteUserProfile(userId: string | number): Promise<void> {
+export async function deleteUserProfile(userId: string): Promise<void> {
     const query = `DELETE FROM profiles WHERE user_id = $1`;
     await executeQuery(query, [userId]);
     invalidateUserProfileCache(userId);
 }
 
 
-export async function incrementSpinCount(userId: string | number): Promise<void> {
+export async function incrementSpinCount(userId: string): Promise<void> {
     const query = `
         UPDATE profiles
         SET spin_count = spin_count + 1, updated_at = NOW()
@@ -70,7 +72,7 @@ export async function incrementSpinCount(userId: string | number): Promise<void>
 }
 
 
-export async function updateSuccessfulResponsesCount(userId: string | number): Promise<void> {
+export async function updateSuccessfulResponsesCount(userId: string): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
     const countQuery = `
         SELECT COUNT(*)

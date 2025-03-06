@@ -7,7 +7,7 @@ import {
     getContactUser,
     updateContactUser
 } from '../../services/resume/contactService.js';
-import {AuthenticatedRequest} from "../../interface/interface";
+import {AuthenticatedRequest} from "../../interface/interface.js";
 
 export class ContactsController {
     async getContacts(req: AuthenticatedRequest, res: Response) {

@@ -1,5 +1,5 @@
 import {executeQuery} from "./queryHelpers.js";
-import {ProfileData} from "../interface/interface";
+import {ProfileData} from "../interface/interface.js";
 
 const resumeIdCache = new Map<string, string | null>();
 
@@ -16,12 +16,15 @@ export const getResumeIdCacheByUserId = async (userId: string | number): Promise
     return resumeId;
 };
 
+
 export const invalidateResumeIdCache = async (userId: string): Promise<void> => {
     resumeIdCache.delete(userId);
 };
 
+
 export const userProfileCache = new Map<string, ProfileData>();
 
-export function invalidateUserProfileCache(userId: string | number) {
+
+export const invalidateUserProfileCache = (userId: string) => {
     userProfileCache.delete(userId.toString());
 }

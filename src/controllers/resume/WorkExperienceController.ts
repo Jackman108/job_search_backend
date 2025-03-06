@@ -7,13 +7,13 @@ import {
     getExperienceUser,
     updateExperienceUser
 } from '../../services/resume/workExperienceService.js';
-import {AuthenticatedRequest} from "../../interface/interface";
+import {AuthenticatedRequest} from "../../interface/interface.js";
 
 export class WorkExperienceController {
     async getExperience(req: AuthenticatedRequest, res: Response) {
         try {
             const workExperience = await getExperienceUser(req.userId!);
-            res.status(workExperience.length ? 200 : 404).json(workExperience.length ? workExperience : {message: 'Experiments not found.'});
+            res.status(200).json(workExperience);
         } catch (error) {
             handleErrors(res, error, 'The mistake of gaining experience.');
         }

@@ -2,7 +2,7 @@
 import {Response} from 'express';
 import {handleErrors} from '../server/middlewares.js';
 import {deleteChatFeedback, deleteFeedbackTable, getChatFeedback} from '../services/feedbackService.js';
-import {AuthenticatedRequest} from "../interface/interface";
+import {AuthenticatedRequest} from "../interface/interface.js";
 
 export class FeedbackController {
 

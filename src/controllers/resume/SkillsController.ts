@@ -1,14 +1,13 @@
-// server/controllers/SkillsController.ts
 import {Response} from 'express';
 import {createSkillUser, deleteSkillUser, getSkillsUser, updateSkillUser} from '../../services/resume/skillService.js';
 import {handleErrors} from '../../server/middlewares.js';
-import {AuthenticatedRequest} from "../../interface/interface";
+import {AuthenticatedRequest} from "../../interface/interface.js";
 
 export class SkillsController {
     async getSkills(req: AuthenticatedRequest, res: Response) {
         try {
             const skills = await getSkillsUser(req.userId!);
-            res.status(skills.length ? 200 : 404).json(skills.length ? skills : {message: 'No skills found.'});
+            res.status(200).json(skills);
         } catch (error) {
             handleErrors(res, error, 'Error retrieving skills.');
         }

@@ -1,6 +1,5 @@
-// workExperienceService.ts
 import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
-import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/cacheQueryHelpers.js";
+import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/resumeCacheQuery.js";
 
 
 export const getExperienceUser = async (userId: string): Promise<any[]> => {

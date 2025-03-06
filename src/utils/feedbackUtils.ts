@@ -1,4 +1,3 @@
-// src/utils/vacancyUtils.ts
 import {ExtractChatDataParams, ExtractFeedbackData, FeedbackData} from '../interface/interface.js';
 
 export async function extractChatId({chatUrl}: ExtractChatDataParams): Promise<{ chatId: number; }> {

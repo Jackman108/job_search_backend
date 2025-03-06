@@ -7,7 +7,7 @@ import {
     getResumeUser,
     updateResumeUser
 } from '../../services/resume/resumeService.js';
-import {AuthenticatedRequest} from "../../interface/interface";
+import {AuthenticatedRequest} from "../../interface/interface.js";
 
 export class ResumeController {
     async getResume(req: AuthenticatedRequest, res: Response) {
