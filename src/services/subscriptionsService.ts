@@ -83,7 +83,7 @@ export const getSubscription = async (userId: string, subscriptionId: string): P
 }
 
 
-export const createSubscription = async (subscriptionData: Partial<Subscription>): Promise<void> => {
+export const createSubscription = async (subscriptionData: Partial<Subscription>): Promise<Subscription> => {
     const activeSubscription = await getActiveSubscription(subscriptionData.user_id!);
 
     if (activeSubscription.length !== 0) {
@@ -106,7 +106,8 @@ export const createSubscription = async (subscriptionData: Partial<Subscription>
         endDate.toISOString(),
     ];
 
-    await executeQuery<Subscription>(query, values);
+    const result = await executeQuery<Subscription>(query, values);
+    return result[0];
 }
 
 

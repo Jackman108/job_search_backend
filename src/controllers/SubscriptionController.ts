@@ -33,12 +33,12 @@ export class SubscriptionController {
     async createSubscription(req: AuthenticatedRequest, res: Response,) {
         const {subscription_type, start_date}: SubscriptionRequestBody = req.body;
         try {
-            await createSubscription({
+            const createdSubscription = await createSubscription({
                 user_id: req.userId!,
                 subscription_type,
                 start_date,
             });
-            handleSuccess(res, 'Subscription successfully creating.');
+            handleSuccess(res, 'Subscription successfully creating.', createdSubscription);
         } catch (error) {
             handleErrors(res, error, 'Error creating subscription');
         }

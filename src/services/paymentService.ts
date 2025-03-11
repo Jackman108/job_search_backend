@@ -71,7 +71,7 @@ export const createPayment = async (userId: string, paymentData: Partial<Payment
         subscriptionId,
         paymentData.amount,
         paymentData.payment_status || 'pending',
-        paymentData.payment_method
+        paymentData.payment_method || 'card'
     ];
 
     await executeQuery<Payment>(query, values);
