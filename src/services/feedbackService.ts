@@ -44,7 +44,6 @@ export const saveChatFeedback = async (data: FeedbackData, userId: string): Prom
     ];
 
     await executeQuery(insertOrUpdateQuery, values);
-    broadcast(`Feedback has been successfully saved with ID ${data.id}`);
 };
 
 
