@@ -1,13 +1,13 @@
 import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
-import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/resumeCacheQuery.js";
 import {CreateSkillInput, Skill, UpdateSkillInput} from "../../interface/lInterfacesSkil.js";
+import {getResumeByUserId} from "../../utils/getResumeByUserId.js";
 
 
 export const createSkillUser = async (
     userId: string,
     skillData: CreateSkillInput
 ): Promise<string> => {
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
     if (!resumeId) {
         throw new Error("Навык не создан. Возможно, у пользователя нет резюме.");
     }
@@ -28,7 +28,7 @@ export const createSkillUser = async (
 
 
 export const getSkillsUser = async (userId: string): Promise<Skill[]> => {
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
     const query = `SELECT * FROM skills WHERE resume_id = $1`;
 
     return await executeQuery(query, [resumeId]);
@@ -40,7 +40,7 @@ export const updateSkillUser = async (
     skillId: string,
     updates:  UpdateSkillInput
 ): Promise<void> => {
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
 
     const {query, values} = generateUpdateQueryWithConditions(
         "skills",
@@ -49,14 +49,12 @@ export const updateSkillUser = async (
     );
 
     await executeQuery(query, values);
-    await invalidateResumeIdCache(userId);
 };
 
 
 export const deleteSkillUser = async (userId: string, skillId: string): Promise<void> => {
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
     const query = `DELETE FROM skills WHERE resume_id = $1 AND id = $2;`;
 
     await executeQuery(query, [resumeId, skillId]);
-    await invalidateResumeIdCache(userId);
 };

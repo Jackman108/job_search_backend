@@ -1,6 +1,5 @@
 import {executeQuery, generateUpdateQuery} from "../../utils/queryHelpers.js";
 
-
 export const createResumeUser = async (
     userId: string,
     resumeData: {

@@ -1,5 +1,5 @@
 import {executeQuery, generateUpdateQuery} from "../../utils/queryHelpers.js";
-import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/resumeCacheQuery.js";
+import {getResumeByUserId} from "../../utils/getResumeByUserId.js";
 
 
 export const createContactUser = async (
@@ -10,7 +10,7 @@ export const createContactUser = async (
         personal_site?: string
     }
 ): Promise<string> => {
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
     if (!resumeId) {
         throw new Error("Контакт не создан. Возможно, у пользователя нет резюме.");
     }
@@ -31,7 +31,7 @@ export const createContactUser = async (
 
 
 export const getContactUser = async (userId: string): Promise<any> => {
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
     if (!resumeId) return null;
 
     const query = `SELECT * FROM contacts WHERE resume_id = $1 LIMIT 1`;
@@ -52,14 +52,12 @@ export const updateContactUser = async (userId: string,
     );
 
     await executeQuery(query, values);
-    await invalidateResumeIdCache(userId);
 };
 
 
 export const deleteContactUser = async (userId: string): Promise<void> => {
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
     const query = `DELETE FROM contacts WHERE resume_id = $1;`;
 
     await executeQuery(query, [resumeId]);
-    await invalidateResumeIdCache(userId);
 };

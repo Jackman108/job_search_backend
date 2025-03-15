@@ -1,10 +1,8 @@
 import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
-import {getResumeIdCacheByUserId, invalidateResumeIdCache} from "../../utils/resumeCacheQuery.js";
-
+import {getResumeByUserId} from "../../utils/getResumeByUserId.js";
 
 export const getExperienceUser = async (userId: string): Promise<any[]> => {
-
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
     const query = `SELECT * FROM work_experience WHERE resume_id = $1`;
     return await executeQuery(query, [resumeId]);
 };
@@ -20,7 +18,7 @@ export const createExperienceUser = async (
         description: string;
     }
 ): Promise<string> => {
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
     if (!resumeId) {
         throw new Error("Контакт не создан. Возможно, у пользователя нет резюме.");
     }
@@ -61,14 +59,11 @@ export const updateExperienceUser = async (
     );
 
     await executeQuery(query, values);
-    await invalidateResumeIdCache(userId);
 };
 
 
 export const deleteExperienceUser = async (userId: string, experienceId: string): Promise<void> => {
-    const resumeId = await getResumeIdCacheByUserId(userId);
+    const resumeId = await getResumeByUserId(userId);
     const query = `DELETE FROM work_experience WHERE resume_id = $1 AND id = $2;`;
-
     await executeQuery(query, [resumeId, experienceId]);
-    await invalidateResumeIdCache(userId);
 };
