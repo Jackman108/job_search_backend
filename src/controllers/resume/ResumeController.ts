@@ -1,13 +1,13 @@
 // server/controllers/ResumeController.ts
-import {Response} from 'express';
-import {handleErrors} from '../../server/middlewares.js';
+import { Response } from 'express';
+import { handleErrors } from '../../middlewares/index.js';
 import {
     createResumeUser,
     deleteResumeUser,
     getResumeUser,
     updateResumeUser
 } from '../../services/resume/resumeService.js';
-import {AuthenticatedRequest} from "../../interface/interface.js";
+import { AuthenticatedRequest } from "../../interface/index.js";
 
 export class ResumeController {
     async getResume(req: AuthenticatedRequest, res: Response) {
@@ -40,7 +40,7 @@ export class ResumeController {
     async deleteResume(req: AuthenticatedRequest, res: Response) {
         try {
             await deleteResumeUser(req.userId!);
-            res.status(200).json({message: 'The resume has been successfully deleted.'});
+            res.status(200).json({ message: 'The resume has been successfully deleted.' });
         } catch (error) {
             handleErrors(res, error, 'Summary Deletion Error.');
         }

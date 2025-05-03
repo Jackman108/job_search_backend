@@ -1,5 +1,5 @@
-import {Response} from 'express';
-import {handleErrors, handleSuccess} from '../server/middlewares.js';
+import { Response } from 'express';
+import { handleErrors, handleSuccess } from '../middlewares/index.js';
 import {
     createPayment,
     deletePayment,
@@ -8,7 +8,7 @@ import {
     updatePayment,
     updatePaymentStatus
 } from '../services/paymentService.js';
-import {AuthenticatedRequest} from "../interface/interface.js";
+import { AuthenticatedRequest } from "../interface/index.js";
 
 export class PaymentController {
     async listPayments(req: AuthenticatedRequest, res: Response) {

@@ -1,5 +1,5 @@
-import {Payment} from '../interface/interface.js';
-import {checkTableExists, executeQuery, generateUpdateQueryWithConditions} from "../utils/queryHelpers.js";
+import { Payment } from '../interface/index.js';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from "../utils/queryHelpers.js";
 
 export const getSubscriptionIdByUserId = async (userId: string): Promise<string> => {
     const query = `
@@ -83,10 +83,10 @@ export const updatePayment = async (
 ): Promise<void> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
 
-    const {query, values} = generateUpdateQueryWithConditions(
+    const { query, values } = generateUpdateQueryWithConditions(
         "payments",
         updates,
-        {subscription_id: subscriptionId, id: paymentId}
+        { subscription_id: subscriptionId, id: paymentId }
     );
     await executeQuery<Payment>(query, values);
 };
@@ -97,10 +97,10 @@ export const updatePaymentStatus = async (
 ): Promise<void> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
 
-    const {query, values} = generateUpdateQueryWithConditions(
+    const { query, values } = generateUpdateQueryWithConditions(
         "payments",
-        {payment_status: status},
-        {subscription_id: subscriptionId, paymentId}
+        { payment_status: status },
+        { subscription_id: subscriptionId, paymentId }
     );
 
     await executeQuery<Payment>(query, values);

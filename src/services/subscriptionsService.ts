@@ -1,5 +1,5 @@
-import {Subscription} from '../interface/interface.js';
-import {checkTableExists, executeQuery, generateUpdateQueryWithConditions} from "../utils/queryHelpers.js";
+import { Subscription } from '../interface/index.js';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from "../utils/queryHelpers.js";
 
 const SUBSCRIPTION_PRICES: Record<string, number> = {
     daily: 3,
@@ -29,7 +29,7 @@ const calculateSubscriptionDetails = (subscriptionType: string, endDate: Date | 
             break;
     }
 
-    return {price, endDate: endDateObj};
+    return { price, endDate: endDateObj };
 };
 
 
@@ -90,7 +90,7 @@ export const createSubscription = async (subscriptionData: Partial<Subscription>
         throw new Error('User already has an active subscription.');
     }
 
-    const {price, endDate} = calculateSubscriptionDetails(subscriptionData.subscription_type!);
+    const { price, endDate } = calculateSubscriptionDetails(subscriptionData.subscription_type!);
 
     const query = `
         INSERT INTO subscriptions (user_id, subscription_type, price, start_date, end_date)
@@ -119,14 +119,14 @@ export const updateSubscription = async (
         throw new Error('Cannot update expired subscription.');
     }
 
-    const {price, endDate} = calculateSubscriptionDetails(
+    const { price, endDate } = calculateSubscriptionDetails(
         updates.subscription_type || subscription.subscription_type, subscription.end_date
     );
 
-    const {query, values} = generateUpdateQueryWithConditions(
+    const { query, values } = generateUpdateQueryWithConditions(
         "subscriptions",
-        {...updates, price, end_date: endDate},
-        {user_id: userId, id: subscriptionId}
+        { ...updates, price, end_date: endDate },
+        { user_id: userId, id: subscriptionId }
     );
     await executeQuery<Subscription>(query, values);
 }

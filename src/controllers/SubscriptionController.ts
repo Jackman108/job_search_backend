@@ -1,5 +1,5 @@
-import {Response} from 'express';
-import {handleErrors, handleSuccess} from '../server/middlewares.js';
+import { Response } from 'express';
+import { handleErrors, handleSuccess } from '../middlewares/index.js';
 import {
     createSubscription,
     deleteSubscription,
@@ -7,7 +7,7 @@ import {
     getSubscription,
     updateSubscription
 } from '../services/subscriptionsService.js';
-import {AuthenticatedRequest, SubscriptionRequestBody} from "../interface/interface.js";
+import { AuthenticatedRequest, SubscriptionRequestBody } from "../interface/index.js";
 
 export class SubscriptionController {
 
@@ -31,7 +31,7 @@ export class SubscriptionController {
     };
 
     async createSubscription(req: AuthenticatedRequest, res: Response,) {
-        const {subscription_type, start_date}: SubscriptionRequestBody = req.body;
+        const { subscription_type, start_date }: SubscriptionRequestBody = req.body;
         try {
             const createdSubscription = await createSubscription({
                 user_id: req.userId!,
@@ -46,7 +46,7 @@ export class SubscriptionController {
 
 
     async updateSubscription(req: AuthenticatedRequest, res: Response) {
-        const {subscription_type}: SubscriptionRequestBody = req.body;
+        const { subscription_type }: SubscriptionRequestBody = req.body;
         try {
 
             await updateSubscription(req.userId!, req.params.id, {

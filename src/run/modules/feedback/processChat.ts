@@ -1,23 +1,23 @@
 // src/processVacancy.js
-import {SELECTORS_CHAT} from '../../../constants.js';
-import {ProcessChatParams} from '../../../interface/interface.js';
-import {saveChatFeedback} from '../../../services/feedbackService.js';
-import {extractFeedbackData} from '../../../utils/feedbackUtils.js';
-import {isStopped} from "../../../utils/stopManager.js";
+import { SELECTORS_CHAT } from '../../../constants.js';
+import { ProcessChatParams } from '../../../interface/index.js';
+import { saveChatFeedback } from '../../../services/feedbackService.js';
+import { extractFeedbackData } from '../../../utils/feedbackUtils.js';
+import { isStopped } from "../../../utils/stopManager.js";
 
 export async function processChat({
-                                      page,
-                                      chatLinkHandle,
-                                      chatId,
-                                      userId
-                                  }: ProcessChatParams): Promise<void> {
+    page,
+    chatLinkHandle,
+    chatId,
+    userId
+}: ProcessChatParams): Promise<void> {
 
     if (isStopped()) {
         console.log('Processing stopped before processing chat:', chatId);
         return;
     }
 
-    await page.screenshot({path: 'screenshot-unknown.png'});
+    await page.screenshot({ path: 'screenshot-unknown.png' });
     await chatLinkHandle.click();
     await page.waitForSelector(SELECTORS_CHAT.VACANCY_URL);
 

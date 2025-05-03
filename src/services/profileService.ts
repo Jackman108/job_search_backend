@@ -1,7 +1,7 @@
-import {ProfileData, UserProfileUpdateFields} from '../interface/interface.js';
-import {broadcast} from '../server/startWebSocketServer.js';
-import {executeQuery, generateUpdateQuery} from "../utils/queryHelpers.js";
-import {invalidateUserProfileCache, userProfileCache} from "../utils/resumeCacheQuery.js";
+import { ProfileData, UserProfileUpdateFields } from '../interface/index.js';
+import { broadcast } from '../server/startWebSocketServer.js';
+import { executeQuery, generateUpdateQuery } from "../utils/queryHelpers.js";
+import { invalidateUserProfileCache, userProfileCache } from "../utils/resumeCacheQuery.js";
 
 async function createUserProfile(userId: string): Promise<void> {
     const query = `
@@ -42,7 +42,7 @@ export async function getUserProfile(userId: string): Promise<ProfileData> {
 export async function updateUserProfile(
     profileData: UserProfileUpdateFields,
     user_id: string): Promise<void> {
-    const {query, values} = generateUpdateQuery(
+    const { query, values } = generateUpdateQuery(
         "profiles",
         profileData,
         "user_id",

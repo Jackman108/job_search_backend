@@ -1,19 +1,19 @@
-import {ExtractChatDataParams, ExtractFeedbackData, FeedbackData} from '../interface/interface.js';
+import { ExtractChatDataParams, ExtractFeedbackData, FeedbackData } from '../interface/index.js';
 
-export async function extractChatId({chatUrl}: ExtractChatDataParams): Promise<{ chatId: number; }> {
+export async function extractChatId({ chatUrl }: ExtractChatDataParams): Promise<{ chatId: number; }> {
     const chatId = Number(chatUrl.match(/\/chat\/(\d+)/)?.[1]) || 0;
-    return {chatId};
+    return { chatId };
 
 }
 
 export async function extractFeedbackData({
-                                              chatId,
-                                              url_vacancy,
-                                              response_status,
-                                              feedback_text,
-                                              feedback_date,
-                                              feedback_time
-                                          }: ExtractFeedbackData): Promise<FeedbackData> {
+    chatId,
+    url_vacancy,
+    response_status,
+    feedback_text,
+    feedback_date,
+    feedback_time
+}: ExtractFeedbackData): Promise<FeedbackData> {
 
     if (!feedback_date || !feedback_time) {
         console.error('Invalid feedback date or time:', feedback_date, feedback_time);

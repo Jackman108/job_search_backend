@@ -1,6 +1,6 @@
-import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
-import {UpdateVacancyAuthData, VacancyAuthData} from "../../interface/interface.js";
-import {deleteFromCache, getFromCache, setToCache} from "../../utils/cacheService.js";
+import { executeQuery, generateUpdateQueryWithConditions } from "../../utils/queryHelpers.js";
+import { UpdateVacancyAuthData, VacancyAuthData } from "../../interface/index.js";
+import { deleteFromCache, getFromCache, setToCache } from "../../utils/cacheService.js";
 
 const vacancyAuthCache = new Map<string, VacancyAuthData[]>();
 
@@ -39,10 +39,10 @@ export const updateVacancyAuth = async (
     userId: string,
     updates: UpdateVacancyAuthData
 ): Promise<void> => {
-    const {query, values} = generateUpdateQueryWithConditions(
+    const { query, values } = generateUpdateQueryWithConditions(
         "vacancy_auth",
         updates,
-        {user_id: userId, id: updates.id})
+        { user_id: userId, id: updates.id })
 
     await executeQuery(query, values);
 

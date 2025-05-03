@@ -9,6 +9,9 @@ yarn-error.log*
 
 # Файлы среды выполнения
 .env
+.env.development
+.env.production
+.env.test
 secrets.js
 legacy.js
 .dockerignore

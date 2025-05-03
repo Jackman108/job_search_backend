@@ -1,20 +1,20 @@
-import {TIMEOUTS} from '../../../constants.js';
-import {FeedbackWithResponse, navigateAndProcessChats} from '../../../interface/interface.js';
-import {personalData} from '../../../secrets.js';
-import {getChatFeedback} from '../../../services/feedbackService.js';
-import {isStopped, stop} from '../../../utils/stopManager.js';
-import {getChats} from './getChats.js';
-import {processChat} from './processChat.js';
+import { TIMEOUTS } from '../../../constants.js';
+import { FeedbackWithResponse, navigateAndProcessChats } from '../../../interface/index.js';
+import { personalData } from '../../../secrets.js';
+import { getChatFeedback } from '../../../services/feedbackService.js';
+import { isStopped, stop } from '../../../utils/stopManager.js';
+import { getChats } from './getChats.js';
+import { processChat } from './processChat.js';
 
 export async function navigateAndProcessChats({
-                                                  userId,
-                                                  page,
-                                                  browser
-                                              }: navigateAndProcessChats): Promise<void> {
+    userId,
+    page,
+    browser
+}: navigateAndProcessChats): Promise<void> {
 
     let currentPage = 0;
     let existingChatsIds: Set<number>;
-    const {totalPages} = personalData;
+    const { totalPages } = personalData;
 
     try {
         const ChatsFromDb = await getChatFeedback(userId);
@@ -40,9 +40,9 @@ export async function navigateAndProcessChats({
             }
 
             for (let i = 0; i < chats.length; i++) {
-                const {chatId, chatLinkHandle} = chats[i];
+                const { chatId, chatLinkHandle } = chats[i];
 
-                await page.screenshot({path: 'screenshot-chats.png'});
+                await page.screenshot({ path: 'screenshot-chats.png' });
                 if (isStopped()) {
                     await stop(browser);
                     return;
@@ -54,8 +54,8 @@ export async function navigateAndProcessChats({
                 try {
                     existingChatsIds.add(chatId);
                     if (chatLinkHandle) {
-                        await processChat({page, chatLinkHandle, chatId, userId});
-                        chats = (await getChats(page)).filter(({chatId}) => chatId && !existingChatsIds.has(chatId));
+                        await processChat({ page, chatLinkHandle, chatId, userId });
+                        chats = (await getChats(page)).filter(({ chatId }) => chatId && !existingChatsIds.has(chatId));
 
                     } else {
                         console.error(`Feedback response for ID ${chatId} is null.`);

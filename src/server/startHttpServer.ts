@@ -1,7 +1,7 @@
 import express from 'express';
-import { initializeMiddleware } from './middlewares.js';
+import { initializeMiddleware } from '../middlewares/index.js';
 import { initializeRoutes } from './routes.js';
-import { StartHttpServerParams } from '../interface/interface.js';
+import { StartHttpServerParams } from '../interface/index.js';
 import { checkPort } from '../utils/checkPort.js';
 
 
@@ -15,7 +15,7 @@ export const startHttpServer = async ({
         initializeMiddleware(app);
         initializeRoutes(app);
 
-         app.listen(port, () => {
+        app.listen(port, () => {
             console.log(`Server is running on port ${port}`);
         });
 

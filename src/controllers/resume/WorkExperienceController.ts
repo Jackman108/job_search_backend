@@ -1,13 +1,13 @@
 // controllers/WorkExperienceController.ts
-import {Response} from 'express';
-import {handleErrors} from '../../server/middlewares.js';
+import { Response } from 'express';
+import { handleErrors } from '../../middlewares/index.js';
 import {
     createExperienceUser,
     deleteExperienceUser,
     getExperienceUser,
     updateExperienceUser
 } from '../../services/resume/workExperienceService.js';
-import {AuthenticatedRequest} from "../../interface/interface.js";
+import { AuthenticatedRequest } from "../../interface/index.js";
 
 export class WorkExperienceController {
     async getExperience(req: AuthenticatedRequest, res: Response) {
@@ -40,7 +40,7 @@ export class WorkExperienceController {
     async deleteExperience(req: AuthenticatedRequest, res: Response) {
         try {
             await deleteExperienceUser(req.userId!, req.params.experienceId);
-            res.status(200).json({message: 'Experience deleted successfully.'});
+            res.status(200).json({ message: 'Experience deleted successfully.' });
         } catch (error) {
             handleErrors(res, error, 'Experience Deletion Error.');
         }

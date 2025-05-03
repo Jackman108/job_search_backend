@@ -1,6 +1,6 @@
-import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
-import {CreateSkillInput, Skill, UpdateSkillInput} from "../../interface/lInterfacesSkil.js";
-import {getResumeByUserId} from "../../utils/getResumeByUserId.js";
+import { CreateSkillInput, Skill, UpdateSkillInput } from "../../interface/index.js";
+import { executeQuery, generateUpdateQueryWithConditions } from "../../utils/queryHelpers.js";
+import { getResumeByUserId } from "../../utils/getResumeByUserId.js";
 
 
 export const createSkillUser = async (
@@ -38,14 +38,14 @@ export const getSkillsUser = async (userId: string): Promise<Skill[]> => {
 export const updateSkillUser = async (
     userId: string,
     skillId: string,
-    updates:  UpdateSkillInput
+    updates: UpdateSkillInput
 ): Promise<void> => {
     const resumeId = await getResumeByUserId(userId);
 
-    const {query, values} = generateUpdateQueryWithConditions(
+    const { query, values } = generateUpdateQueryWithConditions(
         "skills",
         updates,
-        {resume_id: resumeId, id: skillId}
+        { resume_id: resumeId, id: skillId }
     );
 
     await executeQuery(query, values);

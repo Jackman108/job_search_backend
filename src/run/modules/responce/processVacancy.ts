@@ -1,20 +1,20 @@
 // src/processVacancy.js
-import {SELECTORS, TIMEOUTS} from '../../../constants.js';
-import {ProcessVacancyParams} from '../../../interface/interface.js';
-import {saveVacancy} from '../../../services/vacancyService.js';
-import {scrollToElementIfNotFound} from "../../helpers/scrollToElementIfNotFound.js";
+import { SELECTORS, TIMEOUTS } from '../../../constants.js';
+import { ProcessVacancyParams } from '../../../interface/index.js';
+import { saveVacancy } from '../../../services/vacancyService.js';
+import { scrollToElementIfNotFound } from "../../helpers/scrollToElementIfNotFound.js";
 
 export async function processVacancy({
-                                         page,
-                                         vacancyResponse,
-                                         data,
-                                         counters,
-                                         message,
-                                         userId
-                                     }: ProcessVacancyParams): Promise<void> {
+    page,
+    vacancyResponse,
+    data,
+    counters,
+    message,
+    userId
+}: ProcessVacancyParams): Promise<void> {
     try {
         await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
-        await page.screenshot({path: 'screenshot-uncknoun.png'});
+        await page.screenshot({ path: 'screenshot-uncknoun.png' });
         await vacancyResponse.click();
 
         const relocationModal = await page.waitForSelector(SELECTORS.RELOCATION_MODAL_TITLE, {
@@ -51,7 +51,7 @@ export async function processVacancy({
         if (isInvalid) {
             console.log('An error was detected in the response form');
             counters.unsuccessfullySubmittedCount++;
-            await page.goBack({waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG});
+            await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
             await saveVacancy(data, userId);
             console.log(`The vacancy with ID ${data.id} is saved with flag N for ${data.title_vacancy}`);
         } else {
@@ -61,7 +61,7 @@ export async function processVacancy({
             console.log(`The vacancy with ID ${data.id} is saved with flag Y for ${data.title_vacancy}`);
         }
     } catch (error) {
-        await page.screenshot({path: 'screenshot-during.png'});
+        await page.screenshot({ path: 'screenshot-during.png' });
         console.error('An error during the processing of a vacancy:', error);
     }
 }

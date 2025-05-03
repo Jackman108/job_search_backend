@@ -1,6 +1,6 @@
-import {VacancyData} from '../interface/interface.js';
-import {broadcast} from '../server/startWebSocketServer.js';
-import {deleteTable, executeQuery, checkTableExists} from "../utils/queryHelpers.js";
+import { VacancyData } from '../interface/index.js';
+import { broadcast } from '../server/startWebSocketServer.js';
+import { deleteTable, executeQuery, checkTableExists } from "../utils/queryHelpers.js";
 
 export async function createTableVacanciesUser(userId: string): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
@@ -17,7 +17,7 @@ export async function createTableVacanciesUser(userId: string): Promise<void> {
         );
     `;
 
-        await executeQuery(query);
+    await executeQuery(query);
 }
 
 
@@ -57,9 +57,9 @@ export async function getVacanciesUser(userId: string): Promise<any[]> {
     if (!exists) {
         await createTableVacanciesUser(userId);
     }
-        const query = `SELECT * FROM ${tableName}`;
-        const result = await executeQuery(query);
-        return result.length > 0 ? result : [];
+    const query = `SELECT * FROM ${tableName}`;
+    const result = await executeQuery(query);
+    return result.length > 0 ? result : [];
 
 
 }

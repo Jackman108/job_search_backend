@@ -1,9 +1,9 @@
 // server/controllers/ProfileController.ts
-import {Response} from 'express';
-import {AuthenticatedRequest, AvatarUploadParams, UserProfileUpdateFields} from '../interface/interface.js';
-import {handleErrors} from '../server/middlewares.js';
-import {deleteUserProfile, getUserProfile, updateUserProfile} from '../services/profileService.js';
-import {handleAvatarUpload} from '../utils/avatarUpload.js';
+import { Response } from 'express';
+import { AuthenticatedRequest, AvatarUploadParams, UserProfileUpdateFields } from '../interface/index.js';
+import { handleErrors } from '../middlewares/index.js';
+import { deleteUserProfile, getUserProfile, updateUserProfile } from '../services/profileService.js';
+import { handleAvatarUpload } from '../utils/avatarUpload.js';
 
 export class ProfileController {
     async getProfile(req: AuthenticatedRequest, res: Response) {
@@ -18,14 +18,14 @@ export class ProfileController {
     async updateProfile(req: AuthenticatedRequest, res: Response) {
         try {
             const body = req.body ?? {};
-            const {avatar, ...updateFields}: UserProfileUpdateFields = body;
+            const { avatar, ...updateFields }: UserProfileUpdateFields = body;
 
             if (avatar) {
-                const avatarUploadParams: AvatarUploadParams = {avatar, updateFields};
+                const avatarUploadParams: AvatarUploadParams = { avatar, updateFields };
                 await handleAvatarUpload(avatarUploadParams.avatar, avatarUploadParams.updateFields);
             }
 
-            await updateUserProfile({avatar, ...updateFields}, req.userId!);
+            await updateUserProfile({ avatar, ...updateFields }, req.userId!);
             res.status(200).json(updateUserProfile);
 
         } catch (error) {
@@ -36,7 +36,7 @@ export class ProfileController {
     async deleteProfile(req: AuthenticatedRequest, res: Response) {
         try {
             await deleteUserProfile(req.userId!);
-            res.status(200).json({message: 'Profile successfully deleted.'});
+            res.status(200).json({ message: 'Profile successfully deleted.' });
         } catch (error) {
             handleErrors(res, error, 'Error deleting the user profile.');
         }

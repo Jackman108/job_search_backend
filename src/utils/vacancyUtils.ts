@@ -1,9 +1,9 @@
 // src/utils/vacancyUtils.ts
-import {ExtractVacancyDataParams, VacancyData} from '../interface/interface.js';
+import { ExtractVacancyDataParams, VacancyData } from '../interface/index.js';
 
 export async function extractVacancyData({
-                                             title_vacancy, url_vacancy, title_company, url_company
-                                         }: ExtractVacancyDataParams): Promise<VacancyData> {
+    title_vacancy, url_vacancy, title_company, url_company
+}: ExtractVacancyDataParams): Promise<VacancyData> {
     const id = Number(url_vacancy.match(/\/(\d+)\?/)?.[1]) || 0;
 
     const responseDate = new Date();

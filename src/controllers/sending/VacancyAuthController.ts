@@ -1,6 +1,6 @@
-import {Response} from 'express';
-import {handleErrors} from '../../server/middlewares.js';
-import {AuthenticatedRequest} from "../../interface/interface.js";
+import { Response } from 'express';
+import { handleErrors } from '../../middlewares/index.js';
+import { AuthenticatedRequest } from "../../interface/index.js";
 import {
     createVacancyAuth,
     deleteVacancyAuth,
@@ -21,7 +21,7 @@ export class VacancyAuthController {
     async createVacancyAuth(req: AuthenticatedRequest, res: Response) {
         try {
             const newVacancyAuthId = await createVacancyAuth(req.userId!, req.body);
-            res.status(201).json({id: newVacancyAuthId});
+            res.status(201).json({ id: newVacancyAuthId });
         } catch (error) {
             handleErrors(res, error, 'Error creating vacancy auth data.');
         }
@@ -39,7 +39,7 @@ export class VacancyAuthController {
     async deleteVacancyAuth(req: AuthenticatedRequest, res: Response) {
         try {
             await deleteVacancyAuth(req.userId!, req.params.authId);
-            res.status(200).json({message: 'Vacancy auth data deleted successfully.'});
+            res.status(200).json({ message: 'Vacancy auth data deleted successfully.' });
         } catch (error) {
             handleErrors(res, error, 'Error deleting vacancy auth data.');
         }

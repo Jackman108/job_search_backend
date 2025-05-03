@@ -1,18 +1,18 @@
 // server/routes.ts
 import express from 'express';
-import {FeedbackController} from '../controllers/FeedbackController.js';
-import {ContactsController} from '../controllers/resume/ContactsController.js';
-import {ProfileController} from '../controllers/ProfileController.js';
-import {ResumeController} from '../controllers/resume/ResumeController.js';
-import {ScriptController} from '../controllers/ScriptController.js';
-import {SkillsController} from '../controllers/resume/SkillsController.js';
-import {VacancyController} from '../controllers/VacancyController.js';
-import {WorkExperienceController} from '../controllers/resume/WorkExperienceController.js';
-import {registerRoute} from './middlewares.js';
-import {PaymentController} from '../controllers/PaymentController.js';
-import {SubscriptionController} from "../controllers/SubscriptionController.js";
-import {VacancyAuthController} from "../controllers/sending/VacancyAuthController.js";
-import {VacancySubmitController} from "../controllers/sending/VacancySubmitController.js";
+import { FeedbackController } from '../controllers/FeedbackController.js';
+import { ContactsController } from '../controllers/resume/ContactsController.js';
+import { ProfileController } from '../controllers/ProfileController.js';
+import { ResumeController } from '../controllers/resume/ResumeController.js';
+import { ScriptController } from '../controllers/ScriptController.js';
+import { SkillsController } from '../controllers/resume/SkillsController.js';
+import { VacancyController } from '../controllers/VacancyController.js';
+import { WorkExperienceController } from '../controllers/resume/WorkExperienceController.js';
+import { PaymentController } from '../controllers/PaymentController.js';
+import { SubscriptionController } from "../controllers/SubscriptionController.js";
+import { VacancyAuthController } from "../controllers/sending/VacancyAuthController.js";
+import { VacancySubmitController } from "../controllers/sending/VacancySubmitController.js";
+import { registerRoute } from '../middlewares/index.js';
 
 
 export const initializeRoutes = (app: express.Application) => {

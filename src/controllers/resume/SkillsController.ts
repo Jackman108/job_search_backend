@@ -1,7 +1,7 @@
-import {Response} from 'express';
-import {createSkillUser, deleteSkillUser, getSkillsUser, updateSkillUser} from '../../services/resume/skillService.js';
-import {handleErrors} from '../../server/middlewares.js';
-import {AuthenticatedRequest} from "../../interface/interface.js";
+import { Response } from 'express';
+import { createSkillUser, deleteSkillUser, getSkillsUser, updateSkillUser } from '../../services/resume/skillService.js';
+import { handleErrors } from '../../middlewares/index.js';
+import { AuthenticatedRequest } from "../../interface/index.js";
 
 export class SkillsController {
     async getSkills(req: AuthenticatedRequest, res: Response) {
@@ -34,7 +34,7 @@ export class SkillsController {
     async deleteSkill(req: AuthenticatedRequest, res: Response) {
         try {
             await deleteSkillUser(req.userId!, req.params.skillId);
-            res.status(200).json({message: 'Skill deleted successfully.'});
+            res.status(200).json({ message: 'Skill deleted successfully.' });
         } catch (error) {
             handleErrors(res, error, 'Error deleting skill.');
         }

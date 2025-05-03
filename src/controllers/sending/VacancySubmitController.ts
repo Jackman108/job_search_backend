@@ -1,6 +1,6 @@
-import {Response} from 'express';
-import {handleErrors} from '../../server/middlewares.js';
-import {AuthenticatedRequest} from "../../interface/interface.js";
+import { Response } from 'express';
+import { handleErrors } from '../../middlewares/index.js';
+import { AuthenticatedRequest } from "../../interface/index.js";
 import {
     createVacancySubmit,
     deleteVacancySubmit,
@@ -21,7 +21,7 @@ export class VacancySubmitController {
     async createVacancySubmit(req: AuthenticatedRequest, res: Response) {
         try {
             const newVacancySubmitId = await createVacancySubmit(req.userId!, req.body);
-            res.status(201).json({id: newVacancySubmitId});
+            res.status(201).json({ id: newVacancySubmitId });
         } catch (error) {
             handleErrors(res, error, 'Error creating vacancy submit data.');
         }
@@ -39,7 +39,7 @@ export class VacancySubmitController {
     async deleteVacancySubmit(req: AuthenticatedRequest, res: Response) {
         try {
             await deleteVacancySubmit(req.userId!, req.params.fieldId);
-            res.status(200).json({message: 'Vacancy submit data deleted successfully.'});
+            res.status(200).json({ message: 'Vacancy submit data deleted successfully.' });
         } catch (error) {
             handleErrors(res, error, 'Error deleting vacancy submit data.');
         }

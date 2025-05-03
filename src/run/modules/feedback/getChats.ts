@@ -1,14 +1,14 @@
 // src/getChats.ts
-import {Page} from 'puppeteer';
-import {SELECTORS_CHAT, TIMEOUTS} from '../../../constants.js';
-import {FeedbackWithResponse,} from '../../../interface/interface.js';
-import {extractChatId} from '../../../utils/feedbackUtils.js';
+import { Page } from 'puppeteer';
+import { SELECTORS_CHAT, TIMEOUTS } from '../../../constants.js';
+import { FeedbackWithResponse } from '../../../interface/index.js';
+import { extractChatId } from '../../../utils/feedbackUtils.js';
 
 export async function getChats(page: Page): Promise<FeedbackWithResponse[]> {
     try {
-        await page.screenshot({path: 'screenshot-VACANCY_CARD.png'});
+        await page.screenshot({ path: 'screenshot-VACANCY_CARD.png' });
 
-        await page.waitForSelector(SELECTORS_CHAT.CHAT_CARD, {timeout: TIMEOUTS.LONG});
+        await page.waitForSelector(SELECTORS_CHAT.CHAT_CARD, { timeout: TIMEOUTS.LONG });
         const chats = await page.$$(SELECTORS_CHAT.CHAT_CARD);
 
         const chatsWithResponse: FeedbackWithResponse[] = [];
@@ -21,10 +21,10 @@ export async function getChats(page: Page): Promise<FeedbackWithResponse[]> {
             );
 
 
-            const {chatId} = await extractChatId({chatUrl});
+            const { chatId } = await extractChatId({ chatUrl });
             if (!visitedIds.has(chatId)) {
                 visitedIds.add(chatId);
-                chatsWithResponse.push({chatId, chatLinkHandle: chatHandle});
+                chatsWithResponse.push({ chatId, chatLinkHandle: chatHandle });
             }
         }
 

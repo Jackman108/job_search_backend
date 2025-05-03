@@ -1,7 +1,7 @@
-import WebSocket, {WebSocketServer} from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import http from 'http';
-import {StartWebSocketServerParams} from '../interface/interface.js';
-import {checkPort} from '../utils/checkPort.js';
+import { StartWebSocketServerParams } from '../interface/index.js';
+import { checkPort } from '../utils/checkPort.js';
 import jwt from 'jsonwebtoken';
 
 interface Client {
@@ -12,12 +12,12 @@ interface Client {
 const clients = new Set<Client>();
 let wss: WebSocketServer | null = null;
 
-export const startWebSocketServer = async ({app, wsPort}: StartWebSocketServerParams): Promise<void> => {
+export const startWebSocketServer = async ({ app, wsPort }: StartWebSocketServerParams): Promise<void> => {
     try {
         await checkPort(wsPort);
         const server = http.createServer(app);
 
-        wss = new WebSocketServer({server});
+        wss = new WebSocketServer({ server });
 
         wss.on('connection', (ws: WebSocket, req) => {
             const urlParams = new URLSearchParams(req.url?.split('?')[1] || '');
@@ -32,22 +32,23 @@ export const startWebSocketServer = async ({app, wsPort}: StartWebSocketServerPa
                 throw new Error('JWT_SECRET not configured');
             }
             try {
-            const decoded: any = jwt.verify(token, secret);
-            const userId = decoded.id;
+                const decoded: any = jwt.verify(token, secret);
+                const userId = decoded.id;
 
-            if (!userId) {
-                ws.close(1008, 'User ID is required',);
-                return;
-            }
+                if (!userId) {
+                    ws.close(1008, 'User ID is required',);
+                    return;
+                }
 
-            const client = {ws, userId};
-            clients.add(client);
-            ws.on('message', (message: WebSocket.MessageEvent) => {
-            });
-            ws.on('close', () => {
-                clients.delete(client);
-            });
-            ws.send('connection WebSocket server!');
+                const client = { ws, userId };
+                clients.add(client);
+                ws.on('message', (message: WebSocket.MessageEvent) => {
+                    console.log('message', message);
+                });
+                ws.on('close', () => {
+                    clients.delete(client);
+                });
+                ws.send('connection WebSocket server!');
             } catch (err) {
                 if (err instanceof jwt.TokenExpiredError) {
                     ws.close(1008, 'Token has expired. Please reauthenticate.');

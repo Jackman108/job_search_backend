@@ -1,13 +1,13 @@
 // server/controllers/ContactsController.ts
-import {Response} from 'express';
-import {handleErrors} from '../../server/middlewares.js';
+import { Response } from 'express';
+import { handleErrors } from '../../middlewares/index.js';
 import {
     createContactUser,
     deleteContactUser,
     getContactUser,
     updateContactUser
 } from '../../services/resume/contactService.js';
-import {AuthenticatedRequest} from "../../interface/interface.js";
+import { AuthenticatedRequest } from "../../interface/index.js";
 
 export class ContactsController {
     async getContacts(req: AuthenticatedRequest, res: Response) {
@@ -40,7 +40,7 @@ export class ContactsController {
     async deleteContact(req: AuthenticatedRequest, res: Response) {
         try {
             await deleteContactUser(req.userId!);
-            res.status(200).json({message: 'Contact deleted successfully.'});
+            res.status(200).json({ message: 'Contact deleted successfully.' });
         } catch (error) {
             handleErrors(res, error, 'Error deleting contact.');
         }

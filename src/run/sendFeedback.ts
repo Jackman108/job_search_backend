@@ -1,24 +1,24 @@
 //index.ts
 import * as dotenv from 'dotenv';
-import puppeteer, {Browser, Page} from 'puppeteer';
-import {browserConfig} from '../config/brauserConfig.js';
-import {Counters, SendFeedbackParams} from '../interface/interface.js';
-import {isStopped, stop} from '../utils/stopManager.js';
-import {authorize} from './authorize.js';
-import {initializeBrowser} from './initializeBrowser.js';
-import {navigateAndProcessVacancies} from './modules/responce/navigateAndProcessVacancies.js';
-import {searchForVacancy} from './modules/responce/searchForVacancy.js';
+import puppeteer, { Browser, Page } from 'puppeteer';
+import { browserConfig } from '../config/brauserConfig.js';
+import { Counters, SendFeedbackParams } from '../interface/index.js';
+import { isStopped, stop } from '../utils/stopManager.js';
+import { authorize } from './authorize.js';
+import { initializeBrowser } from './initializeBrowser.js';
+import { navigateAndProcessVacancies } from './modules/responce/navigateAndProcessVacancies.js';
+import { searchForVacancy } from './modules/responce/searchForVacancy.js';
 
 dotenv.config();
 
 export async function sendFeedback({
-                                       userId,
-                                       email,
-                                       password,
-                                       position,
-                                       message,
-                                       vacancyUrl
-                                   }: SendFeedbackParams): Promise<void> {
+    userId,
+    email,
+    password,
+    position,
+    message,
+    vacancyUrl
+}: SendFeedbackParams): Promise<void> {
     let browser: Browser | null = null;
     let page: Page | null = null;
 
@@ -41,15 +41,15 @@ export async function sendFeedback({
             return;
         }
 
-        await searchForVacancy({page, position});
+        await searchForVacancy({ page, position });
         if (isStopped()) {
             console.log('🛑 Script stopped before searching for a vacancy.');
             await stop(browser);
             return;
         }
 
-        await navigateAndProcessVacancies({userId, page, counters, message, browser});
-        await page.screenshot({path: 'screenshot-navigate.png'});
+        await navigateAndProcessVacancies({ userId, page, counters, message, browser });
+        await page.screenshot({ path: 'screenshot-navigate.png' });
         console.log(`Total number of forms successfully submitted: ${counters.successfullySubmittedCount}`);
 
     } catch (err) {
