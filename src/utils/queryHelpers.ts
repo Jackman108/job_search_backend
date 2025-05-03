@@ -1,8 +1,12 @@
-import pool from "../config/dbConfig.js";
-import {logError} from "./errorLogger.js";
+import pool from "../config/database.config.js";
+import { logError } from "./errorLogger.js";
 
 
 export const executeQuery = async <T = any>(query: string, values: any[] = []): Promise<T[]> => {
+    if (!pool) {
+        throw new Error('Database pool is not initialized');
+    }
+
     const client = await pool.connect();
 
     try {
@@ -10,7 +14,7 @@ export const executeQuery = async <T = any>(query: string, values: any[] = []): 
         return result.rows as T[];
     } catch (err) {
         logError(err as Error, query, values);
-        throw new Error("Database operation failed");
+        throw new Error(`Database operation failed: ${(err as Error).message}`);
     } finally {
         client.release();
     }
@@ -25,7 +29,7 @@ export const generateUpdateQuery = (
 ): {
     query: string; values: any[]
 } => {
-    const {setClause, values} = generateSetClause(updates);
+    const { setClause, values } = generateSetClause(updates);
     if (setClause.length === 0) {
         throw new Error('No update fields provided');
     }
@@ -37,7 +41,7 @@ export const generateUpdateQuery = (
     `;
     values.push(idValue);
 
-    return {query, values};
+    return { query, values };
 };
 
 
@@ -46,7 +50,7 @@ export const generateUpdateQueryWithConditions = (
     updates: Record<string, any>,
     conditions: Record<string, any>
 ): { query: string; values: any[] } => {
-    const {setClause, values} = generateSetClause(updates);
+    const { setClause, values } = generateSetClause(updates);
     if (setClause.length === 0) {
         throw new Error('No update fields provided');
     }
@@ -61,7 +65,7 @@ export const generateUpdateQueryWithConditions = (
         WHERE ${whereClause.join(' AND ')};
     `;
 
-    return {query, values};
+    return { query, values };
 };
 
 
@@ -78,7 +82,7 @@ export const generateSetClause = (updates: Record<string, any>): {
         }
     });
 
-    return {setClause, values};
+    return { setClause, values };
 };
 
 

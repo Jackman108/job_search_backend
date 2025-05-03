@@ -1,6 +1,7 @@
 import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest } from '../interface/index.js';
+import { JWT_CONFIG } from '../config/index.js';
 
 export const validateUserIdMiddleware = (
     req: AuthenticatedRequest,
@@ -30,7 +31,7 @@ export const extractUserId = (req: AuthenticatedRequest, res: Response, next: Ne
             return next();
         }
 
-        const secret = process.env.JWT_SECRET;
+        const secret = JWT_CONFIG.secret;
         if (!secret) {
             return res.status(500).json({ message: 'The secret key was not found' });
         }

@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { API_URL, uploadDir } from '../config/serverConfig.js';
+import { URLS, BASE_PATHS } from '../config/index.js';
 
 interface UpdateFields {
     avatar?: string;
@@ -20,11 +20,11 @@ export const handleAvatarUpload = async (
         const mimeType = matches[1];
         const extension = mimeType.split('/')[1];
         const fileName = `${updateFields.userId}_avatar.${extension}`;
-        const filePath = path.join(uploadDir, fileName);
+        const filePath = path.join(BASE_PATHS.uploads, fileName);
         const base64Data = avatar.replace(/^data:image\/[^;]+;base64,/, '');
 
         await fs.promises.writeFile(filePath, base64Data, 'base64');
-        updateFields.avatar = `${API_URL}/uploads/${fileName}`;
+        updateFields.avatar = `${URLS.domain}/uploads/${fileName}`;
     } else {
         updateFields.avatar = avatar;
     }

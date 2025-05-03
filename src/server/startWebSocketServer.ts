@@ -3,6 +3,7 @@ import http from 'http';
 import { StartWebSocketServerParams } from '../interface/index.js';
 import { checkPort } from '../utils/checkPort.js';
 import jwt from 'jsonwebtoken';
+import { JWT_CONFIG } from '../config/index.js';
 
 interface Client {
     ws: WebSocket;
@@ -27,7 +28,7 @@ export const startWebSocketServer = async ({ app, wsPort }: StartWebSocketServer
                 return;
             }
 
-            const secret = process.env.JWT_SECRET;
+            const secret = JWT_CONFIG.secret;
             if (!secret) {
                 throw new Error('JWT_SECRET not configured');
             }

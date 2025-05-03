@@ -1,7 +1,7 @@
 //getFeedback.ts
 import * as dotenv from 'dotenv';
 import puppeteer, { Browser, Page } from 'puppeteer';
-import { browserConfig } from '../config/brauserConfig.js';
+import { ENV, ENV_BROWSER_CONFIG } from '../config/index.js';
 import { GetFeedbackParams } from '../interface/index.js';
 import { isStopped, stop } from '../utils/stopManager.js';
 import { authorize } from './authorize.js';
@@ -20,7 +20,7 @@ export async function getFeedback({
     let page: Page | null = null;
 
     try {
-        browser = await puppeteer.launch(browserConfig);
+        browser = await puppeteer.launch(ENV_BROWSER_CONFIG[ENV.NODE_ENV]);
         page = await browser.newPage();
 
         const isInitialized = await initializeBrowser(SELECTORS_CHAT.CHAT_URL, browser, page);

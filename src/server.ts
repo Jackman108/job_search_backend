@@ -1,7 +1,7 @@
 // server.ts
 import { startHttpServer } from './server/startHttpServer.js';
 import { startWebSocketServer } from './server/startWebSocketServer.js';
-import { API_PORT, WS_PORT } from './config/serverConfig.js';
+import { PORTS } from './config/index.js';
 
 
 process.on('uncaughtException', (error) => {
@@ -20,8 +20,8 @@ process.on('unhandledRejection', (reason, promise) => {
 
 (async () => {
     try {
-        const httpServer = await startHttpServer({ port: API_PORT });
-        await startWebSocketServer({ app: httpServer, wsPort: WS_PORT });
+        const httpServer = await startHttpServer({ port: PORTS.api });
+        await startWebSocketServer({ app: httpServer, wsPort: PORTS.ws });
     } catch (error) {
         if (error instanceof Error) {
             console.error(`Error starting servers: ${error.message}`);
