@@ -1,6 +1,6 @@
 // src/getChats.ts
 import { Page } from 'puppeteer';
-import { SELECTORS_CHAT, TIMEOUTS } from '../../../constants.js';
+import { SELECTORS_CHAT, TIMEOUTS } from '../../../config/index.js';
 import { FeedbackWithResponse } from '../../../interface/index.js';
 import { extractChatId } from '../../../utils/feedbackUtils.js';
 

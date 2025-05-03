@@ -7,7 +7,7 @@ import { isStopped, stop } from '../utils/stopManager.js';
 import { authorize } from './authorize.js';
 import { initializeBrowser } from './initializeBrowser.js';
 import { navigateAndProcessChats } from './modules/feedback/navigateAndProcessChats.js';
-import { SELECTORS_CHAT } from '../constants.js';
+import { SELECTORS_CHAT } from '../config/index.js';
 
 dotenv.config();
 

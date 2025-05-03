@@ -1,5 +1,5 @@
 // src/navigateAndProcessVacancies.ts
-import { SELECTORS, TIMEOUTS } from '../../../constants.js';
+import { SELECTORS, TIMEOUTS } from '../../../config/index.js';
 import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '../../../interface/index.js';
 import { personalData } from '../../../secrets.js';
 import { getVacanciesUser } from '../../../services/vacancyService.js';

@@ -1,5 +1,5 @@
 // src/processVacancy.js
-import { SELECTORS, TIMEOUTS } from '../../../constants.js';
+import { SELECTORS, TIMEOUTS } from '../../../config/index.js';
 import { ProcessVacancyParams } from '../../../interface/index.js';
 import { saveVacancy } from '../../../services/vacancyService.js';
 import { scrollToElementIfNotFound } from "../../helpers/scrollToElementIfNotFound.js";

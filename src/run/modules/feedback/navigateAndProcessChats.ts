@@ -1,4 +1,4 @@
-import { TIMEOUTS } from '../../../constants.js';
+import { TIMEOUTS } from '../../../config/index.js';
 import { FeedbackWithResponse, navigateAndProcessChats } from '../../../interface/index.js';
 import { personalData } from '../../../secrets.js';
 import { getChatFeedback } from '../../../services/feedbackService.js';

@@ -1,5 +1,5 @@
 import { Browser, Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '../constants.js';
+import { SELECTORS, TIMEOUTS } from '../config/index.js';
 import { broadcast } from '../server/startWebSocketServer.js';
 import { reset, stop } from '../utils/stopManager.js';
 

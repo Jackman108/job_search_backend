@@ -1,6 +1,6 @@
 // src/getVacancies.ts
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '../../../constants.js';
+import { SELECTORS, TIMEOUTS } from '../../../config/index.js';
 import { VacancyWithResponse } from '../../../interface/index.js';
 import { extractVacancyData } from '../../../utils/vacancyUtils.js';
 

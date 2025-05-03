@@ -1,5 +1,5 @@
 // src/processVacancy.js
-import { SELECTORS_CHAT } from '../../../constants.js';
+import { SELECTORS_CHAT } from '../../../config/index.js';
 import { ProcessChatParams } from '../../../interface/index.js';
 import { saveChatFeedback } from '../../../services/feedbackService.js';
 import { extractFeedbackData } from '../../../utils/feedbackUtils.js';

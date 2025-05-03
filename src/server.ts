@@ -3,7 +3,6 @@ import { startHttpServer } from './server/startHttpServer.js';
 import { startWebSocketServer } from './server/startWebSocketServer.js';
 import { PORTS } from './config/index.js';
 
-
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
     if (error.stack) {
