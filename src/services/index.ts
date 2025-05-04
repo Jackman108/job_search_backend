@@ -1,11 +1,21 @@
-export * from './feedbackService.js';
-export * from './vacancyService.js';
-export * from './subscriptionsService.js';
-export * from './profileService.js';
-export * from './paymentService.js';
-export * from './resume/contactService.js';
-export * from './resume/skillService.js';
-export * from './resume/resumeService.js';
-export * from './resume/workExperienceService.js';
+// Auth services
+export * from './auth/profileService.js';
+
+// Vacancy services
 export * from './sending/vacancyAuthService.js';
 export * from './sending/vacancySubmitService.js';
+
+// Job services
+export * from './job/feedbackService.js';
+export * from './job/vacancyService.js';
+
+// User services
+export * from './user/resume/resumeService.js';
+export * from './user/resume/contactService.js';
+export * from './user/resume/skillService.js';
+export * from './user/resume/workExperienceService.js';
+
+// Payment services
+export * from './payment/subscriptionsService.js';
+export * from './payment/paymentService.js';
+

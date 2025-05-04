@@ -1,6 +1,6 @@
 import express from 'express';
 import { initializeMiddleware } from '@middlewares';
-import { initializeRoutes } from '@server';
+import { initializeRoutes } from '@routes';
 import { StartHttpServerParams } from '@interface';
 import { checkPort } from '@utils';
 
