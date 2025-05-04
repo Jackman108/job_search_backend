@@ -1,13 +1,10 @@
 //getFeedback.ts
 import * as dotenv from 'dotenv';
 import puppeteer, { Browser, Page } from 'puppeteer';
-import { ENV, ENV_BROWSER_CONFIG } from '../config/index.js';
-import { GetFeedbackParams } from '../interface/index.js';
-import { isStopped, stop } from '../utils/stopManager.js';
-import { authorize } from './authorize.js';
-import { initializeBrowser } from './initializeBrowser.js';
-import { navigateAndProcessChats } from './modules/feedback/navigateAndProcessChats.js';
-import { SELECTORS_CHAT } from '../config/index.js';
+import { ENV, ENV_BROWSER_CONFIG, SELECTORS_CHAT } from '@config';
+import { GetFeedbackParams } from '@interface';
+import { isStopped, stop } from '@utils';
+import { authorize, navigateAndProcessChats, initializeBrowser } from '@run';
 
 dotenv.config();
 

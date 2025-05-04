@@ -1,6 +1,6 @@
 // src/searchForVacancy.ts
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '../../../config/index.js';
+import { SELECTORS, TIMEOUTS } from '@config';
 
 interface SearchForVacancyParams {
     page: Page;

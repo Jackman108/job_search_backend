@@ -1,6 +1,6 @@
-import { VacancyData } from '../interface/index.js';
-import { broadcast } from '../server/startWebSocketServer.js';
-import { deleteTable, executeQuery, checkTableExists } from "../utils/queryHelpers.js";
+import { VacancyData } from '@interface';
+import { broadcast } from '@server';
+import { deleteTable, executeQuery, checkTableExists } from '@utils';
 
 export async function createTableVacanciesUser(userId: string): Promise<void> {
     const tableName = `"${userId}_vacancy"`;

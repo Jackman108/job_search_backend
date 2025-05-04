@@ -1,7 +1,8 @@
 // server.ts
-import { startHttpServer } from './server/startHttpServer.js';
-import { startWebSocketServer } from './server/startWebSocketServer.js';
-import { PORTS } from './config/index.js';
+
+import { PORTS } from '@config';
+import { startHttpServer, startWebSocketServer } from '@server';
+
 
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);

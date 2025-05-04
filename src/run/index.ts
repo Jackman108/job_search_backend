@@ -1,13 +1,9 @@
-import { sendFeedback } from './sendFeedback.js';
-import { authorize } from './authorize.js';
-import { initializeBrowser } from './initializeBrowser.js';
-import { navigateAndProcessVacancies } from './modules/responce/navigateAndProcessVacancies.js';
-import { searchForVacancy } from './modules/responce/searchForVacancy.js';
-
-export {
-    sendFeedback,
-    authorize,
-    initializeBrowser,
-    navigateAndProcessVacancies,
-    searchForVacancy
-}; 
+export * from './sendFeedback.js';
+export * from './getFeedback.js';
+export * from './authorize.js';
+export * from './initializeBrowser.js';
+export * from './modules/responce/navigateAndProcessVacancies.js';
+export * from './modules/feedback/navigateAndProcessChats.js';
+export * from './modules/responce/searchForVacancy.js';
+export * from './modules/responce/processVacancy.js';
+export * from './helpers/scrollToElementIfNotFound.js';

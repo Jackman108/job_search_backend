@@ -1,7 +1,7 @@
-import { SELECTORS, TIMEOUTS } from '../config/index.js';
-import { broadcast } from '../server/startWebSocketServer.js';
-import { stop } from '../utils/stopManager.js';
+import { SELECTORS, TIMEOUTS } from '@config';
+import { stop } from '@utils';
 import { Browser, Page } from 'puppeteer';
+import { broadcast } from '@server';
 
 export async function authorize(
     page: Page,

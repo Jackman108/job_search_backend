@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { URLS, BASE_PATHS } from '../config/index.js';
+import { URLS, BASE_PATHS } from '@config';
 
 interface UpdateFields {
     avatar?: string;

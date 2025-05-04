@@ -1,9 +1,8 @@
 // src/processVacancy.js
-import { SELECTORS_CHAT } from '../../../config/index.js';
-import { ProcessChatParams } from '../../../interface/index.js';
-import { saveChatFeedback } from '../../../services/feedbackService.js';
-import { extractFeedbackData } from '../../../utils/feedbackUtils.js';
-import { isStopped } from "../../../utils/stopManager.js";
+import { SELECTORS_CHAT } from '@config';
+import { ProcessChatParams } from '@interface';
+import { saveChatFeedback } from '@services';
+import { extractFeedbackData, isStopped } from '@utils';
 
 export async function processChat({
     page,

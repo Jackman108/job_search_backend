@@ -1,6 +1,5 @@
-import { executeQuery, generateUpdateQueryWithConditions } from "../../utils/queryHelpers.js";
-import { UpdateVacancySubmitData, VacancySubmitData } from "../../interface/index.js";
-import { deleteFromCache, getFromCache, setToCache } from "../../utils/cacheService.js";
+import { executeQuery, generateUpdateQueryWithConditions, deleteFromCache, getFromCache, setToCache } from '@utils';
+import { UpdateVacancySubmitData, VacancySubmitData } from '@interface';
 
 const vacancySubmitCache = new Map<string, VacancySubmitData[] | null>();
 

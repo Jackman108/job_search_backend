@@ -1,9 +1,9 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import http from 'http';
-import { StartWebSocketServerParams } from '../interface/index.js';
-import { checkPort } from '../utils/checkPort.js';
+import { StartWebSocketServerParams } from '@interface';
+import { checkPort } from '@utils';
 import jwt from 'jsonwebtoken';
-import { JWT_CONFIG } from '../config/index.js';
+import { JWT_CONFIG } from '@config';
 
 interface Client {
     ws: WebSocket;

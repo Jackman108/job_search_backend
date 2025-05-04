@@ -1,6 +1,6 @@
-import {executeQuery} from "./queryHelpers.js";
+import { executeQuery } from '@utils';
 
-export const getResumeByUserId = async (userId: string ): Promise<string | null> => {
+export const getResumeByUserId = async (userId: string): Promise<string | null> => {
     try {
         const query = "SELECT id FROM resumes WHERE user_id = $1 LIMIT 1;";
         const result = await executeQuery(query, [userId]);

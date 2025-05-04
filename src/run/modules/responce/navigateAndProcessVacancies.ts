@@ -1,9 +1,9 @@
 // src/navigateAndProcessVacancies.ts
-import { SELECTORS, TIMEOUTS } from '../../../config/index.js';
-import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '../../../interface/index.js';
-import { personalData } from '../../../secrets.js';
-import { getVacanciesUser } from '../../../services/vacancyService.js';
-import { isStopped, stop } from '../../../utils/stopManager.js';
+import { SELECTORS, TIMEOUTS } from '@config';
+import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '@interface';
+import { personalData } from 'src/secrets.js';
+import { getVacanciesUser } from '@services';
+import { isStopped, stop } from '@utils';
 import { getVacancies } from './getVacancies.js';
 import { processVacancy } from './processVacancy.js';
 

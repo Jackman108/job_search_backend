@@ -1,8 +1,8 @@
 import express from 'express';
-import { initializeMiddleware } from '../middlewares/index.js';
-import { initializeRoutes } from './routes.js';
-import { StartHttpServerParams } from '../interface/index.js';
-import { checkPort } from '../utils/checkPort.js';
+import { initializeMiddleware } from '@middlewares';
+import { initializeRoutes } from '@server';
+import { StartHttpServerParams } from '@interface';
+import { checkPort } from '@utils';
 
 
 export const startHttpServer = async ({

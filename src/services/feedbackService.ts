@@ -1,6 +1,6 @@
-import { FeedbackData } from '../interface/index.js';
-import { broadcast } from '../server/startWebSocketServer.js';
-import { checkTableExists, deleteTable, executeQuery } from "../utils/queryHelpers.js";
+import { FeedbackData } from '@interface';
+import { checkTableExists, deleteTable, executeQuery } from '@utils';
+import { broadcast } from '@server';
 
 
 export const createChatFeedbackTable = async (userId: string): Promise<void> => {

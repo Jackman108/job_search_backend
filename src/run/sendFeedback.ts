@@ -1,13 +1,10 @@
 //index.ts
 import * as dotenv from 'dotenv';
 import puppeteer, { Browser, Page } from 'puppeteer';
-import { ENV, ENV_BROWSER_CONFIG } from '../config/index.js';
-import { Counters, SendFeedbackParams } from '../interface/index.js';
-import { isStopped, stop } from '../utils/stopManager.js';
-import { authorize } from './authorize.js';
-import { initializeBrowser } from './initializeBrowser.js';
-import { navigateAndProcessVacancies } from './modules/responce/navigateAndProcessVacancies.js';
-import { searchForVacancy } from './modules/responce/searchForVacancy.js';
+import { ENV, ENV_BROWSER_CONFIG } from '@config';
+import { Counters, SendFeedbackParams } from '@interface';
+import { isStopped, stop } from '@utils';
+import { authorize, initializeBrowser, navigateAndProcessVacancies, searchForVacancy } from '@run';
 
 dotenv.config();
 

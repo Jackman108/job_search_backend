@@ -1,7 +1,7 @@
 import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthenticatedRequest } from '../interface/index.js';
-import { JWT_CONFIG } from '../config/index.js';
+import { AuthenticatedRequest } from '@interface';
+import { JWT_CONFIG } from '@config';
 
 export const validateUserIdMiddleware = (
     req: AuthenticatedRequest,

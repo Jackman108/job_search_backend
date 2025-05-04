@@ -1,5 +1,5 @@
 // src/utils/vacancyUtils.ts
-import { ExtractVacancyDataParams, VacancyData } from '../interface/index.js';
+import { ExtractVacancyDataParams, VacancyData } from '@interface';
 
 export async function extractVacancyData({
     title_vacancy, url_vacancy, title_company, url_company

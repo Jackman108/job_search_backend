@@ -1,5 +1,5 @@
-import { ProfileData } from "../interface/index.js";
-import { executeQuery } from "./queryHelpers.js";
+import { ProfileData } from "@interface";
+import { executeQuery } from "@utils";
 
 const resumeIdCache = new Map<string, string | null>();
 

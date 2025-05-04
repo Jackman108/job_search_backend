@@ -1,5 +1,4 @@
-import {executeQuery, generateUpdateQuery} from "../../utils/queryHelpers.js";
-import {getResumeByUserId} from "../../utils/getResumeByUserId.js";
+import { executeQuery, generateUpdateQuery, getResumeByUserId } from '@utils';
 
 
 export const createContactUser = async (
@@ -44,7 +43,7 @@ export const getContactUser = async (userId: string): Promise<any> => {
 export const updateContactUser = async (userId: string,
     updates: { resume_id: string, phone: string; email?: string; personal_site?: string }
 ): Promise<void> => {
-    const {query, values} = generateUpdateQuery(
+    const { query, values } = generateUpdateQuery(
         "contacts",
         updates,
         "resume_id",

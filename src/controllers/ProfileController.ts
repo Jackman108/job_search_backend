@@ -1,9 +1,9 @@
 // server/controllers/ProfileController.ts
 import { Response } from 'express';
-import { AuthenticatedRequest, AvatarUploadParams, UserProfileUpdateFields } from '../interface/index.js';
-import { handleErrors } from '../middlewares/index.js';
-import { deleteUserProfile, getUserProfile, updateUserProfile } from '../services/profileService.js';
-import { handleAvatarUpload } from '../utils/avatarUpload.js';
+import { AuthenticatedRequest, AvatarUploadParams, UserProfileUpdateFields } from '@interface';
+import { handleErrors } from '@middlewares';
+import { deleteUserProfile, getUserProfile, updateUserProfile } from '@services';
+import { handleAvatarUpload } from '@utils';
 
 export class ProfileController {
     async getProfile(req: AuthenticatedRequest, res: Response) {

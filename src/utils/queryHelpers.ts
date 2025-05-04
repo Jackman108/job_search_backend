@@ -1,5 +1,5 @@
-import pool from "../config/database.config.js";
-import { logError } from "./errorLogger.js";
+import { logError } from "@utils";
+import pool from "src/config/database.config";
 
 
 export const executeQuery = async <T = any>(query: string, values: any[] = []): Promise<T[]> => {

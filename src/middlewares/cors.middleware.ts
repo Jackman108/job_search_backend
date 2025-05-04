@@ -2,8 +2,8 @@ import bodyParser from 'body-parser';
 import cors, { CorsOptions } from 'cors';
 import express from 'express';
 import fs from 'fs';
-import { URLS, BASE_PATHS } from '../config/index.js';
-import { InitializeMiddleware } from '../interface/index.js';
+import { URLS, BASE_PATHS } from '@config';
+import { InitializeMiddleware } from '@interface';
 
 const corsOptions: CorsOptions = {
     origin: URLS.domain,

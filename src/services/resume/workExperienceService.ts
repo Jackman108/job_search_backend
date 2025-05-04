@@ -1,5 +1,4 @@
-import {executeQuery, generateUpdateQueryWithConditions} from "../../utils/queryHelpers.js";
-import {getResumeByUserId} from "../../utils/getResumeByUserId.js";
+import { executeQuery, generateUpdateQueryWithConditions, getResumeByUserId } from '@utils';
 
 export const getExperienceUser = async (userId: string): Promise<any[]> => {
     const resumeId = await getResumeByUserId(userId);
@@ -52,10 +51,10 @@ export const updateExperienceUser = async (
         description?: string;
     }
 ): Promise<void> => {
-        const {query, values} = generateUpdateQueryWithConditions(
+    const { query, values } = generateUpdateQueryWithConditions(
         "work_experience",
         updates,
-        {resume_id: updates.resume_id, id: experienceId}
+        { resume_id: updates.resume_id, id: experienceId }
     );
 
     await executeQuery(query, values);

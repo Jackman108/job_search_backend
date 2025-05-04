@@ -1,12 +1,12 @@
 // controllers/ScriptController.js
 import { Response } from 'express';
-import { getFeedback } from '../run/getFeedback.js';
-import { sendFeedback } from '../run/sendFeedback.js';
-import { personalData } from '../secrets.js';
-import { handleErrors } from '../middlewares/index.js';
-import { incrementSpinCount, updateSuccessfulResponsesCount } from '../services/profileService.js';
-import { stop } from '../utils/stopManager.js';
-import { AuthenticatedRequest } from "../interface/index.js";
+import { getFeedback } from '@run';
+import { sendFeedback } from '@run';
+import { handleErrors } from '@middlewares';
+import { incrementSpinCount, updateSuccessfulResponsesCount } from '@services';
+import { stop } from '@utils';
+import { AuthenticatedRequest } from '@interface';
+import { personalData } from 'src/secrets';
 
 export class ScriptController {
     async startScript(req: AuthenticatedRequest, res: Response) {

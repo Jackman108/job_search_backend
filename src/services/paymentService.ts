@@ -1,5 +1,5 @@
-import { Payment } from '../interface/index.js';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from "../utils/queryHelpers.js";
+import { Payment } from '@interface';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
 
 export const getSubscriptionIdByUserId = async (userId: string): Promise<string> => {
     const query = `

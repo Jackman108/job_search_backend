@@ -1,5 +1,5 @@
 import { Page } from "puppeteer";
-import { TIMEOUTS } from "../../config/index.js";
+import { TIMEOUTS } from "@config";
 
 export async function scrollToElementIfNotFound(page: Page, selector: string) {
     let element = await page.waitForSelector(selector, { timeout: TIMEOUTS.SEARCH }).catch(() => null);

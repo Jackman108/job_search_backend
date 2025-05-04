@@ -1,8 +1,8 @@
 // src/getVacancies.ts
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '../../../config/index.js';
-import { VacancyWithResponse } from '../../../interface/index.js';
-import { extractVacancyData } from '../../../utils/vacancyUtils.js';
+import { SELECTORS, TIMEOUTS } from '@config';
+import { VacancyWithResponse } from '@interface';
+import { extractVacancyData } from '@utils';
 
 export async function getVacancies(page: Page): Promise<VacancyWithResponse[]> {
     try {

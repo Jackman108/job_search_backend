@@ -1,6 +1,5 @@
-import { CreateSkillInput, Skill, UpdateSkillInput } from "../../interface/index.js";
-import { executeQuery, generateUpdateQueryWithConditions } from "../../utils/queryHelpers.js";
-import { getResumeByUserId } from "../../utils/getResumeByUserId.js";
+import { CreateSkillInput, Skill, UpdateSkillInput } from '@interface';
+import { executeQuery, generateUpdateQueryWithConditions, getResumeByUserId } from '@utils';
 
 
 export const createSkillUser = async (

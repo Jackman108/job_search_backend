@@ -1,13 +1,13 @@
 // controllers/WorkExperienceController.ts
 import { Response } from 'express';
-import { handleErrors } from '../../middlewares/index.js';
+import { handleErrors } from '@middlewares';
 import {
     createExperienceUser,
     deleteExperienceUser,
     getExperienceUser,
     updateExperienceUser
-} from '../../services/resume/workExperienceService.js';
-import { AuthenticatedRequest } from "../../interface/index.js";
+} from '@services';
+import { AuthenticatedRequest } from '@interface';
 
 export class WorkExperienceController {
     async getExperience(req: AuthenticatedRequest, res: Response) {

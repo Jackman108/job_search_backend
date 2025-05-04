@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { createSkillUser, deleteSkillUser, getSkillsUser, updateSkillUser } from '../../services/resume/skillService.js';
-import { handleErrors } from '../../middlewares/index.js';
-import { AuthenticatedRequest } from "../../interface/index.js";
+import { createSkillUser, deleteSkillUser, getSkillsUser, updateSkillUser } from '@services';
+import { handleErrors } from '@middlewares';
+import { AuthenticatedRequest } from '@interface';
 
 export class SkillsController {
     async getSkills(req: AuthenticatedRequest, res: Response) {

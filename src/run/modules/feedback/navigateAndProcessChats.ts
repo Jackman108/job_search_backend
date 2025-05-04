@@ -1,10 +1,10 @@
-import { TIMEOUTS } from '../../../config/index.js';
-import { FeedbackWithResponse, navigateAndProcessChats } from '../../../interface/index.js';
-import { personalData } from '../../../secrets.js';
-import { getChatFeedback } from '../../../services/feedbackService.js';
-import { isStopped, stop } from '../../../utils/stopManager.js';
+import { TIMEOUTS } from '@config';
+import { FeedbackWithResponse, navigateAndProcessChats } from '@interface';
+import { getChatFeedback } from '@services';
+import { isStopped, stop } from '@utils';
 import { getChats } from './getChats.js';
 import { processChat } from './processChat.js';
+import { personalData } from 'src/secrets.js';
 
 export async function navigateAndProcessChats({
     userId,

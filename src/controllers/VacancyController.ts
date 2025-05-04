@@ -1,8 +1,8 @@
 // server/controllers/VacancyController.ts
 import { Response } from 'express';
-import { handleErrors } from '../middlewares/index.js';
-import { deleteVacancyTable, deleteVacancyUser, getVacanciesUser } from '../services/vacancyService.js';
-import { AuthenticatedRequest } from "../interface/index.js";
+import { handleErrors } from '@middlewares';
+import { deleteVacancyTable, deleteVacancyUser, getVacanciesUser } from '@services';
+import { AuthenticatedRequest } from '@interface';
 
 export class VacancyController {
 

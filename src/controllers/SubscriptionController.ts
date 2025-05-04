@@ -1,13 +1,13 @@
 import { Response } from 'express';
-import { handleErrors, handleSuccess } from '../middlewares/index.js';
+import { handleErrors, handleSuccess } from '@middlewares';
 import {
     createSubscription,
     deleteSubscription,
     getActiveSubscription,
     getSubscription,
     updateSubscription
-} from '../services/subscriptionsService.js';
-import { AuthenticatedRequest, SubscriptionRequestBody } from "../interface/index.js";
+} from '@services';
+import { AuthenticatedRequest, SubscriptionRequestBody } from '@interface';
 
 export class SubscriptionController {
 

@@ -1,6 +1,6 @@
 import express, { Response } from 'express';
-import { AuthenticatedRequest } from '../interface/index.js';
-import { extractUserId, validateUserIdMiddleware } from './auth.middleware.js';
+import { AuthenticatedRequest } from '@interface';
+import { extractUserId, validateUserIdMiddleware } from '@middlewares';
 
 export function registerRoute(
     app: express.Application,

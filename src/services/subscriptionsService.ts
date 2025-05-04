@@ -1,5 +1,5 @@
-import { Subscription } from '../interface/index.js';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from "../utils/queryHelpers.js";
+import { Subscription } from '@interface';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
 
 const SUBSCRIPTION_PRICES: Record<string, number> = {
     daily: 3,

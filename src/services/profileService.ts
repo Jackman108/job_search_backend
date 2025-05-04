@@ -1,7 +1,6 @@
-import { ProfileData, UserProfileUpdateFields } from '../interface/index.js';
-import { broadcast } from '../server/startWebSocketServer.js';
-import { executeQuery, generateUpdateQuery } from "../utils/queryHelpers.js";
-import { invalidateUserProfileCache, userProfileCache } from "../utils/resumeCacheQuery.js";
+import { ProfileData, UserProfileUpdateFields } from '@interface';
+import { broadcast } from '@server';
+import { executeQuery, generateUpdateQuery, invalidateUserProfileCache, userProfileCache } from '@utils';
 
 async function createUserProfile(userId: string): Promise<void> {
     const query = `

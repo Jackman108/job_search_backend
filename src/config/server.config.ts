@@ -1,4 +1,4 @@
-import { ENV } from './base.config.js';
+import { ENV } from '@config';
 
 // Настройки хоста и протоколов
 export const HOST = process.env.HOST || 'localhost';

@@ -1,4 +1,4 @@
-import {executeQuery, generateUpdateQuery} from "../../utils/queryHelpers.js";
+import { executeQuery, generateUpdateQuery } from '@utils';
 
 export const createResumeUser = async (
     userId: string,
@@ -48,7 +48,7 @@ export const updateResumeUser = async (userId: string, updates: {
     travel_time?: string,
     business_trip_readiness?: boolean
 }): Promise<void> => {
-    const {query, values} = generateUpdateQuery("resumes", updates, "user_id", userId);
+    const { query, values } = generateUpdateQuery("resumes", updates, "user_id", userId);
     await executeQuery(query, values);
 };
 

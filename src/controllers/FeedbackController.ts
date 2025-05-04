@@ -1,8 +1,8 @@
 // server/controllers/FeedbackController.ts
 import { Response } from 'express';
-import { deleteChatFeedback, deleteFeedbackTable, getChatFeedback } from '../services/feedbackService.js';
-import { AuthenticatedRequest } from "../interface/index.js";
-import { handleErrors } from '../middlewares/index.js';
+import { deleteChatFeedback, deleteFeedbackTable, getChatFeedback } from '@services';
+import { AuthenticatedRequest } from '@interface';
+import { handleErrors } from '@middlewares';
 
 export class FeedbackController {
 

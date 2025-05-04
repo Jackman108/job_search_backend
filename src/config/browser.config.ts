@@ -1,4 +1,4 @@
-import { ENV, Environment } from './base.config.js';
+import { ENV, Environment } from '@config';
 
 // Базовые настройки браузера
 export const BROWSER_CONFIG = {

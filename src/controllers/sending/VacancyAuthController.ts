@@ -1,12 +1,12 @@
 import { Response } from 'express';
-import { handleErrors } from '../../middlewares/index.js';
-import { AuthenticatedRequest } from "../../interface/index.js";
+import { handleErrors } from '@middlewares';
+import { AuthenticatedRequest } from '@interface';
 import {
     createVacancyAuth,
     deleteVacancyAuth,
     getVacancyAuthByUserId,
     updateVacancyAuth
-} from '../../services/sending/vacancyAuthService.js';
+} from '@services';
 
 export class VacancyAuthController {
     async getVacancyAuth(req: AuthenticatedRequest, res: Response) {

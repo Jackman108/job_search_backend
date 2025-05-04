@@ -1,12 +1,12 @@
 import { Response } from 'express';
-import { handleErrors } from '../../middlewares/index.js';
-import { AuthenticatedRequest } from "../../interface/index.js";
+import { handleErrors } from '@middlewares';
+import { AuthenticatedRequest } from '@interface';
 import {
     createVacancySubmit,
     deleteVacancySubmit,
     getVacancySubmitByUserId,
     updateVacancySubmit
-} from '../../services/sending/vacancySubmitService.js';
+} from '@services';
 
 export class VacancySubmitController {
     async getVacancySubmit(req: AuthenticatedRequest, res: Response) {

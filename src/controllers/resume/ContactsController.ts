@@ -1,13 +1,13 @@
 // server/controllers/ContactsController.ts
 import { Response } from 'express';
-import { handleErrors } from '../../middlewares/index.js';
+import { handleErrors } from '@middlewares';
 import {
     createContactUser,
     deleteContactUser,
     getContactUser,
     updateContactUser
-} from '../../services/resume/contactService.js';
-import { AuthenticatedRequest } from "../../interface/index.js";
+} from '@services';
+import { AuthenticatedRequest } from '@interface';
 
 export class ContactsController {
     async getContacts(req: AuthenticatedRequest, res: Response) {
