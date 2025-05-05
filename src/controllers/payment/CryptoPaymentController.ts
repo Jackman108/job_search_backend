@@ -5,7 +5,7 @@ import { handleErrors, handleSuccess } from '@middlewares';
 
 
 export class CryptoPaymentController {
-    static async createPayment(req: AuthenticatedRequest, res: Response) {
+    async createPayment(req: AuthenticatedRequest, res: Response) {
         try {
             const activeSubscription = await getActiveSubscription(req.userId!);
 
@@ -26,7 +26,7 @@ export class CryptoPaymentController {
         }
     }
 
-    static async checkPaymentStatus(req: AuthenticatedRequest, res: Response) {
+    async checkPaymentStatus(req: AuthenticatedRequest, res: Response) {
         try {
             const { paymentId } = req.params;
             const status = await checkCryptoPaymentStatus(paymentId);
@@ -36,7 +36,7 @@ export class CryptoPaymentController {
         }
     }
 
-    static async handleWebhook(req: Request, res: Response): Promise<void> {
+    async handleWebhook(req: Request, res: Response): Promise<void> {
         try {
             const signature = req.headers['x-nowpayments-sig'] as string;
             if (!signature) {
