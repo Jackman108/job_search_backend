@@ -6,3 +6,4 @@ export * from './process.interfaces.js';
 export * from './common.interfaces.js';
 export * from './subscription.interfaces.js';
 export * from './skill.interfaces.js';
+export * from './payment.interfaces.js';    

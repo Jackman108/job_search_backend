@@ -33,6 +33,28 @@ export const createTablePayments = async (): Promise<void> => {
     await executeQuery(query);
 };
 
+export const createTableCryptoPayments = async (): Promise<void> => {
+    const tableExists = await checkTableExists('crypto_payments');
+    if (tableExists) {
+        console.log('Table "crypto_payments" already exists.');
+        return;
+    }
+    const query = `
+    CREATE TABLE IF NOT EXISTS crypto_payments (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
+      crypto_address VARCHAR(100) NOT NULL,
+      crypto_amount VARCHAR(50) NOT NULL,
+      currency VARCHAR(10) NOT NULL,
+      status VARCHAR(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW(),
+      expires_at TIMESTAMP NOT NULL
+    );
+  `;
+
+    await executeQuery(query);
+};
 
 export const listPayments = async (userId: string): Promise<Payment[]> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
@@ -40,7 +62,6 @@ export const listPayments = async (userId: string): Promise<Payment[]> => {
     const query = `SELECT * FROM payments WHERE subscription_id = $1;`;
     return await executeQuery(query, [subscriptionId]);
 }
-
 
 export const getPayment = async (
     userId: string, paymentId: string
@@ -53,7 +74,6 @@ export const getPayment = async (
     if (result.length === 0) throw new Error(`Payment not found for paymentId: ${paymentId}`);
     return result[0];
 }
-
 
 export const createPayment = async (userId: string, paymentData: Partial<Payment>
 ): Promise<void> => {
@@ -77,7 +97,6 @@ export const createPayment = async (userId: string, paymentData: Partial<Payment
     await executeQuery<Payment>(query, values);
 }
 
-
 export const updatePayment = async (
     userId: string, paymentId: string, updates: Partial<Payment>
 ): Promise<void> => {
@@ -90,7 +109,6 @@ export const updatePayment = async (
     );
     await executeQuery<Payment>(query, values);
 };
-
 
 export const updatePaymentStatus = async (
     userId: string, paymentId: string, status: string
@@ -105,7 +123,6 @@ export const updatePaymentStatus = async (
 
     await executeQuery<Payment>(query, values);
 }
-
 
 export const deletePayment = async (
     userId: string, paymentId: string

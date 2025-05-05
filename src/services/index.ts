@@ -18,4 +18,4 @@ export * from './user/resume/workExperienceService.js';
 // Payment services
 export * from './payment/subscriptionsService.js';
 export * from './payment/paymentService.js';
-
+export * from './payment/cryptoPaymentService.js';
