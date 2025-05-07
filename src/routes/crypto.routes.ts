@@ -28,7 +28,7 @@ export const initializeCryptoRoutes = (app: express.Application) => {
      *       401:
      *         description: Не авторизован
      */
-    registerRoute(app, 'post', '/payment/crypto', CryptoPaymentController, 'createPayment');
+    registerRoute(app, 'post', '/payment/crypto', CryptoPaymentController, 'createCryptoPayment');
 
     /**
      * @swagger
@@ -50,7 +50,7 @@ export const initializeCryptoRoutes = (app: express.Application) => {
      *       401:
      *         description: Не авторизован
      */
-    registerRoute(app, 'get', '/payment/crypto/:paymentId/status', CryptoPaymentController, 'checkPaymentStatus');
+    registerRoute(app, 'get', '/payment/crypto/:paymentId/status', CryptoPaymentController, 'checkCryptoPaymentStatus');
 
     /**
      * @swagger

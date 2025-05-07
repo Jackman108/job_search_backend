@@ -1,48 +1,100 @@
-import { CryptoPaymentDetails } from '@interface';
 import { executeQuery } from '@utils';
+import { CryptoPaymentData, CryptoPaymentDetails } from '@interface';
 import pool from '../../config/database.config';
 import { cryptoPaymentProvider, nowPaymentsConfig } from '../../config/crypto.config';
 import crypto from 'crypto';
 
-export const createCryptoPayment = async (
-    subscriptionId: string,
-    amount: number,
-    currency: string
-): Promise<CryptoPaymentDetails> => {
-    const cryptoDetails = await cryptoPaymentProvider.createPayment(amount, currency);
+const PAYMENT_STATUS = {
+    PENDING: 'pending',
+    COMPLETED: 'completed',
+    FAILED: 'failed',
+    EXPIRED: 'expired'
+} as const;
 
-    const query = `
-        INSERT INTO crypto_payments (
-            id, subscription_id, crypto_address, crypto_amount, 
-            currency, status, created_at, expires_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `;
+export const getExistingPendingPayment = async (paymentId: string): Promise<CryptoPaymentDetails | null> => {
+    try {
+        const result = await executeQuery<CryptoPaymentDetails>(
+            `SELECT * FROM crypto_payments 
+             WHERE id = $1 AND status = $2`,
+            [paymentId, PAYMENT_STATUS.PENDING]
+        );
+        return result.length > 0 ? result[0] : null;
+    } catch (error) {
+        console.error('Error checking existing payment:', error);
+        throw new Error('Failed to check existing payment');
+    }
+};
 
-    await executeQuery(query, [
-        cryptoDetails.paymentId,
-        subscriptionId,
-        cryptoDetails.cryptoAddress,
-        cryptoDetails.cryptoAmount,
-        cryptoDetails.currency,
-        cryptoDetails.status,
-        cryptoDetails.createdAt,
-        cryptoDetails.expiresAt
-    ]);
+export const createCryptoPayment = async (data: CryptoPaymentData): Promise<CryptoPaymentDetails> => {
+    try {
+        const { id, subscription_id, amount, currency, network } = data;
 
-    return cryptoDetails;
+        // Проверяем существование незавершенного платежа
+        const existingPayment = await getExistingPendingPayment(id);
+        if (existingPayment) {
+            return existingPayment;
+        }
+
+        // Создаем новую запись только если нет существующего платежа
+        const result = await executeQuery<CryptoPaymentDetails>(
+            `INSERT INTO crypto_payments (
+                id, subscription_id, amount, currency, network,
+                crypto_address, crypto_amount, status, created_at,
+                expires_at, transaction_hash, wallet_provider
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10, $11)
+            RETURNING *`,
+            [
+                id,
+                subscription_id,
+                amount,
+                currency,
+                network,
+                'pending',
+                amount,
+                PAYMENT_STATUS.PENDING,
+                new Date(Date.now() + 30 * 60 * 1000),
+                null,
+                'default'
+            ]
+        );
+
+        if (!result || result.length === 0) {
+            throw new Error('Failed to create crypto payment record');
+        }
+
+        return result[0];
+    } catch (error) {
+        console.error('Error creating crypto payment:', error);
+        throw new Error('Failed to create crypto payment');
+    }
 };
 
 export const checkCryptoPaymentStatus = async (
     paymentId: string
 ): Promise<string> => {
+    // Проверяем, что paymentId является валидным UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(paymentId)) {
+        throw new Error('Invalid payment ID format. Expected UUID');
+    }
+
     const status = await cryptoPaymentProvider.checkPaymentStatus(paymentId);
 
-    const query = `
+    // Обновляем статус в обеих таблицах
+    const cryptoQuery = `
         UPDATE crypto_payments 
         SET status = $1, updated_at = NOW()
         WHERE id = $2
     `;
-    await executeQuery(query, [status, paymentId]);
+    await executeQuery(cryptoQuery, [status, paymentId]);
+
+    const paymentQuery = `
+        UPDATE payments p
+        SET payment_status = $1, updated_at = NOW()
+        FROM crypto_payments cp
+        WHERE cp.payment_id = p.id AND cp.id = $2
+    `;
+    await executeQuery(paymentQuery, [status, paymentId]);
 
     return status;
 };

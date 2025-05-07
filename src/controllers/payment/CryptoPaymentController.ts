@@ -1,24 +1,29 @@
-import { checkCryptoPaymentStatus, createCryptoPayment, getActiveSubscription, processWebhook } from '@services';
+import { checkCryptoPaymentStatus, createCryptoPayment, getActiveSubscription, processWebhook, getExistingPendingPayment } from '@services';
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '@interface';
 import { handleErrors, handleSuccess } from '@middlewares';
 
-
 export class CryptoPaymentController {
-    async createPayment(req: AuthenticatedRequest, res: Response) {
+    async createCryptoPayment(req: AuthenticatedRequest, res: Response) {
         try {
-            const activeSubscription = await getActiveSubscription(req.userId!);
+            const { id, subscription_id, amount, currency, network } = req.body;
 
-            if (!activeSubscription || activeSubscription.length === 0) {
-                return res.status(400).json({ error: 'No active subscription found' });
+            if (!id || !subscription_id || !amount) {
+                return res.status(400).json({ error: 'Missing required fields' });
             }
 
-            const subscription = activeSubscription[0];
-            const cryptoPayment = await createCryptoPayment(
-                subscription.id,
-                subscription.price,
-                'USD'
-            );
+            const existingPayment = await getExistingPendingPayment(id);
+            if (existingPayment) {
+                return handleSuccess(res, 'Existing pending payment found', existingPayment);
+            }
+
+            const cryptoPayment = await createCryptoPayment({
+                id,
+                subscription_id,
+                amount,
+                currency: currency || 'BTC',
+                network: network || 'BTC'
+            });
 
             handleSuccess(res, 'Crypto payment created successfully', cryptoPayment);
         } catch (error) {
@@ -26,9 +31,12 @@ export class CryptoPaymentController {
         }
     }
 
-    async checkPaymentStatus(req: AuthenticatedRequest, res: Response) {
+    async checkCryptoPaymentStatus(req: AuthenticatedRequest, res: Response) {
         try {
-            const { paymentId } = req.params;
+            const paymentId = req.params.paymentId;
+            if (!paymentId || paymentId === ':paymentId') {
+                throw new Error('Payment ID is required');
+            }
             const status = await checkCryptoPaymentStatus(paymentId);
             handleSuccess(res, 'Payment status retrieved', { status });
         } catch (error) {

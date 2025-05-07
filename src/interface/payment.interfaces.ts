@@ -8,18 +8,32 @@ export interface Payment {
     updated_at: Date;
 }
 
-export interface CryptoPaymentDetails {
-    paymentId: string;
-    cryptoAddress: string;
-    cryptoAmount: string;
+
+export interface CryptoPaymentData {
+    id: string;
+    subscription_id: string;
+    amount: string;
     currency: string;
-    status: string;
-    createdAt: Date;
-    expiresAt: Date;
+    network: string;
 }
+
+export interface CryptoPaymentDetails {
+    id: string;
+    subscription_id: string;
+    amount: string;
+    currency: string;
+    network: string;
+    crypto_address: string;
+    crypto_amount: string;
+    status: string;
+    created_at: Date;
+    expires_at: Date;
+    transaction_hash: string | null;
+    wallet_provider: string;
+} 
 
 export interface CryptoPaymentProvider {
     createPayment(amount: number, currency: string): Promise<CryptoPaymentDetails>;
     checkPaymentStatus(paymentId: string): Promise<string>;
-    processWebhook(data: any): Promise<void>;
+    processWebhook(data: any, signature: string): Promise<boolean>;
 } 
