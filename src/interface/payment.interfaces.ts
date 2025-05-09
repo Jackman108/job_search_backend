@@ -30,7 +30,7 @@ export interface CryptoPaymentDetails {
     expires_at: Date;
     transaction_hash: string | null;
     wallet_provider: string;
-} 
+}
 
 export interface CryptoPaymentProvider {
     createPayment(amount: number, currency: string): Promise<CryptoPaymentDetails>;

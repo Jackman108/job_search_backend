@@ -1,4 +1,4 @@
-import { checkCryptoPaymentStatus, createCryptoPayment, getActiveSubscription, processWebhook, getExistingPendingPayment } from '@services';
+import { checkCryptoPaymentStatus, createCryptoPayment, getActiveSubscription, processWebhook, getExistingPendingPayment, updateCryptoOptions } from '@services';
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '@interface';
 import { handleErrors, handleSuccess } from '@middlewares';
@@ -55,6 +55,18 @@ export class CryptoPaymentController {
             handleSuccess(res, 'Webhook processed successfully');
         } catch (error) {
             handleErrors(res, error, 'Failed to process webhook');
+        }
+    }
+
+    async updateCryptoOptions(req: AuthenticatedRequest, res: Response) {
+        try {
+            const updated = await updateCryptoOptions(
+                req.params.paymentId,
+                req.body
+            );
+            handleSuccess(res, 'Options updated', updated);
+        } catch (err) {
+            handleErrors(res, err, 'Failed to update crypto options');
         }
     }
 } 

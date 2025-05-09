@@ -1,4 +1,4 @@
-import { executeQuery } from '@utils';
+import { executeQuery, generateUpdateQueryWithConditions } from '@utils';
 import { CryptoPaymentData, CryptoPaymentDetails } from '@interface';
 import pool from '../../config/database.config';
 import { cryptoPaymentProvider, nowPaymentsConfig } from '../../config/crypto.config';
@@ -159,4 +159,21 @@ const logWebhook = async (data: any): Promise<void> => {
          VALUES ($1, $2, $3, $4)`,
         [data.paymentId, data.status, JSON.stringify(data.data), new Date()]
     );
+};
+
+export const updateCryptoOptions = async (
+    paymentId: string,
+    updates: { network?: string; crypto_address?: string; crypto_amount?: string }
+): Promise<CryptoPaymentDetails> => {
+    const { query, values } = generateUpdateQueryWithConditions(
+        'crypto_payments',
+        updates,
+        { id: paymentId }
+    );
+    await executeQuery<CryptoPaymentDetails>(query, values);
+    const [row] = await executeQuery<CryptoPaymentDetails>(
+        'SELECT * FROM crypto_payments WHERE id = $1',
+        [paymentId]
+    );
+    return row;
 }; 

@@ -21,7 +21,7 @@ class MockCryptoPaymentProvider implements CryptoPaymentProvider {
 
     async createPayment(amount: number, currency: string): Promise<CryptoPaymentDetails> {
         logger.info('Creating mock crypto payment', { amount, currency });
-        
+
         if (amount < this.config.minAmount || amount > this.config.maxAmount) {
             logger.error('Invalid payment amount', { amount, min: this.config.minAmount, max: this.config.maxAmount });
             throw new Error(`Amount must be between ${this.config.minAmount} and ${this.config.maxAmount}`);
@@ -29,9 +29,9 @@ class MockCryptoPaymentProvider implements CryptoPaymentProvider {
 
         const paymentId = crypto.randomUUID();
         const cryptoAmount = (amount * 0.0001).toString();
-        
+
         logger.info('Mock payment created', { paymentId, cryptoAmount });
-        
+
         return {
             id: paymentId,
             subscription_id: 'mock_subscription',
@@ -50,7 +50,7 @@ class MockCryptoPaymentProvider implements CryptoPaymentProvider {
 
     async checkPaymentStatus(paymentId: string) {
         logger.info('Checking mock payment status', { paymentId });
-        
+
         // Для dev окружения возвращаем разные статусы
         const statuses = ['pending', 'completed', 'failed', 'expired'];
         const randomIndex = Math.floor(Math.random() * statuses.length);
@@ -93,7 +93,7 @@ const retryOperation = async <T>(
     delay: number
 ): Promise<T> => {
     let lastError: Error | null = null;
-    
+
     for (let i = 0; i < maxRetries; i++) {
         try {
             return await operation();
@@ -105,7 +105,7 @@ const retryOperation = async <T>(
             }
         }
     }
-    
+
     throw lastError;
 };
 
@@ -115,7 +115,7 @@ export const cryptoPaymentProvider: CryptoPaymentProvider =
         ? {
             createPayment: async (amount: number, currency: string) => {
                 logger.info('Creating crypto payment', { amount, currency });
-                
+
                 if (amount < nowPaymentsConfig.minAmount || amount > nowPaymentsConfig.maxAmount) {
                     logger.error('Invalid payment amount', { amount, min: nowPaymentsConfig.minAmount, max: nowPaymentsConfig.maxAmount });
                     throw new Error(`Amount must be between ${nowPaymentsConfig.minAmount} and ${nowPaymentsConfig.maxAmount}`);
@@ -156,7 +156,7 @@ export const cryptoPaymentProvider: CryptoPaymentProvider =
 
             checkPaymentStatus: async (paymentId: string) => {
                 logger.info('Checking payment status', { paymentId });
-                
+
                 return retryOperation(
                     async () => {
                         const response = await fetch(`${nowPaymentsConfig.baseUrl}/payment/${paymentId}`, {
@@ -182,7 +182,7 @@ export const cryptoPaymentProvider: CryptoPaymentProvider =
 
             processWebhook: async (data: any, signature: string) => {
                 logger.info('Processing webhook', { data });
-                
+
                 if (!validateWebhook(data, signature)) {
                     logger.error('Invalid webhook signature');
                     throw new Error('Invalid webhook signature');

@@ -1,5 +1,5 @@
-import { CryptoPaymentController } from '../controllers/payment/CryptoPaymentController';
 import express from 'express';
+import { CryptoPaymentController } from '../controllers/payment/CryptoPaymentController';
 import { registerRoute } from '../middlewares';
 
 export const initializeCryptoRoutes = (app: express.Application) => {
@@ -69,4 +69,32 @@ export const initializeCryptoRoutes = (app: express.Application) => {
      *         description: Вебхук успешно обработан
      */
     registerRoute(app, 'post', '/payment/crypto/webhook', CryptoPaymentController, 'handleWebhook');
-}; 
+
+    /**
+     * @swagger
+     * /payment/crypto/{paymentId}:
+     *   put:
+     *     summary: Обновить опции криптоплатежа
+     *     tags: [Криптоплатежи]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: paymentId
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *     responses:
+     *       200:
+     *         description: Опции криптоплатежа успешно обновлены
+     *       401:
+     *         description: Не авторизован
+     */
+    registerRoute(app, 'put', '/payment/crypto/:paymentId', CryptoPaymentController, 'updateCryptoOptions');
+};
+
+
+

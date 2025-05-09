@@ -8,3 +8,4 @@ export * from './queryHelpers.js';
 export * from './resumeCacheQuery.js';
 export * from './stopManager.js';
 export * from './vacancyUtils.js';
+export * from './logger.js';
