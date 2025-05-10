@@ -32,25 +32,28 @@ export const initializeCryptoRoutes = (app: express.Application) => {
 
     /**
      * @swagger
-     * /payment/crypto/{paymentId}/status:
-     *   get:
-     *     summary: Проверить статус криптоплатежа
+     * /payment/crypto/status:
+     *   post:
+     *     summary: Проверить статус криптоплатежа через POST
      *     tags: [Криптоплатежи]
      *     security:
      *       - bearerAuth: []
-     *     parameters:
-     *       - in: path
-     *         name: paymentId
-     *         required: true
-     *         schema:
-     *           type: string
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               paymentId:
+     *                 type: string
      *     responses:
      *       200:
      *         description: Статус платежа получен
      *       401:
      *         description: Не авторизован
      */
-    registerRoute(app, 'get', '/payment/crypto/:paymentId/status', CryptoPaymentController, 'checkCryptoPaymentStatus');
+    registerRoute(app, 'post', '/payment/crypto/status/:paymentId', CryptoPaymentController, 'checkCryptoPaymentStatus');
 
     /**
      * @swagger

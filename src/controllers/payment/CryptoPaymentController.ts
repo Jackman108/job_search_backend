@@ -33,12 +33,12 @@ export class CryptoPaymentController {
 
     async checkCryptoPaymentStatus(req: AuthenticatedRequest, res: Response) {
         try {
-            const paymentId = req.params.paymentId;
-            if (!paymentId || paymentId === ':paymentId') {
+            const paymentId = req.params.paymentId || (req.body && req.body.paymentId);
+            if (!paymentId) {
                 throw new Error('Payment ID is required');
             }
-            const status = await checkCryptoPaymentStatus(paymentId);
-            handleSuccess(res, 'Payment status retrieved', { status });
+            const statusData = await checkCryptoPaymentStatus(paymentId);
+            handleSuccess(res, 'Payment status retrieved', { status: statusData });
         } catch (error) {
             handleErrors(res, error, 'Failed to check payment status');
         }
