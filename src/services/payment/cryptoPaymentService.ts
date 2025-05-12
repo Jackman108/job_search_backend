@@ -1,8 +1,12 @@
-import { executeQuery, generateUpdateQueryWithConditions } from '@utils';
 import { CryptoPaymentData, CryptoPaymentDetails } from '@interface';
 import pool from '../../config/database.config';
 import { cryptoPaymentProvider, nowPaymentsConfig } from '../../config/crypto.config';
 import crypto from 'crypto';
+import { CryptoPaymentRepository } from '@repositories/cryptoPayment.repository';
+import { PaymentRepository } from '@repositories/payment.repository';
+import { Payment } from '@interface';
+import { getSubscriptionIdByUserId } from './paymentService';
+import { executeQuery } from '@utils';
 
 const PAYMENT_STATUS = {
     PENDING: 'pending',
@@ -11,93 +15,47 @@ const PAYMENT_STATUS = {
     EXPIRED: 'expired'
 } as const;
 
-export const getExistingPendingPayment = async (paymentId: string): Promise<CryptoPaymentDetails | null> => {
-    try {
-        const result = await executeQuery<CryptoPaymentDetails>(
-            `SELECT * FROM crypto_payments 
-             WHERE id = $1 AND status = $2`,
-            [paymentId, PAYMENT_STATUS.PENDING]
-        );
-        return result.length > 0 ? result[0] : null;
-    } catch (error) {
-        console.error('Error checking existing payment:', error);
-        throw new Error('Failed to check existing payment');
-    }
+export const getExistingPendingPayment = CryptoPaymentRepository.getExistingPending;
+
+/**
+ * Возвращает список криптоплатежей пользователя
+ */
+export const listCryptoPayments = async (userId: string): Promise<CryptoPaymentDetails[]> => {
+    const subscriptionId = await getSubscriptionIdByUserId(userId);
+    const query = 'SELECT * FROM crypto_payments WHERE subscription_id = $1';
+    return await executeQuery<CryptoPaymentDetails>(query, [subscriptionId]);
 };
+
 
 export const createCryptoPayment = async (data: CryptoPaymentData): Promise<CryptoPaymentDetails> => {
-    try {
-        const { id, subscription_id, amount, currency, network } = data;
-
-        // Проверяем существование незавершенного платежа
-        const existingPayment = await getExistingPendingPayment(id);
-        if (existingPayment) {
-            return existingPayment;
-        }
-
-        // Создаем новую запись только если нет существующего платежа
-        const result = await executeQuery<CryptoPaymentDetails>(
-            `INSERT INTO crypto_payments (
-                id, subscription_id, amount, currency, network,
-                crypto_address, crypto_amount, status, created_at,
-                expires_at, transaction_hash, wallet_provider
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10, $11)
-            RETURNING *`,
-            [
-                id,
-                subscription_id,
-                amount,
-                currency,
-                network,
-                'pending',
-                amount,
-                PAYMENT_STATUS.PENDING,
-                new Date(Date.now() + 30 * 60 * 1000),
-                null,
-                'default'
-            ]
-        );
-
-        if (!result || result.length === 0) {
-            throw new Error('Failed to create crypto payment record');
-        }
-
-        return result[0];
-    } catch (error) {
-        console.error('Error creating crypto payment:', error);
-        throw new Error('Failed to create crypto payment');
-    }
+    const existing = await CryptoPaymentRepository.getExistingPending(data.id);
+    if (existing) return existing;
+    return CryptoPaymentRepository.create(data);
 };
 
-export const checkCryptoPaymentStatus = async (
-    paymentId: string
-): Promise<string> => {
+
+export const checkCryptoPaymentStatus = async (paymentId: string): Promise<string> => {
     // Проверяем, что paymentId является валидным UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(paymentId)) {
         throw new Error('Invalid payment ID format. Expected UUID');
     }
 
+    // Получаем статус из провайдера и обновляем запись crypto_payments
     const status = await cryptoPaymentProvider.checkPaymentStatus(paymentId);
+    await CryptoPaymentRepository.updateStatus(paymentId, status);
 
-    // Обновляем статус в обеих таблицах
-    const cryptoQuery = `
-        UPDATE crypto_payments 
-        SET status = $1, updated_at = NOW()
-        WHERE id = $2
-    `;
-    await executeQuery(cryptoQuery, [status, paymentId]);
-
-    const paymentQuery = `
-        UPDATE payments p
-        SET payment_status = $1, updated_at = NOW()
-        FROM crypto_payments cp
-        WHERE cp.payment_id = p.id AND cp.id = $2
-    `;
-    await executeQuery(paymentQuery, [status, paymentId]);
+    // Обновляем статус в таблице payments через репозиторий
+    const cryptoDetails = await CryptoPaymentRepository.getById(paymentId);
+    await PaymentRepository.update(
+        cryptoDetails.subscription_id,
+        paymentId,
+        { payment_status: status as Payment['payment_status'] }
+    );
 
     return status;
 };
+
 
 const validateWebhookSignature = (data: any, signature: string): boolean => {
     if (!nowPaymentsConfig.ipnSecret) {
@@ -108,13 +66,10 @@ const validateWebhookSignature = (data: any, signature: string): boolean => {
     return expectedSignature === signature;
 };
 
-const updateSubscriptionStatus = async (subscriptionId: string): Promise<void> => {
-    await pool.query(
-        'UPDATE subscriptions SET status = $1 WHERE id = $2',
-        ['active', subscriptionId]
-    );
-};
 
+/**
+ * Обрабатывает вебхук и логирует данные
+ */
 export const processWebhook = async (webhookData: any, signature: string): Promise<void> => {
     if (!validateWebhookSignature(webhookData, signature)) {
         throw new Error('Invalid webhook signature');
@@ -141,10 +96,6 @@ export const processWebhook = async (webhookData: any, signature: string): Promi
         [payment_status, updated_at, txid, payment_id]
     );
 
-    if (payment_status === 'finished') {
-        await updateSubscriptionStatus(order_id);
-    }
-
     await logWebhook({
         paymentId: payment_id,
         status: payment_status,
@@ -161,19 +112,13 @@ const logWebhook = async (data: any): Promise<void> => {
     );
 };
 
-export const updateCryptoOptions = async (
-    paymentId: string,
-    updates: { network?: string; crypto_address?: string; crypto_amount?: string }
-): Promise<CryptoPaymentDetails> => {
-    const { query, values } = generateUpdateQueryWithConditions(
-        'crypto_payments',
-        updates,
-        { id: paymentId }
-    );
-    await executeQuery<CryptoPaymentDetails>(query, values);
-    const [row] = await executeQuery<CryptoPaymentDetails>(
-        'SELECT * FROM crypto_payments WHERE id = $1',
-        [paymentId]
-    );
-    return row;
-}; 
+
+export const updateCryptoOptions = CryptoPaymentRepository.updateOptions;
+
+export const deleteCryptoPayment = async (
+    userId: string, paymentId: string
+): Promise<void> => {
+    const subscriptionId = await getSubscriptionIdByUserId(userId);
+    // Удаляем запись из таблицы crypto_payments
+    await CryptoPaymentRepository.delete(subscriptionId, paymentId);
+};

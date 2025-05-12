@@ -1,4 +1,4 @@
-import { checkCryptoPaymentStatus, createCryptoPayment, getActiveSubscription, processWebhook, getExistingPendingPayment, updateCryptoOptions } from '@services';
+import { checkCryptoPaymentStatus, createCryptoPayment, getActiveSubscription, processWebhook, updateCryptoOptions, listCryptoPayments, deleteCryptoPayment } from '@services';
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '@interface';
 import { handleErrors, handleSuccess } from '@middlewares';
@@ -10,11 +10,6 @@ export class CryptoPaymentController {
 
             if (!id || !subscription_id || !amount) {
                 return res.status(400).json({ error: 'Missing required fields' });
-            }
-
-            const existingPayment = await getExistingPendingPayment(id);
-            if (existingPayment) {
-                return handleSuccess(res, 'Existing pending payment found', existingPayment);
             }
 
             const cryptoPayment = await createCryptoPayment({
@@ -67,6 +62,25 @@ export class CryptoPaymentController {
             handleSuccess(res, 'Options updated', updated);
         } catch (err) {
             handleErrors(res, err, 'Failed to update crypto options');
+        }
+    }
+
+    async listCryptoPayments(req: AuthenticatedRequest, res: Response) {
+        try {
+            const payments = await listCryptoPayments(req.userId!);
+            res.status(200).json(payments);
+        } catch (error) {
+            handleErrors(res, error, 'Error listing crypto payments');
+        }
+    }
+
+    async deleteCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        try {
+
+            await deleteCryptoPayment(req.userId!, req.params.id);
+            handleSuccess(res, 'Crypto payment deleted successfully');
+        } catch (error) {
+            handleErrors(res, error, 'Failed to delete crypto payment');
         }
     }
 } 
