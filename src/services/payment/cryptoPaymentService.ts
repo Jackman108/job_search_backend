@@ -90,15 +90,20 @@ export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promis
 };
 
 export const updateCryptoPayment = async (
-    paymentId: string, updates: Partial<CryptoPaymentDetails>
-): Promise<void> => {
-
+    paymentId: string,
+    updates: Partial<CryptoPaymentDetails>
+): Promise<CryptoPaymentDetails> => {
+    // Выполняем обновление полей
     const { query, values } = generateUpdateQueryWithConditions(
         'crypto_payments',
         updates,
-        { subscription_id: updates.subscription_id, id: paymentId }
+        { subscription_id: updates.subscription_id!, id: paymentId }
     );
     await executeQuery(query, values);
+    // Получаем обновлённую запись
+    const selectQuery = `SELECT * FROM crypto_payments WHERE subscription_id = $1 AND id = $2;`;
+    const result = await executeQuery<CryptoPaymentDetails>(selectQuery, [updates.subscription_id!, paymentId]);
+    return result[0];
 };
 
 export const deleteCryptoPayment = async (

@@ -2,7 +2,7 @@ export interface Payment {
     id: string;
     subscription_id: string;
     amount: number;
-    payment_status: 'pending' | 'completed' | 'failed';
+    payment_status: 'pending' | 'completed' | 'failed' | 'expired';
     payment_method: string;
     created_at: Date;
     updated_at: Date;

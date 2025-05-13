@@ -73,8 +73,8 @@ export class CryptoPaymentController {
 
     async updateCryptoPayment(req: AuthenticatedRequest, res: Response) {
         try {
-            await updateCryptoPayment(req.params.paymentId, req.body);
-            handleSuccess(res, 'Crypto payment updated successfully');
+            const updated = await updateCryptoPayment(req.params.paymentId, req.body);
+            handleSuccess(res, 'Crypto payment updated successfully', updated);
         } catch (error) {
             handleErrors(res, error, 'Failed to update crypto payment');
         }
