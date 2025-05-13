@@ -16,6 +16,7 @@ export * from './user/resume/skillService.js';
 export * from './user/resume/workExperienceService.js';
 
 // Payment services
-export * from './payment/subscriptionsService.js';
-export * from './payment/paymentService.js';
-export * from './payment/cryptoPaymentService.js';
+export * from './payment/subscriptionsService';
+export * from './payment/paymentService';
+export * from './payment/cryptoPaymentService';
+export * from './payment/cryptoIntegrationService';

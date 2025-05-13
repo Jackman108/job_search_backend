@@ -15,6 +15,8 @@ export interface CryptoPaymentData {
     amount: string;
     currency: string;
     network: string;
+    /** Опциональный адрес кошелька, если передан */
+    crypto_address?: string;
 }
 
 export interface CryptoPaymentDetails {

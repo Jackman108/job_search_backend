@@ -1,109 +1,129 @@
 import { Payment } from '@interface';
-import { checkTableExists, executeQuery } from '@utils';
-import { PaymentRepository } from '@repositories/payment.repository';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId } from '@utils';
 
-export const getSubscriptionIdByUserId = async (userId: string): Promise<string> => {
-    const query = `
-        SELECT * FROM subscriptions 
-        WHERE user_id = $1 AND end_date > NOW()
-        ORDER BY end_date DESC
-        LIMIT 1;
-    `;
-    const result = await executeQuery(query, [userId]);
-    return result[0]?.id;
-};
-
+/**
+ * Создание таблицы payments с необходимыми полями
+ */
 export const createTablePayments = async (): Promise<void> => {
-    const tableExists = await checkTableExists('payments');
-    if (tableExists) {
-        console.log('Table "payments" already exists.');
-        return;
-    }
+    const exists = await checkTableExists('payments');
+    if (exists) return;
     const query = `
     CREATE TABLE IF NOT EXISTS payments (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
       subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
       amount DECIMAL NOT NULL,
       payment_status VARCHAR(20) DEFAULT 'pending',
-      payment_method VARCHAR(50),
+      payment_method VARCHAR(50) NOT NULL,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
-    );
-  `;
-
+    );`;
     await executeQuery(query);
 };
 
-export const createTableCryptoPayments = async (): Promise<void> => {
-    const tableExists = await checkTableExists('crypto_payments');
-    if (tableExists) {
-        console.log('Table "crypto_payments" already exists.');
-        return;
-    }
-    const query = `
-    CREATE TABLE IF NOT EXISTS crypto_payments (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
-      crypto_address VARCHAR(100) NOT NULL,
-      crypto_amount VARCHAR(50) NOT NULL,
-      currency VARCHAR(10) NOT NULL,
-      status VARCHAR(20) DEFAULT 'pending',
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP DEFAULT NOW(),
-      expires_at TIMESTAMP NOT NULL
-    );
-  `;
-
-    await executeQuery(query);
-};
-
+/**
+ * Список всех платежей пользователя по подписке
+ * @param userId ID пользователя из AuthenticatedRequest
+ */
 export const listPayments = async (userId: string): Promise<Payment[]> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
-    return await PaymentRepository.list(subscriptionId);
-}
+    const query = `SELECT * FROM payments WHERE subscription_id = $1;`;
+    return await executeQuery<Payment>(query, [subscriptionId]);
+};
 
+/**
+ * Получение одного платежа по subscription_id и id
+ * @param userId ID пользователя
+ * @param paymentId ID платежа
+ */
 export const getPayment = async (
-    userId: string, paymentId: string
+    userId: string,
+    paymentId: string
 ): Promise<Payment> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
-    return await PaymentRepository.get(subscriptionId, paymentId);
-}
+    const query = `SELECT * FROM payments WHERE subscription_id = $1 AND id = $2;`;
+    const result = await executeQuery<Payment>(query, [subscriptionId, paymentId]);
+    if (!result[0]) throw new Error(`Payment not found for id ${paymentId}`);
+    return result[0];
+};
 
-export const createPayment = async (userId: string, paymentData: Partial<Payment>
-): Promise<void> => {
+/**
+ * Создание нового платежа
+ * @param userId ID пользователя
+ * @param paymentData Объект с amount, payment_status, payment_method
+ */
+export const createPayment = async (
+    userId: string,
+    paymentData: Partial<Payment>
+): Promise<Payment> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
-    if (!subscriptionId) {
-        throw new Error("Payment not created. subscription not found.");
-    }
-    await PaymentRepository.create(
+    const query = `
+        INSERT INTO payments (subscription_id, amount, payment_status, payment_method)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *;
+    `;
+    const values = [
         subscriptionId,
         paymentData.amount!,
         paymentData.payment_status || 'pending',
         paymentData.payment_method || 'card'
-    );
-}
+    ];
+    const [created] = await executeQuery<Payment>(query, values);
+    return created;
+};
 
+/**
+ * Обновление полей платежа по id
+ * @param paymentId ID платежа
+ * @param updates Поля для обновления
+ */
 export const updatePayment = async (
-    userId: string, paymentId: string, updates: Partial<Payment>
-): Promise<void> => {
+    userId: string,
+    paymentId: string,
+    updates: Partial<Payment>
+): Promise<Payment> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
-    await PaymentRepository.update(subscriptionId, paymentId, updates);
-}
 
-export const updatePaymentStatus = async (
-    userId: string, paymentId: string, status: string
-): Promise<void> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
-    await PaymentRepository.update(
-        subscriptionId,
-        paymentId,
-        { payment_status: status as Payment['payment_status'] }
+    const { query, values } = generateUpdateQueryWithConditions(
+        'payments',
+        updates,
+        { subscription_id: subscriptionId, id: paymentId }
     );
-}
+    await executeQuery(query, values);
+    // Возвращаем обновлённую запись
+    const [updated] = await executeQuery<Payment>(
+        `SELECT * FROM payments WHERE id = $1;`,
+        [paymentId]
+    );
+    return updated;
+};
 
+/**
+ * Удаление платежа по subscription_id и id
+ * @param userId ID пользователя
+ * @param paymentId ID платежа
+ */
 export const deletePayment = async (
-    userId: string, paymentId: string
+    userId: string,
+    paymentId: string
 ): Promise<void> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
-    await PaymentRepository.delete(subscriptionId, paymentId);
-}
+    const query = `DELETE FROM payments WHERE subscription_id = $1 AND id = $2;`;
+    await executeQuery(query, [subscriptionId, paymentId]);
+};
+
+/**
+ * Возвращает активный незавершённый платеж пользователя
+ * @param userId ID пользователя
+ * @param paymentId ID платежа
+ */
+export const getActivePayment = async (
+    userId: string,
+    paymentId: string
+): Promise<Payment[]> => {
+    const subscriptionId = await getSubscriptionIdByUserId(userId);
+    const query = `
+        SELECT * FROM payments
+        WHERE subscription_id = $1 AND id = $2 AND payment_status = $3;
+    `;
+    return await executeQuery<Payment>(query, [subscriptionId, paymentId, 'pending']);
+};

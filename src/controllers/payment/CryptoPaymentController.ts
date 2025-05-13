@@ -1,4 +1,4 @@
-import { checkCryptoPaymentStatus, createCryptoPayment, getActiveSubscription, processWebhook, updateCryptoOptions, listCryptoPayments, deleteCryptoPayment } from '@services';
+import { checkCryptoPaymentStatus, createCryptoPayment, getActiveSubscription, processWebhook, listCryptoPayments, deleteCryptoPayment, getCryptoPayment, updateCryptoPayment } from '@services';
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '@interface';
 import { handleErrors, handleSuccess } from '@middlewares';
@@ -53,18 +53,6 @@ export class CryptoPaymentController {
         }
     }
 
-    async updateCryptoOptions(req: AuthenticatedRequest, res: Response) {
-        try {
-            const updated = await updateCryptoOptions(
-                req.params.paymentId,
-                req.body
-            );
-            handleSuccess(res, 'Options updated', updated);
-        } catch (err) {
-            handleErrors(res, err, 'Failed to update crypto options');
-        }
-    }
-
     async listCryptoPayments(req: AuthenticatedRequest, res: Response) {
         try {
             const payments = await listCryptoPayments(req.userId!);
@@ -74,10 +62,27 @@ export class CryptoPaymentController {
         }
     }
 
+    async getCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        try {
+            const payment = await getCryptoPayment(req.userId!, req.params.paymentId);
+            handleSuccess(res, 'Crypto payment retrieved successfully', payment);
+        } catch (error) {
+            handleErrors(res, error, 'Failed to fetch crypto payment');
+        }
+    }
+
+    async updateCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        try {
+            await updateCryptoPayment(req.params.paymentId, req.body);
+            handleSuccess(res, 'Crypto payment updated successfully');
+        } catch (error) {
+            handleErrors(res, error, 'Failed to update crypto payment');
+        }
+    }
+
     async deleteCryptoPayment(req: AuthenticatedRequest, res: Response) {
         try {
-
-            await deleteCryptoPayment(req.userId!, req.params.id);
+            await deleteCryptoPayment(req.userId!, req.params.paymentId);
             handleSuccess(res, 'Crypto payment deleted successfully');
         } catch (error) {
             handleErrors(res, error, 'Failed to delete crypto payment');

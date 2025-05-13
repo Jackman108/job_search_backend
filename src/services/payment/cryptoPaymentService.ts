@@ -1,124 +1,110 @@
 import { CryptoPaymentData, CryptoPaymentDetails } from '@interface';
-import pool from '../../config/database.config';
-import { cryptoPaymentProvider, nowPaymentsConfig } from '../../config/crypto.config';
-import crypto from 'crypto';
-import { CryptoPaymentRepository } from '@repositories/cryptoPayment.repository';
-import { PaymentRepository } from '@repositories/payment.repository';
-import { Payment } from '@interface';
-import { getSubscriptionIdByUserId } from './paymentService';
-import { executeQuery } from '@utils';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId } from '@utils';
 
-const PAYMENT_STATUS = {
-    PENDING: 'pending',
-    COMPLETED: 'completed',
-    FAILED: 'failed',
-    EXPIRED: 'expired'
-} as const;
+export const createTableCryptoPayments = async (): Promise<void> => {
+    const tableExists = await checkTableExists('crypto_payments');
+    if (tableExists) {
+        console.log('Table "crypto_payments" already exists.');
+        return;
+    }
+    const query = `
+    CREATE TABLE IF NOT EXISTS crypto_payments (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
+      amount DECIMAL(10,2) NOT NULL,
+      currency VARCHAR(3) NOT NULL,
+      crypto_address VARCHAR(100) NOT NULL,
+      crypto_amount DECIMAL(20,8) NOT NULL,
+      status VARCHAR(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW() WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, 
+      updated_at TIMESTAMP DEFAULT NOW() WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      transaction_hash VARCHAR(100),
+      network VARCHAR(20) NOT NULL,
+      wallet_provider VARCHAR(50) NOT NULL
+    );
+  `;
 
-export const getExistingPendingPayment = CryptoPaymentRepository.getExistingPending;
+    await executeQuery(query);
+};
 
-/**
- * Возвращает список криптоплатежей пользователя
- */
+// CRUD-операции для работы с таблицей crypto_payments
 export const listCryptoPayments = async (userId: string): Promise<CryptoPaymentDetails[]> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
-    const query = 'SELECT * FROM crypto_payments WHERE subscription_id = $1';
+
+    const query = `SELECT * FROM crypto_payments WHERE subscription_id = $1;`;
     return await executeQuery<CryptoPaymentDetails>(query, [subscriptionId]);
 };
 
-
-export const createCryptoPayment = async (data: CryptoPaymentData): Promise<CryptoPaymentDetails> => {
-    const existing = await CryptoPaymentRepository.getExistingPending(data.id);
-    if (existing) return existing;
-    return CryptoPaymentRepository.create(data);
+export const getActiveCryptoPayment = async (
+    subscriptionId: string,
+    paymentId: string
+): Promise<CryptoPaymentDetails[]> => {
+    // Возвращает незавершённый криптоплатёж по подписке и ID
+    const query = `
+        SELECT * FROM crypto_payments
+        WHERE subscription_id = $1 AND id = $2 AND status = $3;
+    `;
+    return await executeQuery<CryptoPaymentDetails>(query, [subscriptionId, paymentId, 'pending']);
 };
 
+export const getCryptoPayment = async (userId: string, paymentId: string): Promise<CryptoPaymentDetails> => {
+    const subscriptionId = await getSubscriptionIdByUserId(userId);
+    const query = `SELECT * FROM crypto_payments WHERE subscription_id = $1 AND id = $2;`;
 
-export const checkCryptoPaymentStatus = async (paymentId: string): Promise<string> => {
-    // Проверяем, что paymentId является валидным UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(paymentId)) {
-        throw new Error('Invalid payment ID format. Expected UUID');
-    }
+    const result = await executeQuery<CryptoPaymentDetails>(query, [subscriptionId, paymentId]);
+    return result[0];
+};
 
-    // Получаем статус из провайдера и обновляем запись crypto_payments
-    const status = await cryptoPaymentProvider.checkPaymentStatus(paymentId);
-    await CryptoPaymentRepository.updateStatus(paymentId, status);
+export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promise<CryptoPaymentDetails> => {
+    // Проверяем существующий незавершенный платеж
+    const activeCryptoPayment = await getActiveCryptoPayment(cryptoData.subscription_id, cryptoData.id);
+    if (activeCryptoPayment[0]) return activeCryptoPayment[0];
+    // Создаем новый платеж
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
-    // Обновляем статус в таблице payments через репозиторий
-    const cryptoDetails = await CryptoPaymentRepository.getById(paymentId);
-    await PaymentRepository.update(
-        cryptoDetails.subscription_id,
-        paymentId,
-        { payment_status: status as Payment['payment_status'] }
+    const query = `
+        INSERT INTO crypto_payments (
+            id, subscription_id, amount, currency, network,
+            crypto_address, crypto_amount, status, created_at,
+            expires_at, transaction_hash, wallet_provider
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),$9,$10,$11)
+        RETURNING *
+    `;
+
+    const values = [
+        cryptoData.id,
+        cryptoData.subscription_id,
+        cryptoData.amount,
+        cryptoData.currency,
+        cryptoData.network,
+        cryptoData.crypto_address ?? '',
+        cryptoData.amount,
+        'pending',
+        expiresAt,
+        null,
+        'NOWCRYPTO'
+    ];
+
+    const result = await executeQuery<CryptoPaymentDetails>(query, values);
+    return result[0];
+};
+
+export const updateCryptoPayment = async (
+    paymentId: string, updates: Partial<CryptoPaymentDetails>
+): Promise<void> => {
+
+    const { query, values } = generateUpdateQueryWithConditions(
+        'crypto_payments',
+        updates,
+        { subscription_id: updates.subscription_id, id: paymentId }
     );
-
-    return status;
+    await executeQuery(query, values);
 };
-
-
-const validateWebhookSignature = (data: any, signature: string): boolean => {
-    if (!nowPaymentsConfig.ipnSecret) {
-        throw new Error('IPN secret is not configured');
-    }
-    const hmac = crypto.createHmac('sha512', nowPaymentsConfig.ipnSecret);
-    const expectedSignature = hmac.update(JSON.stringify(data)).digest('hex');
-    return expectedSignature === signature;
-};
-
-
-/**
- * Обрабатывает вебхук и логирует данные
- */
-export const processWebhook = async (webhookData: any, signature: string): Promise<void> => {
-    if (!validateWebhookSignature(webhookData, signature)) {
-        throw new Error('Invalid webhook signature');
-    }
-
-    const {
-        payment_id,
-        payment_status,
-        pay_address,
-        pay_amount,
-        pay_currency,
-        order_id,
-        created_at,
-        updated_at,
-        txid
-    } = webhookData;
-
-    await pool.query(
-        `UPDATE crypto_payments 
-         SET status = $1, 
-             updated_at = $2,
-             transaction_hash = $3
-         WHERE id = $4`,
-        [payment_status, updated_at, txid, payment_id]
-    );
-
-    await logWebhook({
-        paymentId: payment_id,
-        status: payment_status,
-        data: webhookData
-    });
-};
-
-const logWebhook = async (data: any): Promise<void> => {
-    await pool.query(
-        `INSERT INTO webhook_logs 
-         (payment_id, status, data, created_at) 
-         VALUES ($1, $2, $3, $4)`,
-        [data.paymentId, data.status, JSON.stringify(data.data), new Date()]
-    );
-};
-
-
-export const updateCryptoOptions = CryptoPaymentRepository.updateOptions;
 
 export const deleteCryptoPayment = async (
     userId: string, paymentId: string
 ): Promise<void> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
-    // Удаляем запись из таблицы crypto_payments
-    await CryptoPaymentRepository.delete(subscriptionId, paymentId);
+    const query = `DELETE FROM crypto_payments WHERE subscription_id = $1 AND id = $2;`;
+    await executeQuery<CryptoPaymentDetails>(query, [subscriptionId, paymentId]);
 };

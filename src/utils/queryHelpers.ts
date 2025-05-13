@@ -111,3 +111,13 @@ export async function deleteTable(userId: string, tableName: string): Promise<vo
     await executeQuery(query);
 }
 
+export const getSubscriptionIdByUserId = async (userId: string): Promise<string> => {
+    const query = `
+        SELECT * FROM subscriptions 
+        WHERE user_id = $1 AND end_date > NOW()
+        ORDER BY end_date DESC
+        LIMIT 1;
+    `;
+    const result = await executeQuery(query, [userId]);
+    return result[0]?.id;
+};

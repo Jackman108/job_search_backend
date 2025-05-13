@@ -133,40 +133,6 @@ export const initializePaymentRoutes = (app: express.Application) => {
 
     /**
      * @swagger
-     * /payment/{id}:
-     *   patch:
-     *     summary: Обновить статус платежа
-     *     tags: [Платежи]
-     *     security:
-     *       - bearerAuth: []
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         required: true
-     *         schema:
-     *           type: string
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *           schema:
-     *             type: object
-     *             properties:
-     *               status:
-     *                 type: string
-     *                 enum: [pending, completed, failed]
-     *     responses:
-     *       200:
-     *         description: Статус платежа успешно обновлен
-     *       401:
-     *         description: Не авторизован
-     *       404:
-     *         description: Платеж не найден
-     */
-    registerRoute(app, 'patch', '/payment/:id', PaymentController, 'updatePaymentStatus');
-
-    /**
-     * @swagger
      * /payment/init:
      *   post:
      *     summary: Инициализировать таблицы платежей

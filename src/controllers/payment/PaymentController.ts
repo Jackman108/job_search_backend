@@ -6,9 +6,8 @@ import {
     getPayment,
     listPayments,
     updatePayment,
-    updatePaymentStatus
 } from '@services';
-import { AuthenticatedRequest } from '@interface';
+import { AuthenticatedRequest, Payment } from '@interface';
 
 export class PaymentController {
     async listPayments(req: AuthenticatedRequest, res: Response) {
@@ -31,13 +30,12 @@ export class PaymentController {
 
     async createPayment(req: AuthenticatedRequest, res: Response) {
         try {
-            await createPayment(req.userId!, {
-                subscription_id: req.body.subscription_id,
+            const created = await createPayment(req.userId!, {
                 amount: req.body.amount,
                 payment_status: req.body.payment_status,
                 payment_method: req.body.payment_method,
             });
-            handleSuccess(res, 'Payment successfully creating.');
+            handleSuccess(res, 'Payment created successfully', created);
         } catch (error) {
             handleErrors(res, error, 'Error creating payment.');
         }
@@ -45,21 +43,12 @@ export class PaymentController {
 
     async updatePayment(req: AuthenticatedRequest, res: Response) {
         try {
-            await updatePayment(req.userId!, req.params.id, req.body);
-            handleSuccess(res, 'Payment successfully updating.');
+            const updated = await updatePayment(req.userId!, req.params.id, req.body);
+            handleSuccess(res, 'Payment updated successfully', updated);
         } catch (error) {
             handleErrors(res, error, 'Error updating payment.');
         }
     }
-
-    async updatePaymentStatus(req: AuthenticatedRequest, res: Response) {
-        try {
-            await updatePaymentStatus(req.userId!, req.params.id, req.body.status);
-            handleSuccess(res, 'Payment status successfully updating.');
-        } catch (error) {
-            handleErrors(res, error, 'Error updating payment status');
-        }
-    };
 
     async deletePayment(req: AuthenticatedRequest, res: Response) {
         try {

@@ -92,7 +92,7 @@ export const initializeCryptoRoutes = (app: express.Application) => {
      *       401:
      *         description: Не авторизован
      */
-    registerRoute(app, 'put', '/payment/crypto/:paymentId', CryptoPaymentController, 'updateCryptoOptions');
+    registerRoute(app, 'put', '/payment/crypto/:paymentId', CryptoPaymentController, 'updateCryptoPayment');
 
     /**
      * @swagger
