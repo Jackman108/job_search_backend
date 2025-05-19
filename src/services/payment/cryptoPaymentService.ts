@@ -15,7 +15,7 @@ export const createTableCryptoPayments = async (): Promise<void> => {
       currency VARCHAR(3) NOT NULL,
       crypto_address VARCHAR(100) NOT NULL,
       crypto_amount DECIMAL(20,8) NOT NULL,
-      status VARCHAR(20) DEFAULT 'pending',
+      payment_status VARCHAR(20) DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT NOW() WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, 
       updated_at TIMESTAMP DEFAULT NOW() WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       transaction_hash VARCHAR(100),
@@ -42,7 +42,7 @@ export const getActiveCryptoPayment = async (
     // Возвращает незавершённый криптоплатёж по подписке и ID
     const query = `
         SELECT * FROM crypto_payments
-        WHERE subscription_id = $1 AND id = $2 AND status = $3;
+        WHERE subscription_id = $1 AND id = $2 AND payment_status = $3;
     `;
     return await executeQuery<CryptoPaymentDetails>(query, [subscriptionId, paymentId, 'pending']);
 };
@@ -65,7 +65,7 @@ export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promis
     const query = `
         INSERT INTO crypto_payments (
             id, subscription_id, amount, currency, network,
-            crypto_address, crypto_amount, status, created_at,
+            crypto_address, crypto_amount, payment_status, created_at,
             expires_at, transaction_hash, wallet_provider
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),$9,$10,$11)
         RETURNING *

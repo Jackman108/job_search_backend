@@ -1,8 +1,10 @@
+import { PaymentStatus } from '../constants/paymentStatus';
+
 export interface Payment {
     id: string;
     subscription_id: string;
     amount: number;
-    payment_status: 'pending' | 'completed' | 'failed' | 'expired';
+    payment_status: PaymentStatus;
     payment_method: string;
     created_at: Date;
     updated_at: Date;
@@ -27,7 +29,7 @@ export interface CryptoPaymentDetails {
     network: string;
     crypto_address: string;
     crypto_amount: string;
-    status: string;
+    payment_status: PaymentStatus;
     created_at: Date;
     expires_at: Date;
     transaction_hash: string | null;

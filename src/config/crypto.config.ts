@@ -1,6 +1,7 @@
 // config/crypto.config.ts
 import { CryptoPaymentProvider, CryptoPaymentDetails } from '@interface';
 import crypto from 'crypto';
+import { PaymentStatus } from 'src/constants/paymentStatus';
 import { logger } from 'src/utils/logger';
 
 interface NowPaymentsConfig {
@@ -40,7 +41,7 @@ class MockCryptoPaymentProvider implements CryptoPaymentProvider {
             network: 'BTC',
             crypto_address: 'mock_crypto_address',
             crypto_amount: cryptoAmount,
-            status: 'pending',
+            payment_status: PaymentStatus.Pending,
             created_at: new Date(),
             expires_at: new Date(Date.now() + this.config.paymentTimeout * 1000),
             transaction_hash: null,

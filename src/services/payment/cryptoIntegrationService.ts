@@ -19,7 +19,7 @@ const validateWebhookSignature = (data: any, signature: string): boolean => {
 const logWebhook = async (data: any): Promise<void> => {
     await pool.query(
         `INSERT INTO webhook_logs 
-         (payment_id, status, data, created_at) 
+         (payment_id, payment_status, data, created_at) 
          VALUES ($1, $2, $3, $4)`,
         [data.paymentId, data.status, JSON.stringify(data.data), new Date()]
     );
@@ -35,7 +35,7 @@ export const checkCryptoPaymentStatus = async (paymentId: string): Promise<strin
     const status = await cryptoPaymentProvider.checkPaymentStatus(paymentId);
     // Обновляем статус в таблице crypto_payments
     await pool.query(
-        'UPDATE crypto_payments SET status = $1, updated_at = NOW() WHERE id = $2',
+        'UPDATE crypto_payments SET payment_status = $1, updated_at = NOW() WHERE id = $2',
         [status, paymentId]
     );
 
@@ -68,12 +68,12 @@ export const processWebhook = async (webhookData: any, signature: string): Promi
 
     await pool.query(
         `UPDATE crypto_payments 
-         SET status = $1, 
+         SET payment_status = $1, 
              updated_at = $2,
              transaction_hash = $3
          WHERE id = $4`,
         [payment_status, updated_at, txid, payment_id]
     );
 
-    await logWebhook({ paymentId: payment_id, status: payment_status, data: webhookData });
+    await logWebhook({ paymentId: payment_id, payment_status, data: webhookData });
 }; 
