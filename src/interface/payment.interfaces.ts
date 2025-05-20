@@ -40,4 +40,48 @@ export interface CryptoPaymentProvider {
     createPayment(amount: number, currency: string): Promise<CryptoPaymentDetails>;
     checkPaymentStatus(paymentId: string): Promise<string>;
     processWebhook(data: any, signature: string): Promise<boolean>;
+}
+
+/**
+ * Параметры для инициализации fiat-платежа
+ */
+export interface InitFiatPaymentParams {
+    userId: string;
+    amount: number;
+    currency: string;
+    payment_method: string;
+}
+
+/**
+ * Результат инициализации fiat-платежа
+ */
+export interface InitFiatPaymentResult {
+    paymentId: string;
+    redirectUrl: string;
+}
+
+/**
+ * Параметры для инициализации платежа через WebPay
+ */
+export interface WebpayInitParams {
+    wsb_storeid: number;
+    wsb_order_num: string;
+    wsb_currency_id: 'BYN' | 'USD' | 'EUR' | 'RUB';
+    wsb_seed: string;
+    wsb_test: 0 | 1;
+    wsb_invoice_item_name: string[];
+    wsb_invoice_item_quantity: number[];
+    wsb_invoice_item_price: number[];
+    wsb_total: number;
+    wsb_version?: number;
+    /** Дополнительные параметры WebPay */
+    [key: string]: any;
+}
+
+/**
+ * Результат инициализации платежа через WebPay
+ */
+export interface WebpayInitResult {
+    wt: string;
+    redirectUrl: string;
 } 

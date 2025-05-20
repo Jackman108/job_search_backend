@@ -1,4 +1,4 @@
-import { PaymentController } from '@controllers';
+import { PaymentController, WebpayController } from '@controllers';
 import express from 'express';
 import { registerRoute } from '@middlewares';
 
@@ -146,4 +146,30 @@ export const initializePaymentRoutes = (app: express.Application) => {
      *         description: Не авторизован
      */
     registerRoute(app, 'post', '/payment/init', PaymentController, 'initializeTables');
+
+    /**
+     * @swagger
+     * /payment/webpay:
+     *   post:
+     *     summary: Инициализировать платеж через WebPay
+     *     tags: [Платежи]
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/WebpayInitParams'
+     *     responses:
+     *       200:
+     *         description: Успешная инициализация WebPay платежа
+     */
+    registerRoute(app, 'post', '/webpay/:id', PaymentController, 'initWebpay');
+    /** Возврат после успешной оплаты (wsb_return_url) */
+    registerRoute(app, 'get', '/webpay/return', WebpayController, 'handleReturn');
+    /** Возврат после отмены оплаты (wsb_cancel_return_url) */
+    registerRoute(app, 'get', '/webpay/cancel', WebpayController, 'handleCancel');
+    /** Нотификатор WebPay (wsb_notify_url) */
+    registerRoute(app, 'post', '/webpay/notify', WebpayController, 'handleNotify');
 };

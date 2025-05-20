@@ -18,6 +18,8 @@ export * from './user/SubscriptionController.js';
 
 // Payment related controllers
 export * from './payment/PaymentController.js';
+export * from './payment/CryptoPaymentController.js';
+export * from './payment/WebpayController.js';
 
 // Utility controllers
 export * from './utils/ScriptController.js';

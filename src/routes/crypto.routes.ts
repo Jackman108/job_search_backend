@@ -1,6 +1,6 @@
 import express from 'express';
-import { CryptoPaymentController } from '../controllers/payment/CryptoPaymentController';
 import { registerRoute } from '../middlewares';
+import { CryptoPaymentController } from '@controllers';
 
 export const initializeCryptoRoutes = (app: express.Application) => {
     /**

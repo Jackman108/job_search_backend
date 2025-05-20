@@ -6,6 +6,8 @@ import {
     getPayment,
     listPayments,
     updatePayment,
+    initWebpayPayment,
+    initFiatPayment,
 } from '@services';
 import { AuthenticatedRequest, Payment } from '@interface';
 
@@ -30,14 +32,16 @@ export class PaymentController {
 
     async createPayment(req: AuthenticatedRequest, res: Response) {
         try {
-            const created = await createPayment(req.userId!, {
-                amount: req.body.amount,
-                payment_status: req.body.payment_status,
-                payment_method: req.body.payment_method,
+            const { amount, currency, payment_method } = req.body;
+            const result = await initFiatPayment({
+                userId: req.userId!,
+                amount,
+                currency,
+                payment_method,
             });
-            handleSuccess(res, 'Payment created successfully', created);
+            handleSuccess(res, 'Fiat payment initialized', result);
         } catch (error) {
-            handleErrors(res, error, 'Error creating payment.');
+            handleErrors(res, error, 'Error initializing fiat payment.');
         }
     }
 
@@ -56,6 +60,18 @@ export class PaymentController {
             handleSuccess(res, 'Payment successfully deleted.');
         } catch (error) {
             handleErrors(res, error, 'Error deleting payment.');
+        }
+    }
+
+    /**
+     * Инициализирует платеж через WebPay и возвращает URL для редиректа
+     */
+    async initWebpay(req: AuthenticatedRequest, res: Response) {
+        try {
+            const result = await initWebpayPayment(req.body);
+            handleSuccess(res, 'WebPay initialized', result);
+        } catch (error) {
+            handleErrors(res, error, 'Error initializing WebPay payment.');
         }
     }
 }
