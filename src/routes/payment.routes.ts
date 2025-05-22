@@ -172,4 +172,6 @@ export const initializePaymentRoutes = (app: express.Application) => {
     registerRoute(app, 'get', '/webpay/cancel', WebpayController, 'handleCancel');
     /** Нотификатор WebPay (wsb_notify_url) */
     registerRoute(app, 'post', '/webpay/notify', WebpayController, 'handleNotify');
+    /** Инициализация платежа через WebPay */
+    registerRoute(app, 'post', '/webpay/init', WebpayController, 'initWebpayPayment');
 };

@@ -9,7 +9,7 @@ import {
     initWebpayPayment,
     initFiatPayment,
 } from '@services';
-import { AuthenticatedRequest, Payment } from '@interface';
+import { AuthenticatedRequest, PaymentBase } from '@interface';
 
 export class PaymentController {
     async listPayments(req: AuthenticatedRequest, res: Response) {

@@ -28,4 +28,15 @@ export const WEBPAY_SECRET_KEY = process.env.WEBPAY_SECRET_KEY ?? '';
 /** Выбор базового URL WebPay провайдера на основе окружения */
 export const WEBPAY_API_BASE_URL = ENV.isProduction
     ? WEBPAY_URL_BASE_PROD
-    : WEBPAY_URL_BASE_DEV; 
+    : WEBPAY_URL_BASE_DEV;
+
+
+
+// URL для редиректов клиента после обработки платежей
+export const FRONTEND_URL = process.env.DOMAIN_URL || 'http://localhost:3000';
+
+// URL для обработки платежей WebPay
+export const WEBPAY_RETURN_URL = `${WEBPAY_API_BASE_URL}/api/webpay/return`;
+export const WEBPAY_CANCEL_URL = `${WEBPAY_API_BASE_URL}/api/webpay/cancel`;
+export const WEBPAY_NOTIFY_URL = `${WEBPAY_API_BASE_URL}/api/webpay/notify`;
+

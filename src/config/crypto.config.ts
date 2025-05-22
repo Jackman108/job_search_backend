@@ -1,8 +1,8 @@
 // config/crypto.config.ts
 import { CryptoPaymentProvider, CryptoPaymentDetails } from '@interface';
 import crypto from 'crypto';
-import { PaymentStatus } from 'src/constants/paymentStatus';
-import { logger } from 'src/utils/logger';
+import { PaymentStatus } from '@interface';
+import { logger } from '@utils';
 
 interface NowPaymentsConfig {
     apiKey: string;

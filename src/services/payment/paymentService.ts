@@ -1,4 +1,4 @@
-import { Payment } from '@interface';
+import { PaymentBase } from '@interface';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId } from '@utils';
 
 /**
@@ -24,10 +24,20 @@ export const createTablePayments = async (): Promise<void> => {
  * Список всех платежей пользователя по подписке
  * @param userId ID пользователя из AuthenticatedRequest
  */
-export const listPayments = async (userId: string): Promise<Payment[]> => {
+export const listPayments = async (userId: string): Promise<PaymentBase[]> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
     const query = `SELECT * FROM payments WHERE subscription_id = $1;`;
-    return await executeQuery<Payment>(query, [subscriptionId]);
+    return await executeQuery<PaymentBase>(query, [subscriptionId]);
+};
+
+/**
+ * Получение платежа по ID подписки
+ * @param subscriptionId ID подписки
+ */
+export const getPaymentBySubscriptionId = async (subscriptionId: string): Promise<PaymentBase | null> => {
+    const query = `SELECT * FROM payments WHERE subscription_id = $1 ORDER BY created_at DESC LIMIT 1;`;
+    const result = await executeQuery<PaymentBase>(query, [subscriptionId]);
+    return result.length > 0 ? result[0] : null;
 };
 
 /**
@@ -38,10 +48,10 @@ export const listPayments = async (userId: string): Promise<Payment[]> => {
 export const getPayment = async (
     userId: string,
     paymentId: string
-): Promise<Payment> => {
+): Promise<PaymentBase> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
     const query = `SELECT * FROM payments WHERE subscription_id = $1 AND id = $2;`;
-    const result = await executeQuery<Payment>(query, [subscriptionId, paymentId]);
+    const result = await executeQuery<PaymentBase>(query, [subscriptionId, paymentId]);
     if (!result[0]) throw new Error(`Payment not found for id ${paymentId}`);
     return result[0];
 };
@@ -53,8 +63,8 @@ export const getPayment = async (
  */
 export const createPayment = async (
     userId: string,
-    paymentData: Partial<Payment>
-): Promise<Payment> => {
+    paymentData: Partial<PaymentBase>
+): Promise<PaymentBase> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
     const query = `
         INSERT INTO payments (subscription_id, amount, payment_status, payment_method)
@@ -67,7 +77,7 @@ export const createPayment = async (
         paymentData.payment_status || 'pending',
         paymentData.payment_method || 'card'
     ];
-    const [created] = await executeQuery<Payment>(query, values);
+    const [created] = await executeQuery<PaymentBase>(query, values);
     return created;
 };
 
@@ -79,8 +89,8 @@ export const createPayment = async (
 export const updatePayment = async (
     userId: string,
     paymentId: string,
-    updates: Partial<Payment>
-): Promise<Payment> => {
+    updates: Partial<PaymentBase>
+): Promise<PaymentBase> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
 
     const { query, values } = generateUpdateQueryWithConditions(
@@ -90,7 +100,7 @@ export const updatePayment = async (
     );
     await executeQuery(query, values);
     // Возвращаем обновлённую запись
-    const [updated] = await executeQuery<Payment>(
+    const [updated] = await executeQuery<PaymentBase>(
         `SELECT * FROM payments WHERE id = $1;`,
         [paymentId]
     );
@@ -119,11 +129,11 @@ export const deletePayment = async (
 export const getActivePayment = async (
     userId: string,
     paymentId: string
-): Promise<Payment[]> => {
+): Promise<PaymentBase[]> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
     const query = `
         SELECT * FROM payments
         WHERE subscription_id = $1 AND id = $2 AND payment_status = $3;
     `;
-    return await executeQuery<Payment>(query, [subscriptionId, paymentId, 'pending']);
+    return await executeQuery<PaymentBase>(query, [subscriptionId, paymentId, 'pending']);
 };

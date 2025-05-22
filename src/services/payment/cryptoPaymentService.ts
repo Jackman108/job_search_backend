@@ -113,3 +113,16 @@ export const deleteCryptoPayment = async (
     const query = `DELETE FROM crypto_payments WHERE subscription_id = $1 AND id = $2;`;
     await executeQuery<CryptoPaymentDetails>(query, [subscriptionId, paymentId]);
 };
+
+/**
+ * Проверяет и удаляет существующий криптоплатеж при переключении на WebPay
+ * @param subscriptionId ID подписки
+ */
+export const deletePendingCryptoPayment = async (subscriptionId: string): Promise<void> => {
+    const query = `
+        DELETE FROM crypto_payments 
+        WHERE subscription_id = $1 AND payment_status = 'pending'
+    `;
+    await executeQuery(query, [subscriptionId]);
+    console.log(`Deleted pending crypto payments for subscription: ${subscriptionId}`);
+};
