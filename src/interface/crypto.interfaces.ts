@@ -1,7 +1,7 @@
 /**
  * Интерфейсы для работы с криптовалютными платежами
  */
-import { PaymentStatus } from "./payment.interfaces";
+import { IPaymentService, PaymentResult, PaymentStatus } from "@interface";
 
 /**
  * Основные данные для создания криптоплатежа
@@ -9,7 +9,7 @@ import { PaymentStatus } from "./payment.interfaces";
 export interface CryptoPaymentData {
     id: string;
     subscription_id: string;
-    amount: string;
+    amount: number;
     currency: string;
     network: string;
     crypto_address?: string;
@@ -21,11 +21,10 @@ export interface CryptoPaymentData {
 export interface CryptoPaymentDetails {
     id: string;
     subscription_id: string;
-    amount: string;
+    amount: number;
     currency: string;
     network: string;
     crypto_address: string;
-    crypto_amount: string;
     payment_status: PaymentStatus;
     created_at: Date;
     expires_at: Date;
@@ -37,48 +36,65 @@ export interface CryptoPaymentDetails {
  * Параметры для инициализации криптоплатежа
  */
 export interface InitCryptoPaymentParams {
-    amount: number; // Сумма платежа
-    currency: string; // Валюта платежа
-    network: string; // Блокчейн-сеть
+    id: string;
+    subscription_id: string;
+    amount: number;
+    currency?: string;
+    network?: string;
 }
 
 /**
  * Результат инициализации криптоплатежа
  */
-export interface InitCryptoPaymentResult {
-    address: string; // Адрес для оплаты
-    amount: number; // Сумма в криптовалюте
-    provider: string; // Провайдер платежа
-    expires_at: Date; // Срок действия
+export interface CryptoPaymentInitResult {
+    id: string;
+    crypto_address: string;
+    amount: number;
+    currency: string;
+    expires_at: Date;
+    network: string;
+    payment_status: PaymentStatus;
 }
 
 /**
  * Данные вебхука от криптопровайдера
  */
 export interface CryptoWebhookData {
-    payment_id: string; // ID платежа
-    payment_status: PaymentStatus; // Новый статус
-    transaction_hash: string; // Хеш транзакции
-    updated_at: Date; // Время обновления
-    additional_data?: any; // Дополнительные данные
+    payment_id: string;
+    payment_status: PaymentStatus;
+    transaction_hash: string;
+    updated_at: Date;
+    additional_data?: any;
 }
 
 /**
  * Конфигурация криптопровайдера
  */
 export interface CryptoProviderConfig {
-    apiKey: string; // API ключ
-    ipnSecret: string; // Секрет для вебхуков
-    defaultCurrency: string; // Валюта по умолчанию
-    supportedNetworks: string[]; // Поддерживаемые сети
+    apiKey: string;
+    ipnSecret: string;
+    defaultCurrency: string;
+    supportedNetworks: string[];
 }
 
+/**
+ * Операции для работы с криптоплатежами
+ */
+export interface CryptoPaymentOperations {
+    createCryptoPayment: (params: InitCryptoPaymentParams) => Promise<PaymentResult<CryptoPaymentDetails>>;
+    getCryptoPayment: (userId: string, paymentId: string) => Promise<PaymentResult<CryptoPaymentDetails>>;
+    listCryptoPayments: (userId: string) => Promise<PaymentResult<CryptoPaymentDetails[]>>;
+    updateCryptoPayment: (paymentId: string, updates: Partial<CryptoPaymentDetails>) => Promise<PaymentResult<CryptoPaymentDetails>>;
+    deleteCryptoPayment: (userId: string, paymentId: string) => Promise<PaymentResult<void>>;
+    checkCryptoPaymentStatus: (userId: string, paymentId: string) => Promise<PaymentResult<PaymentStatus>>;
+    processWebhook: (data: any, signature: string) => Promise<PaymentResult<boolean>>;
+}
 
 /**
- * Интерфейс для криптопровайдера
+ * Интерфейс для Crypto сервиса, реализующий общий интерфейс платежного сервиса
  */
-export interface CryptoPaymentProvider {
-    createPayment(amount: number, currency: string): Promise<CryptoPaymentDetails>;
-    checkPaymentStatus(paymentId: string): Promise<string>;
-    processWebhook(data: any, signature: string): Promise<boolean>;
+export interface ICryptoPaymentService extends IPaymentService {
+    initCryptoPayment: (params: InitCryptoPaymentParams) => Promise<PaymentResult<CryptoPaymentDetails>>;
+    checkCryptoPaymentStatus: (paymentId: string) => Promise<PaymentResult<PaymentStatus>>;
+    validateCryptoWebhookSignature: (data: any, signature: string) => boolean;
 }

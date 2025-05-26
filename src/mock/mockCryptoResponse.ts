@@ -6,7 +6,7 @@ import { PaymentStatus } from '@interface';
 export const mockCryptoResponse = {
     id: 'mock-crypto-payment-123',
     subscription_id: 'mock-subscription-123',
-    amount: '0.00123456',
+    amount: 0.00123456,
     payment_status: PaymentStatus.Pending,
     crypto_address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
     crypto_amount: '0.00123456',

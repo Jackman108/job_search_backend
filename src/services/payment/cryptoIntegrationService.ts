@@ -1,10 +1,8 @@
-import { cryptoPaymentProvider, nowPaymentsConfig } from '../../config/crypto.config';
+import { cryptoPaymentProvider, nowPaymentsConfig, USE_MOCK_PROVIDER } from '@config';
 import crypto from 'crypto';
 import pool from '../../config/database.config';
-import { PaymentBase } from '@interface';
-import { CryptoPaymentDetails } from '@interface';
-import { updatePayment } from './paymentService';
-import { USE_MOCK_PROVIDER } from '@config';
+import { PaymentBase, PaymentStatus, CryptoPaymentData, CryptoPaymentDetails } from '@interface';
+import { updatePayment, createCryptoPayment } from '@services';
 import { mockCryptoResponse } from '../../mock/mockCryptoResponse';
 
 /** Проверяет подпись вебхука */
@@ -109,47 +107,29 @@ export const checkCryptoPaymentStatus = async (paymentId: string): Promise<strin
         { payment_status: status as PaymentBase['payment_status'] }
     );
 
-    return status;
+    return status as PaymentStatus;
 };
 
 /** Создает новый криптоплатёж с моковыми данными для режима разработки */
 export const createMockCryptoPayment = async (paymentDetails: Partial<CryptoPaymentDetails>): Promise<CryptoPaymentDetails> => {
-    const { id, subscription_id, amount, currency = 'BTC' } = paymentDetails;
+    console.log('Using mock crypto payment in development mode');
 
-    const mockPayment = {
-        ...mockCryptoResponse,
-        id,
-        subscription_id,
-        amount,
-        crypto_amount: amount,
-        currency,
-        created_at: new Date(),
-        expires_at: new Date(Date.now() + 30 * 60 * 1000) // 30 минут
+    if (!paymentDetails.id || !paymentDetails.subscription_id || !paymentDetails.amount) {
+        throw new Error('Missing required fields for crypto payment');
+    }
+
+    // Создаем данные для платежа
+    const cryptoData: CryptoPaymentData = {
+        id: paymentDetails.id,
+        subscription_id: paymentDetails.subscription_id,
+        amount: paymentDetails.amount,
+        currency: paymentDetails.currency || 'BTC',
+        network: paymentDetails.network || 'BTC',
+        crypto_address: mockCryptoResponse.crypto_address
     };
 
-    const { rows } = await pool.query(
-        `INSERT INTO crypto_payments 
-        (id, subscription_id, amount, payment_status, crypto_address, crypto_amount, 
-        currency, created_at, expires_at, network, transaction_hash, wallet_provider)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        RETURNING *`,
-        [
-            mockPayment.id,
-            mockPayment.subscription_id,
-            mockPayment.amount,
-            mockPayment.payment_status,
-            mockPayment.crypto_address,
-            mockPayment.crypto_amount,
-            mockPayment.currency,
-            mockPayment.created_at,
-            mockPayment.expires_at,
-            mockPayment.network,
-            mockPayment.transaction_hash,
-            mockPayment.wallet_provider
-        ]
-    );
-
-    return rows[0] as CryptoPaymentDetails;
+    // Используем существующую функцию createCryptoPayment
+    return await createCryptoPayment(cryptoData);
 };
 
 /** Обрабатывает вебхук от провайдера */

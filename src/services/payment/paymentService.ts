@@ -1,5 +1,5 @@
-import { PaymentBase } from '@interface';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId } from '@utils';
+import { CreatePaymentParams, PaymentBase, PaymentOperations, PaymentStatus } from '@interface';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId, withErrorHandling } from '@utils';
 
 /**
  * Создание таблицы payments с необходимыми полями
@@ -58,24 +58,24 @@ export const getPayment = async (
 
 /**
  * Создание нового платежа
- * @param userId ID пользователя
- * @param paymentData Объект с amount, payment_status, payment_method
+ * @param params Параметры для создания платежа
  */
 export const createPayment = async (
-    userId: string,
-    paymentData: Partial<PaymentBase>
+    params: CreatePaymentParams
 ): Promise<PaymentBase> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
+    const { userId, amount, payment_method, subscription_id } = params;
+    const actualSubscriptionId = subscription_id || await getSubscriptionIdByUserId(userId);
+
     const query = `
         INSERT INTO payments (subscription_id, amount, payment_status, payment_method)
         VALUES ($1, $2, $3, $4)
         RETURNING *;
     `;
     const values = [
-        subscriptionId,
-        paymentData.amount!,
-        paymentData.payment_status || 'pending',
-        paymentData.payment_method || 'card'
+        actualSubscriptionId,
+        amount,
+        PaymentStatus.Pending,
+        payment_method || 'webpay'
     ];
     const [created] = await executeQuery<PaymentBase>(query, values);
     return created;
@@ -83,6 +83,7 @@ export const createPayment = async (
 
 /**
  * Обновление полей платежа по id
+ * @param userId ID пользователя
  * @param paymentId ID платежа
  * @param updates Поля для обновления
  */
@@ -95,15 +96,36 @@ export const updatePayment = async (
 
     const { query, values } = generateUpdateQueryWithConditions(
         'payments',
-        updates,
+        { ...updates, updated_at: new Date() },
         { subscription_id: subscriptionId, id: paymentId }
     );
     await executeQuery(query, values);
+
     // Возвращаем обновлённую запись
     const [updated] = await executeQuery<PaymentBase>(
         `SELECT * FROM payments WHERE id = $1;`,
         [paymentId]
     );
+    return updated;
+};
+
+/**
+ * Обновление статуса платежа
+ * @param paymentId ID платежа
+ * @param status Новый статус платежа
+ */
+export const updatePaymentStatus = async (
+    paymentId: string,
+    status: PaymentStatus
+): Promise<PaymentBase> => {
+    const query = `
+        UPDATE payments
+        SET payment_status = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING *;
+    `;
+    const [updated] = await executeQuery<PaymentBase>(query, [status, paymentId]);
+    if (!updated) throw new Error(`Payment not found for id ${paymentId}`);
     return updated;
 };
 
@@ -135,5 +157,31 @@ export const getActivePayment = async (
         SELECT * FROM payments
         WHERE subscription_id = $1 AND id = $2 AND payment_status = $3;
     `;
-    return await executeQuery<PaymentBase>(query, [subscriptionId, paymentId, 'pending']);
+    return await executeQuery<PaymentBase>(query, [subscriptionId, paymentId, PaymentStatus.Pending]);
+};
+
+/**
+ * Базовые операции для работы с платежами
+ */
+export const paymentOperations: PaymentOperations = {
+    listPayments,
+    getPayment,
+    createPayment,
+    updatePayment,
+    deletePayment
+};
+
+/**
+ * Безопасные операции с обработкой ошибок
+ */
+export const safePaymentOperations = {
+    listPayments: (userId: string) => withErrorHandling(() => listPayments(userId)),
+    getPayment: (userId: string, paymentId: string) => withErrorHandling(() => getPayment(userId, paymentId)),
+    createPayment: (params: CreatePaymentParams) => withErrorHandling(() => createPayment(params)),
+    updatePayment: (userId: string, paymentId: string, updates: Partial<PaymentBase>) =>
+        withErrorHandling(() => updatePayment(userId, paymentId, updates)),
+    updatePaymentStatus: (paymentId: string, status: PaymentStatus) =>
+        withErrorHandling(() => updatePaymentStatus(paymentId, status)),
+    deletePayment: (userId: string, paymentId: string) => withErrorHandling(() => deletePayment(userId, paymentId)),
+    getActivePayment: (userId: string, paymentId: string) => withErrorHandling(() => getActivePayment(userId, paymentId))
 };

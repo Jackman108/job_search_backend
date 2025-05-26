@@ -1,4 +1,4 @@
-import { PaymentStatus } from "./payment.interfaces";
+import { IPaymentService, PaymentResult, PaymentStatus } from "@interface";
 
 /**
  * Отдельная модель для WebPay платежей со специфичными полями
@@ -18,7 +18,6 @@ export interface WebPayPayment {
     cancel_url: string | null; // URL для редиректа при отмене
 }
 
-
 /**
  * Параметры для инициализации fiat-платежа
  */
@@ -27,6 +26,8 @@ export interface InitFiatPaymentParams {
     amount: number;
     currency: string;
     payment_method: string;
+    success_url?: string;
+    cancel_url?: string;
 }
 
 /**
@@ -51,15 +52,51 @@ export interface WebpayInitParams {
     wsb_invoice_item_price: number[];
     wsb_total: number;
     wsb_version?: number;
-    wsb_return_url?: string; // URL возврата после оплаты
-    wsb_cancel_return_url?: string; // URL возврата после отмены
-    wsb_notify_url?: string; // URL для нотификаций
+    wsb_return_url?: string;
+    wsb_cancel_return_url?: string;
+    wsb_notify_url?: string;
+    success_url?: string;
+    cancel_url?: string;
 }
 
 /**
  * Результат инициализации платежа через WebPay
  */
 export interface WebpayInitResult {
-    wt: string;
+    wt?: string;
     redirectUrl: string;
+    paymentId?: string;
+    orderNum?: string;
+}
+
+/**
+ * Параметры для упрощенной инициализации WebPay платежа
+ */
+export interface SimpleWebpayParams {
+    subscription_id: string;
+    amount: number;
+    currency: string;
+    success_url?: string;
+    cancel_url?: string;
+}
+
+/**
+ * Операции для WebPay платежей
+ */
+export interface WebPayOperations {
+    initPayment: (params: WebpayInitParams) => Promise<PaymentResult<WebpayInitResult>>;
+    checkStatus: (orderNum: string) => Promise<PaymentResult<PaymentStatus>>;
+    handleReturn: (orderNum: string, transactionId: string) => Promise<PaymentResult<string>>;
+    handleCancel: (orderNum: string) => Promise<PaymentResult<string>>;
+    handleNotify: (data: any, signature: string) => Promise<PaymentResult<boolean>>;
+}
+
+/**
+ * Интерфейс для WebPay сервиса, реализующий общий интерфейс платежного сервиса
+ */
+export interface IWebPayService extends IPaymentService {
+    initFiatPayment: (params: InitFiatPaymentParams) => Promise<PaymentResult<WebpayInitResult>>;
+    handleWebpayReturn: (orderNum: string, transactionId: string) => Promise<PaymentResult<string>>;
+    handleWebpayCancel: (orderNum: string) => Promise<PaymentResult<string>>;
+    validateWebpaySignature: (payload: any, signature: string) => boolean;
 } 

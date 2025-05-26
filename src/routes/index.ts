@@ -8,6 +8,8 @@ import { initializeSubscriptionRoutes } from './subscription.routes';
 import { initializeUtilRoutes } from './util.routes';
 import { initializeVacancyRoutes } from './sending.routes';
 import { swaggerRouter } from './swagger';
+import { initializeInfoPaymentRoutes } from './infoPayment.routes';
+import { initializeWebpayRoutes } from './webpay.routes';
 
 export const initializeRoutes = (app: express.Application) => {
     // Swagger documentation
@@ -22,4 +24,6 @@ export const initializeRoutes = (app: express.Application) => {
     initializePaymentRoutes(app);
     initializeSubscriptionRoutes(app);
     initializeUtilRoutes(app);
+    initializeInfoPaymentRoutes(app);
+    initializeWebpayRoutes(app);
 }; 

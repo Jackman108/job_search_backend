@@ -1,6 +1,6 @@
-import { PaymentController, WebpayController } from '@controllers';
 import express from 'express';
-import { registerRoute } from '@middlewares';
+import { registerRoute } from '../middlewares';
+import { PaymentController } from '@controllers';
 
 export const initializePaymentRoutes = (app: express.Application) => {
     /**
@@ -47,7 +47,7 @@ export const initializePaymentRoutes = (app: express.Application) => {
      * @swagger
      * /payment:
      *   post:
-     *     summary: Создать новый платеж
+     *     summary: Создать платеж
      *     tags: [Платежи]
      *     security:
      *       - bearerAuth: []
@@ -60,9 +60,9 @@ export const initializePaymentRoutes = (app: express.Application) => {
      *             properties:
      *               amount:
      *                 type: number
-     *               subscriptionId:
+     *               currency:
      *                 type: string
-     *               userId:
+     *               payment_method:
      *                 type: string
      *     responses:
      *       201:
@@ -76,7 +76,7 @@ export const initializePaymentRoutes = (app: express.Application) => {
      * @swagger
      * /payment/{id}:
      *   put:
-     *     summary: Обновить информацию о платеже
+     *     summary: Обновить платеж
      *     tags: [Платежи]
      *     security:
      *       - bearerAuth: []
@@ -92,11 +92,6 @@ export const initializePaymentRoutes = (app: express.Application) => {
      *         application/json:
      *           schema:
      *             type: object
-     *             properties:
-     *               amount:
-     *                 type: number
-     *               status:
-     *                 type: string
      *     responses:
      *       200:
      *         description: Платеж успешно обновлен
@@ -130,48 +125,4 @@ export const initializePaymentRoutes = (app: express.Application) => {
      *         description: Платеж не найден
      */
     registerRoute(app, 'delete', '/payment/:id', PaymentController, 'deletePayment');
-
-    /**
-     * @swagger
-     * /payment/init:
-     *   post:
-     *     summary: Инициализировать таблицы платежей
-     *     tags: [Платежи]
-     *     security:
-     *       - bearerAuth: []
-     *     responses:
-     *       200:
-     *         description: Таблицы успешно инициализированы
-     *       401:
-     *         description: Не авторизован
-     */
-    registerRoute(app, 'post', '/payment/init', PaymentController, 'initializeTables');
-
-    /**
-     * @swagger
-     * /payment/webpay:
-     *   post:
-     *     summary: Инициализировать платеж через WebPay
-     *     tags: [Платежи]
-     *     security:
-     *       - bearerAuth: []
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *           schema:
-     *             $ref: '#/components/schemas/WebpayInitParams'
-     *     responses:
-     *       200:
-     *         description: Успешная инициализация WebPay платежа
-     */
-    registerRoute(app, 'post', '/webpay/:id', PaymentController, 'initWebpay');
-    /** Возврат после успешной оплаты (wsb_return_url) */
-    registerRoute(app, 'get', '/webpay/return', WebpayController, 'handleReturn');
-    /** Возврат после отмены оплаты (wsb_cancel_return_url) */
-    registerRoute(app, 'get', '/webpay/cancel', WebpayController, 'handleCancel');
-    /** Нотификатор WebPay (wsb_notify_url) */
-    registerRoute(app, 'post', '/webpay/notify', WebpayController, 'handleNotify');
-    /** Инициализация платежа через WebPay */
-    registerRoute(app, 'post', '/webpay/init', WebpayController, 'initWebpayPayment');
 };

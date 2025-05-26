@@ -1,122 +1,99 @@
-import { AuthenticatedRequest, PaymentStatus } from '@interface';
-import { Request, Response } from 'express';
-import { FRONTEND_URL, USE_MOCK_PROVIDER } from '../../config/payment.config';
-import { handleErrors } from '../../middlewares';
+import { AuthenticatedRequest, InitFiatPaymentParams } from '@interface';
+import { handleErrors, handleSuccess } from '@middlewares';
 import {
-    deletePendingCryptoPayment,
     getWebpayPaymentByOrderNum,
-    initSimpleWebpayPayment,
-    updatePayment,
-    updateWebpayPaymentByOrderNum,
-    validateWebpaySignature
-} from '../../services';
+    webPayOperations,
+    webpayService
+} from '@services';
+import { Response } from 'express';
 
-
-
+/**
+ * Контроллер для работы с WebPay платежами
+ * Использует функциональный подход и обработку ошибок
+ */
 export class WebpayController {
     /**
      * Инициализация WebPay платежа
      */
     async initWebpayPayment(req: AuthenticatedRequest, res: Response) {
+
+        const { amount, currency, success_url, cancel_url } = req.body;
+
+        if (!amount) {
+            return handleErrors(res, new Error('Missing required fields'), 'Amount is required');
+        }
+
         try {
-            const { subscription_id, amount, currency } = req.body;
-
-            if (!subscription_id || !amount) {
-                return res.status(400).json({ error: 'Missing required fields' });
-            }
-
-            // Удаляем существующие криптоплатежи при переключении на WebPay
-            await deletePendingCryptoPayment(subscription_id);
-
-            // Инициализируем WebPay платеж через упрощенную функцию
-            const result = await initSimpleWebpayPayment({
-                subscription_id,
+            const params: InitFiatPaymentParams = {
+                userId: req.userId!,
                 amount,
                 currency: currency || 'BYN',
-            });
+                payment_method: 'webpay',
+                success_url,
+                cancel_url
+            };
 
-            res.status(200).json(result);
+            const result = await webpayService.initFiatPayment(params);
+
+            if (result.success) {
+                handleSuccess(res, 'WebPay payment initialized', result.data);
+            } else {
+                handleErrors(res, new Error(result.error), 'Failed to initialize WebPay payment');
+            }
         } catch (error) {
-            handleErrors(res, error, 'Error initializing WebPay payment');
+            handleErrors(res, error, 'Failed to initialize WebPay payment');
         }
     }
 
     /**
      * Обработка возврата покупателя после успешной оплаты (wsb_return_url)
      */
-    async handleReturn(req: Request, res: Response) {
+    async handleReturn(req: AuthenticatedRequest, res: Response) {
         try {
             const { wsb_order_num, wsb_tid } = req.query;
-            if (!wsb_order_num || !wsb_tid) {
-                return res.status(400).json({ error: 'Missing wsb_order_num or wsb_tid' });
+
+            if (!wsb_order_num) {
+                return handleErrors(res, new Error('Missing order number'), 'Order number is required');
             }
 
-            // Получаем платеж по номеру заказа из таблицы webpay_payments
-            const webpayPayment = await getWebpayPaymentByOrderNum(wsb_order_num as string);
+            const orderNum = wsb_order_num as string;
+            const transactionId = wsb_tid ? (wsb_tid as string) : 'no-transaction-id';
 
-            if (!webpayPayment) {
-                throw new Error(`WebPay payment not found for order ${wsb_order_num}`);
+            const result = await webPayOperations.handleReturn(orderNum, transactionId);
+
+            if (result.success) {
+                // Редиректим пользователя на страницу успешной оплаты
+                return res.redirect(result.data || '/payment/success');
+            } else {
+                handleErrors(res, new Error(result.error), 'Failed to process payment return');
             }
-
-            // Обновляем статус в таблице webpay_payments
-            await updateWebpayPaymentByOrderNum(wsb_order_num as string, {
-                payment_status: PaymentStatus.Completed,
-                transaction_id: wsb_tid as string
-            });
-
-            // Обновляем статус в основной таблице payments
-            // Первый аргумент должен быть user_id, но в данном контексте его нет
-            // Используем payment_id в качестве заглушки, так как функция проверяет только subscription_id
-            await updatePayment(webpayPayment.payment_id, webpayPayment.payment_id, {
-                payment_status: PaymentStatus.Completed
-            });
-
-            // Проверяем есть ли специальный URL для редиректа
-            const redirectUrl = webpayPayment.success_url ||
-                `${FRONTEND_URL}/payment/success?order=${wsb_order_num}`;
-
-            // Редирект пользователя на фронтенд с успешным статусом
-            return res.redirect(redirectUrl);
         } catch (error) {
-            handleErrors(res, error, 'Error processing WebPay return');
+            handleErrors(res, error, 'Failed to process payment return');
         }
     }
 
     /**
      * Обработка возврата покупателя при отмене оплаты (wsb_cancel_return_url)
      */
-    async handleCancel(req: Request, res: Response) {
+    async handleCancel(req: AuthenticatedRequest, res: Response) {
         try {
             const { wsb_order_num } = req.query;
+
             if (!wsb_order_num) {
-                return res.status(400).json({ error: 'Missing wsb_order_num' });
+                return handleErrors(res, new Error('Missing order number'), 'Order number is required');
             }
 
-            // Получаем платеж по номеру заказа из таблицы webpay_payments
-            const webpayPayment = await getWebpayPaymentByOrderNum(wsb_order_num as string);
+            const orderNum = wsb_order_num as string;
+            const result = await webPayOperations.handleCancel(orderNum);
 
-            if (!webpayPayment) {
-                throw new Error(`WebPay payment not found for order ${wsb_order_num}`);
+            if (result.success) {
+                // Редиректим пользователя на страницу отмены оплаты
+                return res.redirect(result.data || '/payment/cancel');
+            } else {
+                handleErrors(res, new Error(result.error), 'Failed to process payment cancellation');
             }
-
-            // Обновляем статус в таблице webpay_payments
-            await updateWebpayPaymentByOrderNum(wsb_order_num as string, {
-                payment_status: PaymentStatus.Failed
-            });
-
-            // Обновляем статус в основной таблице payments
-            await updatePayment(webpayPayment.payment_id, webpayPayment.payment_id, {
-                payment_status: PaymentStatus.Failed
-            });
-
-            // Проверяем есть ли специальный URL для редиректа при отмене
-            const redirectUrl = webpayPayment.cancel_url ||
-                `${FRONTEND_URL}/payment/cancel?order=${wsb_order_num}`;
-
-            // Редирект пользователя на фронтенд с отмененным статусом
-            return res.redirect(redirectUrl);
         } catch (error) {
-            handleErrors(res, error, 'Error processing WebPay cancel');
+            handleErrors(res, error, 'Failed to process payment cancellation');
         }
     }
 
@@ -124,58 +101,70 @@ export class WebpayController {
      * Обработка нотификатора WebPay (wsb_notify_url)
      * Реализует безопасную обработку уведомлений от WebPay с проверкой подписи
      */
-    async handleNotify(req: Request, res: Response) {
+    async handleNotify(req: AuthenticatedRequest, res: Response) {
         try {
-            // В режиме разработки пропускаем проверку подписи
-            if (!USE_MOCK_PROVIDER) {
-                const payload = req.body;
-                const signature = req.headers['x-webpay-signature'] as string;
+            const signature = req.headers['x-webpay-signature'] as string || '';
 
-                // Проверяем подпись уведомления
-                if (!signature || !validateWebpaySignature(payload, signature)) {
-                    console.error('Invalid WebPay notification signature');
-                    return res.status(403).send('Invalid signature');
-                }
+            // Проверяем подпись
+            if (!webpayService.validateWebpaySignature(req.body, signature)) {
+                return handleErrors(res, new Error('Invalid signature'), 'Invalid signature');
             }
 
-            const { wsb_order_num, wsb_tid, wsb_status } = req.body;
+            const result = await webPayOperations.handleNotify(req.body, signature);
 
-            // Проверяем обязательные поля в нотификации
-            if (!wsb_order_num || !wsb_status) {
-                console.error('Missing required fields in WebPay notification');
-                return res.status(400).send('Missing required fields');
+            if (result.success) {
+                handleSuccess(res, 'Webhook processed successfully');
+            } else {
+                handleErrors(res, new Error(result.error), 'Failed to process webhook');
             }
-
-            // Получаем платеж по номеру заказа из таблицы webpay_payments
-            const webpayPayment = await getWebpayPaymentByOrderNum(wsb_order_num);
-
-            if (!webpayPayment) {
-                console.error(`WebPay payment not found for order ${wsb_order_num}`);
-                return res.status(404).send('Payment not found');
-            }
-
-            // Обновляем статус в зависимости от статуса в уведомлении
-            // В режиме разработки всегда считаем платеж успешным
-            const paymentStatus = USE_MOCK_PROVIDER || wsb_status === 'paid' ?
-                PaymentStatus.Completed : PaymentStatus.Failed;
-
-            // Обновляем статус в таблице webpay_payments
-            await updateWebpayPaymentByOrderNum(wsb_order_num, {
-                payment_status: paymentStatus,
-                transaction_id: wsb_tid || null
-            });
-
-            // Обновляем статус в основной таблице payments
-            await updatePayment(webpayPayment.payment_id, webpayPayment.payment_id, {
-                payment_status: paymentStatus
-            });
-
-            // Обязательно отправляем 200 OK для подтверждения получения уведомления
-            return res.sendStatus(200);
         } catch (error) {
-            console.error('Error processing WebPay notification:', error);
-            // Даже при ошибке отправляем 200 OK, чтобы WebPay не делал повторных попыток
-            return res.sendStatus(200);
+            handleErrors(res, error, 'Failed to process webhook');
+        }
+    }
+
+    /**
+     * Проверка статуса платежа WebPay
+     */
+    async checkWebpayStatus(req: AuthenticatedRequest, res: Response) {
+        try {
+            const { orderNum } = req.params;
+
+            if (!orderNum) {
+                return handleErrors(res, new Error('Missing order number'), 'Order number is required');
+            }
+
+            const result = await webPayOperations.checkStatus(orderNum);
+
+            if (result.success) {
+                handleSuccess(res, 'Payment status retrieved', { status: result.data });
+            } else {
+                handleErrors(res, new Error(result.error), 'Failed to check payment status');
+            }
+        } catch (error) {
+            handleErrors(res, error, 'Failed to check payment status');
+        }
+    }
+
+    /**
+     * Получение информации о WebPay платеже по номеру заказа
+     */
+    async getWebpayPayment(req: AuthenticatedRequest, res: Response) {
+        try {
+            const { orderNum } = req.params;
+
+            if (!orderNum) {
+                return handleErrors(res, new Error('Missing order number'), 'Order number is required');
+            }
+
+            const payment = await getWebpayPaymentByOrderNum(orderNum);
+
+            if (!payment) {
+                return handleErrors(res, new Error('Payment not found'), 'Payment not found');
+            }
+
+            handleSuccess(res, 'Payment retrieved successfully', payment);
+        } catch (error) {
+            handleErrors(res, error, 'Failed to retrieve payment');
         }
     }
 } 

@@ -10,15 +10,29 @@ export * from './job/feedbackService.js';
 export * from './job/vacancyService.js';
 
 // User services
-export * from './user/resume/resumeService.js';
 export * from './user/resume/contactService.js';
+export * from './user/resume/resumeService.js';
 export * from './user/resume/skillService.js';
 export * from './user/resume/workExperienceService.js';
 
-// Payment services
+
 export * from './payment/subscriptionsService.js';
-export * from './payment/paymentService.js';
+
+// Базовые платежные функции
+
 export * from './payment/cryptoPaymentService.js';
-export * from './payment/cryptoIntegrationService.js';
-export * from './payment/fiatIntegrationService.js';
+export * from './payment/paymentService.js';
+
+// Выборочный экспорт из cryptoIntegrationService для избежания конфликтов имён
+export {
+    createMockCryptoPayment,
+    processWebhook
+} from './payment/cryptoIntegrationService.js';
+
 export * from './payment/webpayIntegrationService.js';
+export * from './payment/webpayService.js';
+
+// Экспорт сервиса информации о платежах
+export * from './payment/infoPaymentService.js';
+
+
