@@ -1,11 +1,11 @@
-import { IPaymentService, PaymentResult, PaymentStatus } from "@interface";
+import { IPaymentService, PaymentBase, PaymentResult, PaymentStatus } from "@interface";
 
 /**
  * Отдельная модель для WebPay платежей со специфичными полями
  */
 export interface WebPayPayment {
     id: string;
-    payment_id: string; // ID из основной таблицы payments
+    subscription_id: string; // ID подписки
     wsb_order_num: string; // Номер заказа в WebPay
     wsb_currency_id: string; // Валюта платежа
     wsb_total: number; // Сумма платежа
@@ -39,38 +39,37 @@ export interface InitFiatPaymentResult {
 }
 
 /**
- * Параметры для инициализации платежа через WebPay
+ * Параметры для инициализации WebPay платежа
  */
 export interface WebpayInitParams {
+    wsb_seed: string;
     wsb_storeid: number;
     wsb_order_num: string;
-    wsb_currency_id: 'BYN' | 'USD' | 'EUR' | 'RUB';
-    wsb_seed: string;
-    wsb_test: 0 | 1;
+    wsb_test: number;
+    wsb_currency_id: "BYN" | "USD" | "EUR" | "RUB";
+    wsb_total: number;
+    wsb_version: number;
+    wsb_return_url: string;
+    wsb_cancel_return_url: string;
+    wsb_notify_url: string;
     wsb_invoice_item_name: string[];
     wsb_invoice_item_quantity: number[];
     wsb_invoice_item_price: number[];
-    wsb_total: number;
-    wsb_version?: number;
-    wsb_return_url?: string;
-    wsb_cancel_return_url?: string;
-    wsb_notify_url?: string;
     success_url?: string;
     cancel_url?: string;
 }
 
 /**
- * Результат инициализации платежа через WebPay
+ * Результат инициализации WebPay платежа
  */
 export interface WebpayInitResult {
     wt?: string;
     redirectUrl: string;
-    paymentId?: string;
-    orderNum?: string;
+    orderNum: string;
 }
 
 /**
- * Параметры для упрощенной инициализации WebPay платежа
+ * Упрощенные параметры для инициализации WebPay платежа
  */
 export interface SimpleWebpayParams {
     subscription_id: string;
@@ -81,22 +80,23 @@ export interface SimpleWebpayParams {
 }
 
 /**
- * Операции для WebPay платежей
+ * Операции для работы с WebPay платежами
  */
-export interface WebPayOperations {
-    initPayment: (params: WebpayInitParams) => Promise<PaymentResult<WebpayInitResult>>;
-    checkStatus: (orderNum: string) => Promise<PaymentResult<PaymentStatus>>;
-    handleReturn: (orderNum: string, transactionId: string) => Promise<PaymentResult<string>>;
-    handleCancel: (orderNum: string) => Promise<PaymentResult<string>>;
-    handleNotify: (data: any, signature: string) => Promise<PaymentResult<boolean>>;
+export interface WebPayPaymentOperations {
+    createWebPay: (params: WebPayPayment) => Promise<PaymentResult<WebPayPayment>>;
+    getWebPay: (orderNum: string) => Promise<PaymentResult<WebPayPayment>>;
+    listWebPay: () => Promise<PaymentResult<WebPayPayment[]>>;
+    updateWebPay: (paymentId: string, updates: Partial<WebPayPayment>) => Promise<PaymentResult<WebPayPayment>>;
+    deleteWebPay: (userId: string, paymentId: string) => Promise<PaymentResult<void>>;
 }
 
 /**
  * Интерфейс для WebPay сервиса, реализующий общий интерфейс платежного сервиса
  */
 export interface IWebPayService extends IPaymentService {
-    initFiatPayment: (params: InitFiatPaymentParams) => Promise<PaymentResult<WebpayInitResult>>;
+    initWebpayPayment: (params: WebpayInitParams) => Promise<PaymentResult<WebpayInitResult>>;
+    validateWebpaySignature: (data: any, signature: string) => boolean;
     handleWebpayReturn: (orderNum: string, transactionId: string) => Promise<PaymentResult<string>>;
     handleWebpayCancel: (orderNum: string) => Promise<PaymentResult<string>>;
-    validateWebpaySignature: (payload: any, signature: string) => boolean;
+    handleWebpayNotify: (payload: any, signature: string) => Promise<PaymentResult<boolean>>;
 } 

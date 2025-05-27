@@ -30,23 +30,6 @@ export const initializeWebpayRoutes = (app: express.Application) => {
      */
     registerRoute(app, 'post', '/payment/webpay/init', WebpayController, 'initWebpayPayment');
 
-    /**
-     * @swagger
-     * /payment/webpay/status/{orderNum}:
-     *   get:
-     *     summary: Получить статус WebPay платежа
-     *     tags: [WebPay]
-     *     parameters:
-     *       - in: path
-     *         name: orderNum
-     *         required: true
-     *         schema:
-     *           type: string
-     *     responses:
-     *       200:
-     *         description: Статус платежа успешно получен
-     */
-    registerRoute(app, 'get', '/payment/webpay/status/:orderNum', WebpayController, 'checkWebpayStatus', false);
 
     /**
      * @swagger

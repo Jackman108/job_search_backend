@@ -39,11 +39,10 @@ export const createTableCryptoPayments = async (): Promise<void> => {
  * Получение всех криптоплатежей пользователя
  * @param userId ID пользователя
  */
-export const listCryptoPayments = async (userId: string): Promise<CryptoPaymentDetails[]> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
+export const listCryptoPayments = async (): Promise<CryptoPaymentDetails[]> => {
 
-    const query = `SELECT * FROM crypto_payments WHERE subscription_id = $1;`;
-    return await executeQuery<CryptoPaymentDetails>(query, [subscriptionId]);
+    const query = `SELECT * FROM crypto_payments ORDER BY created_at DESC;`;
+    return await executeQuery<CryptoPaymentDetails>(query);
 };
 
 /**
@@ -113,8 +112,8 @@ export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promis
         'NOWCRYPTO'
     ];
 
-    const result = await executeQuery<CryptoPaymentDetails>(query, values);
-    return result[0];
+    const [result] = await executeQuery<CryptoPaymentDetails>(query, values);
+    return result;
 };
 
 /**
@@ -363,7 +362,7 @@ export const initCryptoPayment = async (
 export const cryptoPaymentOperations: CryptoPaymentOperations = {
     createCryptoPayment: (params) => withErrorHandling(() => createCryptoPayment(params as CryptoPaymentData)),
     getCryptoPayment: (userId, paymentId) => withErrorHandling(() => getCryptoPayment(userId, paymentId)),
-    listCryptoPayments: (userId) => withErrorHandling(() => listCryptoPayments(userId)),
+    listCryptoPayments: () => withErrorHandling(() => listCryptoPayments()),
     updateCryptoPayment: (paymentId, updates) => withErrorHandling(() => updateCryptoPayment(paymentId, updates)),
     deleteCryptoPayment: (userId, paymentId) => withErrorHandling(() => deleteCryptoPayment(userId, paymentId)),
     checkCryptoPaymentStatus: (userId, paymentId) => withErrorHandling(() => checkCryptoPaymentStatus(userId, paymentId)),

@@ -13,7 +13,7 @@ export class CryptoPaymentController {
      * Получение списка криптоплатежей пользователя
      */
     async listCryptoPayments(req: AuthenticatedRequest, res: Response) {
-        const result = await cryptoPaymentOperations.listCryptoPayments(req.userId!);
+        const result = await cryptoPaymentOperations.listCryptoPayments();
 
         if (result.success) {
             res.status(200).json(result.data);

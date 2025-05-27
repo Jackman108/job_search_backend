@@ -83,7 +83,7 @@ export interface CryptoProviderConfig {
 export interface CryptoPaymentOperations {
     createCryptoPayment: (params: InitCryptoPaymentParams) => Promise<PaymentResult<CryptoPaymentDetails>>;
     getCryptoPayment: (userId: string, paymentId: string) => Promise<PaymentResult<CryptoPaymentDetails>>;
-    listCryptoPayments: (userId: string) => Promise<PaymentResult<CryptoPaymentDetails[]>>;
+    listCryptoPayments: () => Promise<PaymentResult<CryptoPaymentDetails[]>>;
     updateCryptoPayment: (paymentId: string, updates: Partial<CryptoPaymentDetails>) => Promise<PaymentResult<CryptoPaymentDetails>>;
     deleteCryptoPayment: (userId: string, paymentId: string) => Promise<PaymentResult<void>>;
     checkCryptoPaymentStatus: (userId: string, paymentId: string) => Promise<PaymentResult<PaymentStatus>>;
