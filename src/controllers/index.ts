@@ -11,16 +11,17 @@ export * from './sending/VacancySubmitController.js';
 
 // User related controllers
 export * from './user/resume/ResumeController.js';
-export * from './user/resume/ContactsController.js';
 export * from './user/resume/SkillsController.js';
 export * from './user/resume/WorkExperienceController.js';
+export * from './user/resume/ContactsController.js';
 export * from './user/SubscriptionController.js';
 
 // Payment related controllers
-export * from './payment/CryptoPaymentController.js';
-export * from './payment/WebpayController.js';
 export * from './payment/PaymentController.js';
 export * from './payment/InfoPaymentController.js';
+export * from './payment/PaymentIntegrationController.js';
+export * from './payment/WebpayController.js';
+export * from './payment/CryptoPaymentController.js';
 
 // Utility controllers
 export * from './utils/ScriptController.js';

@@ -1,42 +1,54 @@
 import { ENV } from './base.config.js';
 
-export const PAYMENT_URL_BASE_DEV =
-    process.env.PAYMENT_URL_BASE_DEV ?? '';
-
 /**
- * Базовый URL платежного провайдера для продакшена
+ * Флаг использования мок-провайдера для режима разработки
  */
-export const PAYMENT_URL_BASE_PROD =
-    process.env.PAYMENT_URL_BASE_PROD ?? '';
-
 export const USE_MOCK_PROVIDER = ENV.isDevelopment;
 
 /**
- * Выбор базового URL провайдера на основе окружения
+ * URL для редиректов клиента после обработки платежей
  */
-export const PAYMENT_API_BASE_URL = ENV.isProduction
-    ? PAYMENT_URL_BASE_PROD
-    : PAYMENT_URL_BASE_DEV;
-
-/**
- * Базовые URL для интеграции WebPay
- */
-export const WEBPAY_URL_BASE_DEV = process.env.WEBPAY_URL_BASE_DEV ?? '';
-export const WEBPAY_URL_BASE_PROD = process.env.WEBPAY_URL_BASE_PROD ?? '';
-/** Секретный ключ для формирования подписи WebPay */
-export const WEBPAY_SECRET_KEY = process.env.WEBPAY_SECRET_KEY ?? '';
-/** Выбор базового URL WebPay провайдера на основе окружения */
-export const WEBPAY_API_BASE_URL = ENV.isProduction
-    ? WEBPAY_URL_BASE_PROD
-    : WEBPAY_URL_BASE_DEV;
-
-
-
-// URL для редиректов клиента после обработки платежей
 export const FRONTEND_URL = process.env.DOMAIN_URL || 'http://localhost:3000';
 
-// URL для обработки платежей WebPay
-export const WEBPAY_RETURN_URL = `${WEBPAY_API_BASE_URL}/api/webpay/return`;
-export const WEBPAY_CANCEL_URL = `${WEBPAY_API_BASE_URL}/api/webpay/cancel`;
-export const WEBPAY_NOTIFY_URL = `${WEBPAY_API_BASE_URL}/api/webpay/notify`;
+/**
+ * Общие настройки для всех платежных систем
+ */
+export const PAYMENT_CONFIG = {
+    // Таймаут операции платежа в секундах (30 минут)
+    operationTimeout: parseInt(process.env.PAYMENT_OPERATION_TIMEOUT || '1800', 10),
+
+    // Настройки для моковых платежей в режиме разработки
+    mockPayment: {
+        // Таймаут для автоматического подтверждения мок-платежа (1 минута)
+        confirmationTimeout: parseInt(process.env.MOCK_PAYMENT_TIMEOUT || '60', 10),
+
+        // Вероятность успешного платежа в режиме разработки (от 0 до 1)
+        successRate: parseFloat(process.env.MOCK_PAYMENT_SUCCESS_RATE || '0.9')
+    },
+
+    // Доступные платежные системы
+    availablePaymentMethods: ['webpay', 'crypto'],
+
+    // Настройки повторных попыток
+    retry: {
+        maxRetries: parseInt(process.env.PAYMENT_MAX_RETRIES || '3', 10),
+        retryDelay: parseInt(process.env.PAYMENT_RETRY_DELAY || '5000', 10) // в миллисекундах
+    },
+
+    // Настройки логирования платежей
+    logging: {
+        enabled: process.env.PAYMENT_LOGGING_ENABLED !== 'false',
+        logWebhooks: process.env.PAYMENT_LOG_WEBHOOKS !== 'false',
+        logLevel: process.env.PAYMENT_LOG_LEVEL || 'info'
+    }
+};
+
+/**
+ * Возвращает признак доступности указанного платежного метода
+ * @param paymentMethod Код платежного метода
+ * @returns true если метод доступен
+ */
+export const isPaymentMethodAvailable = (paymentMethod: string): boolean => {
+    return PAYMENT_CONFIG.availablePaymentMethods.includes(paymentMethod.toLowerCase());
+};
 

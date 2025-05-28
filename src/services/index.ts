@@ -16,23 +16,40 @@ export * from './user/resume/skillService.js';
 export * from './user/resume/workExperienceService.js';
 
 
-export * from './payment/subscriptionsService.js';
+export * from './payment/base/subscriptionsService.js';
 
 // Базовые платежные функции
+export * from './payment/base/paymentService.js';
+export * from './payment/base/paymentStrategyContext.js';
+export * from './payment/base/paymentIntegrationService.js';
+export * from './payment/base/paymentErrorHandler.js';
 
-export * from './payment/cryptoPaymentService.js';
-export * from './payment/paymentService.js';
+// Стратегии платежей
+export * from './payment/webpay/webpayStrategy.js';
+export * from './payment/crypto/cryptoStrategy.js';
 
-// Выборочный экспорт из cryptoIntegrationService для избежания конфликтов имён
+// Сервисы для работы с платежами
+export * from './payment/crypto/cryptoService.js';
+export * from './payment/webpay/webpayService.js';
+
+// Необходимые функции из интеграционных сервисов
 export {
     createMockCryptoPayment,
-    processWebhook
-} from './payment/cryptoIntegrationService.js';
+    processWebhook,
+    deletePendingCryptoPayment
+} from './payment/crypto/cryptoIntegrationService.js';
 
-export * from './payment/webpayIntegrationService.js';
-export * from './payment/webpayService.js';
+export {
+    initWebpayFiatPayment,
+    validateWebpaySignature,
+    deletePendingWebPayPayment,
+    webpayService
+} from './payment/webpay/webpayIntegrationService.js';
+
+// Экспорт сервисов для работы с платежами
+export { cryptoPaymentService } from './payment/crypto/cryptoService.js';
 
 // Экспорт сервиса информации о платежах
-export * from './payment/infoPaymentService.js';
+export * from './payment/base/infoPaymentService.js';
 
 

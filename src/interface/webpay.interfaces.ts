@@ -1,4 +1,4 @@
-import { IPaymentService, PaymentBase, PaymentResult, PaymentStatus } from "@interface";
+import { IPaymentService, PaymentBase, PaymentResult, PaymentStatus, PaymentStrategy } from "@interface";
 
 /**
  * Отдельная модель для WebPay платежей со специфичными полями
@@ -80,23 +80,22 @@ export interface SimpleWebpayParams {
 }
 
 /**
- * Операции для работы с WebPay платежами
+ * Интерфейс для WebPay сервиса, реализующий общий интерфейс платежного сервиса
  */
-export interface WebPayPaymentOperations {
-    createWebPay: (params: WebPayPayment) => Promise<PaymentResult<WebPayPayment>>;
-    getWebPay: (orderNum: string) => Promise<PaymentResult<WebPayPayment>>;
+export interface IWebPayService extends IPaymentService {
     listWebPay: () => Promise<PaymentResult<WebPayPayment[]>>;
+    getWebPay: (orderNum: string) => Promise<PaymentResult<WebPayPayment>>;
     updateWebPay: (paymentId: string, updates: Partial<WebPayPayment>) => Promise<PaymentResult<WebPayPayment>>;
     deleteWebPay: (userId: string, paymentId: string) => Promise<PaymentResult<void>>;
 }
 
 /**
- * Интерфейс для WebPay сервиса, реализующий общий интерфейс платежного сервиса
+ * Интерфейс для стратегии WebPay платежей
  */
-export interface IWebPayService extends IPaymentService {
-    initWebpayPayment: (params: WebpayInitParams) => Promise<PaymentResult<WebpayInitResult>>;
+export interface WebPayStrategy extends PaymentStrategy {
+    initWebpayPayment: (params: SimpleWebpayParams) => Promise<PaymentResult<WebpayInitResult>>;
     validateWebpaySignature: (data: any, signature: string) => boolean;
     handleWebpayReturn: (orderNum: string, transactionId: string) => Promise<PaymentResult<string>>;
     handleWebpayCancel: (orderNum: string) => Promise<PaymentResult<string>>;
-    handleWebpayNotify: (payload: any, signature: string) => Promise<PaymentResult<boolean>>;
+    deletePendingWebPayPayment: (subscriptionId: string) => Promise<PaymentResult<boolean>>;
 } 

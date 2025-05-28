@@ -1,9 +1,9 @@
-import { CryptoPaymentData, CryptoPaymentDetails, CryptoPaymentOperations, ICryptoPaymentService, InitCryptoPaymentParams, PaymentBase, PaymentResult, PaymentStatus } from '@interface';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId } from '@utils';
-import { withErrorHandling } from '@utils';
-import { updatePaymentStatus, deletePendingWebPayPayment } from '@services';
-import { cryptoPaymentProvider, USE_MOCK_PROVIDER } from '@config';
-import { mockCryptoResponse } from '../../mock/mockCryptoResponse';
+import { USE_MOCK_PROVIDER, nowPaymentsConfig } from '@config';
+import { CryptoPaymentData, CryptoPaymentDetails, ICryptoPaymentService, InitCryptoPaymentParams, PaymentBase, PaymentResult, PaymentStatus } from '@interface';
+import { deletePendingWebPayPayment, updatePaymentStatus } from '@services';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId, withErrorHandling } from '@utils';
+import { mockCryptoResponse } from '../../../mock/mockCryptoResponse';
+import { validateCryptoWebhookSignature as validateWebhookSignature, mapCryptoStatus } from './cryptoCommon';
 
 /**
  * Создание таблицы для криптоплатежей
@@ -219,7 +219,7 @@ export const checkCryptoPaymentStatus = async (userId: string, paymentId: string
     // В продакшн режиме проверяем статус через провайдера
     if (!USE_MOCK_PROVIDER && currentStatus === PaymentStatus.Pending) {
         try {
-            const newStatus = await cryptoPaymentProvider.checkPaymentStatus(paymentId);
+            const newStatus = await checkCryptoPaymentStatus(userId, paymentId);
 
             if (newStatus !== currentStatus) {
                 // Обновляем статус в таблицах
@@ -246,20 +246,14 @@ export const checkCryptoPaymentStatus = async (userId: string, paymentId: string
  * Проверка подписи вебхука от криптопровайдера
  */
 export const validateCryptoWebhookSignature = (data: any, signature: string): boolean => {
-    // В режиме разработки всегда считаем подпись валидной
-    if (USE_MOCK_PROVIDER) {
-        console.log('Using mock signature validation in development mode');
-        return true;
-    }
-
-    return cryptoPaymentProvider.validateSignature(data, signature);
+    return validateWebhookSignature(data, signature);
 };
 
 /**
  * Обработка вебхука от криптопровайдера
  */
 export const processCryptoWebhook = async (webhookData: any, signature: string): Promise<boolean> => {
-    if (!validateCryptoWebhookSignature(webhookData, signature)) {
+    if (!validateWebhookSignature(webhookData, signature)) {
         throw new Error('Invalid webhook signature');
     }
 
@@ -341,32 +335,21 @@ export const initCryptoPayment = async (
         }
 
         // В продакшн режиме используем реального провайдера
-        const providerResponse = await cryptoPaymentProvider.createPayment({
-            id,
-            amount,
+        const providerResponse = await createCryptoPayment({
+            id: id,
+            subscription_id: subscription_id,
+            amount: amount,
             currency: currency || 'BTC',
-            network: network || 'BTC'
+            network: network || 'BTC',
+            crypto_address: 'mock_crypto_address',
         });
 
         // Добавляем адрес из ответа провайдера
-        cryptoData.crypto_address = providerResponse.address;
+        cryptoData.crypto_address = providerResponse.crypto_address;
 
         // Создаем запись в БД
         return await createCryptoPayment(cryptoData);
     });
-};
-
-/**
- * Безопасные операции для работы с криптоплатежами
- */
-export const cryptoPaymentOperations: CryptoPaymentOperations = {
-    createCryptoPayment: (params) => withErrorHandling(() => createCryptoPayment(params as CryptoPaymentData)),
-    getCryptoPayment: (userId, paymentId) => withErrorHandling(() => getCryptoPayment(userId, paymentId)),
-    listCryptoPayments: () => withErrorHandling(() => listCryptoPayments()),
-    updateCryptoPayment: (paymentId, updates) => withErrorHandling(() => updateCryptoPayment(paymentId, updates)),
-    deleteCryptoPayment: (userId, paymentId) => withErrorHandling(() => deleteCryptoPayment(userId, paymentId)),
-    checkCryptoPaymentStatus: (userId, paymentId) => withErrorHandling(() => checkCryptoPaymentStatus(userId, paymentId)),
-    processWebhook: (data, signature) => withErrorHandling(() => processCryptoWebhook(data, signature))
 };
 
 /**
@@ -429,13 +412,44 @@ export const cryptoPaymentService: ICryptoPaymentService = {
         });
     },
 
+    listCryptoPayments: async () => {
+        return withErrorHandling(async () => {
+            return await listCryptoPayments();
+        });
+    },
+
+    getCryptoPayment: async (paymentId: string) => {
+        return withErrorHandling(async () => {
+            // Используем пустую строку как userId - в этом контексте нам не важен пользователь
+            const payment = await getCryptoPayment('', paymentId);
+            if (!payment) {
+                throw new Error(`Crypto payment not found for id ${paymentId}`);
+            }
+            return payment;
+        });
+    },
+
+    updateCryptoPayment: async (paymentId: string, updates: Partial<CryptoPaymentDetails>) => {
+        return withErrorHandling(async () => {
+            const payment = await updateCryptoPayment(paymentId, updates);
+            if (!payment) {
+                throw new Error(`Crypto payment not found for id ${paymentId}`);
+            }
+            return payment;
+        });
+    },
+
+    deleteCryptoPayment: async (userId: string, paymentId: string) => {
+        return withErrorHandling(async () => {
+            return await deleteCryptoPayment(userId, paymentId);
+        });
+    },
+
     // Методы специфичные для CryptoPayment
-    initCryptoPayment,
     checkCryptoPaymentStatus: async (paymentId) => {
         return withErrorHandling(async () => {
             // Используем пустую строку как userId - в этом контексте нам не важен пользователь
             return await checkCryptoPaymentStatus('', paymentId);
         });
-    },
-    validateCryptoWebhookSignature
+    }
 };

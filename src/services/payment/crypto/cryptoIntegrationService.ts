@@ -1,35 +1,10 @@
-import { cryptoPaymentProvider, nowPaymentsConfig, USE_MOCK_PROVIDER } from '@config';
-import crypto from 'crypto';
-import pool from '../../config/database.config';
-import { PaymentBase, PaymentStatus, CryptoPaymentData, CryptoPaymentDetails } from '@interface';
+import { nowPaymentsConfig, CRYPTO_CONFIG, USE_MOCK_PROVIDER } from '@config';
+import pool from '../../../config/database.config';
+import { PaymentBase, PaymentStatus, CryptoPaymentData, CryptoPaymentDetails, PaymentResult } from '@interface';
 import { updatePayment, createCryptoPayment } from '@services';
-import { mockCryptoResponse } from '../../mock/mockCryptoResponse';
-
-/** Проверяет подпись вебхука */
-const validateWebhookSignature = (data: any, signature: string): boolean => {
-    // В режиме разработки всегда считаем подпись валидной
-    if (USE_MOCK_PROVIDER) {
-        console.log('Using mock signature validation in development mode');
-        return true;
-    }
-
-    if (!nowPaymentsConfig.ipnSecret) {
-        throw new Error('IPN secret is not configured');
-    }
-    const hmac = crypto.createHmac('sha512', nowPaymentsConfig.ipnSecret);
-    const expectedSignature = hmac.update(JSON.stringify(data)).digest('hex');
-    return expectedSignature === signature;
-};
-
-/** Логирует данные вебхука в БД */
-const logWebhook = async (data: any): Promise<void> => {
-    await pool.query(
-        `INSERT INTO webhook_logs 
-         (payment_id, payment_status, data, created_at) 
-         VALUES ($1, $2, $3, $4)`,
-        [data.paymentId, data.status, JSON.stringify(data.data), new Date()]
-    );
-};
+import { mockCryptoResponse } from '../../../mock/mockCryptoResponse';
+import { logger, withErrorHandling } from '@utils';
+import { validateCryptoWebhookSignature, checkPaymentStatusWithProvider } from './cryptoCommon';
 
 /** Проверяет статус платежа у провайдера и обновляет записи */
 export const checkCryptoPaymentStatus = async (paymentId: string): Promise<string> => {
@@ -83,7 +58,7 @@ export const checkCryptoPaymentStatus = async (paymentId: string): Promise<strin
     }
 
     // В продакшн режиме или если не прошла 1 минута
-    const status = USE_MOCK_PROVIDER ? 'pending' : await cryptoPaymentProvider.checkPaymentStatus(paymentId);
+    const status = USE_MOCK_PROVIDER ? 'pending' : await checkPaymentStatusWithProvider(paymentId);
 
     // Обновляем статус в таблице crypto_payments
     await pool.query(
@@ -134,7 +109,7 @@ export const createMockCryptoPayment = async (paymentDetails: Partial<CryptoPaym
 
 /** Обрабатывает вебхук от провайдера */
 export const processWebhook = async (webhookData: any, signature: string): Promise<void> => {
-    if (!validateWebhookSignature(webhookData, signature)) {
+    if (!validateCryptoWebhookSignature(webhookData, signature)) {
         throw new Error('Invalid webhook signature');
     }
 
@@ -150,4 +125,65 @@ export const processWebhook = async (webhookData: any, signature: string): Promi
     );
 
     await logWebhook({ paymentId: payment_id, payment_status, data: webhookData });
+};
+
+/** Логирует данные вебхука в БД */
+const logWebhook = async (data: any): Promise<void> => {
+    await pool.query(
+        `INSERT INTO webhook_logs 
+         (payment_id, payment_status, data, created_at) 
+         VALUES ($1, $2, $3, $4)`,
+        [data.paymentId, data.status, JSON.stringify(data.data), new Date()]
+    );
+};
+
+/**
+ * Удаляет незавершенные криптоплатежи по subscription_id
+ * @param subscriptionId ID подписки
+ * @returns Результат удаления
+ */
+export const deletePendingCryptoPayment = async (subscriptionId: string): Promise<PaymentResult<boolean>> => {
+    try {
+        logger.info('Deleting pending crypto payment', { subscriptionId });
+
+        // Находим незавершенные платежи для указанной подписки
+        const { rows } = await pool.query(
+            `SELECT id FROM crypto_payments 
+             WHERE subscription_id = $1 
+             AND payment_status IN ($2, $3, $4)`,
+            [subscriptionId, PaymentStatus.Pending, PaymentStatus.Processing, PaymentStatus.OnHold]
+        );
+
+        if (rows.length === 0) {
+            logger.info('No pending crypto payments found for subscription', { subscriptionId });
+            return {
+                success: true,
+                data: true
+            };
+        }
+
+        // Удаляем найденные платежи
+        for (const row of rows) {
+            logger.info('Deleting crypto payment', { paymentId: row.id });
+
+            // Обновляем статус на отмененный
+            await pool.query(
+                `UPDATE crypto_payments 
+                 SET payment_status = $1, updated_at = NOW() 
+                 WHERE id = $2`,
+                [PaymentStatus.Cancelled, row.id]
+            );
+        }
+
+        return {
+            success: true,
+            data: true
+        };
+    } catch (error) {
+        logger.error('Error deleting pending crypto payment', { error, subscriptionId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Error deleting pending crypto payment'
+        };
+    }
 }; 

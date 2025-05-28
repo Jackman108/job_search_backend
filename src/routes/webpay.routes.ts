@@ -5,10 +5,50 @@ import { WebpayController } from '../controllers/payment/WebpayController';
 export const initializeWebpayRoutes = (app: express.Application) => {
     /**
      * @swagger
-     * /payment/webpay/init:
+     * /payment:
+     *   get:
+     *     summary: Получить список платежей
+     *     tags: [Платежи]
+     *     security:
+     *       - bearerAuth: []
+     *     responses:
+     *       200:
+     *         description: Список платежей успешно получен
+     *       401:
+     *         description: Не авторизован
+     */
+    registerRoute(app, 'get', '/payment/webpay', WebpayController, 'listWebpayPayments');
+
+    /**
+     * @swagger
+     * /payment/{id}:
+     *   get:
+     *     summary: Получить информацию о платеже
+     *     tags: [Платежи]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     responses:
+     *       200:
+     *         description: Информация о платеже успешно получена
+     *       401:
+     *         description: Не авторизован
+     *       404:
+     *         description: Платеж не найден
+     */
+    registerRoute(app, 'get', '/payment/webpay/:id', WebpayController, 'getWebpayPayment');
+
+    /**
+     * @swagger
+     * /payment:
      *   post:
-     *     summary: Инициализировать WebPay платеж
-     *     tags: [WebPay]
+     *     summary: Создать платеж
+     *     tags: [Платежи]
      *     security:
      *       - bearerAuth: []
      *     requestBody:
@@ -22,79 +62,30 @@ export const initializeWebpayRoutes = (app: express.Application) => {
      *                 type: number
      *               currency:
      *                 type: string
+     *               payment_method:
+     *                 type: string
      *     responses:
-     *       200:
-     *         description: Платеж успешно инициализирован
+     *       201:
+     *         description: Платеж успешно создан
      *       401:
      *         description: Не авторизован
      */
-    registerRoute(app, 'post', '/payment/webpay/init', WebpayController, 'initWebpayPayment');
-
+    registerRoute(app, 'post', '/payment/webpay', WebpayController, 'createWebpayPayment');
 
     /**
      * @swagger
-     * /payment/webpay/details/{orderNum}:
-     *   get:
-     *     summary: Получить детали WebPay платежа
-     *     tags: [WebPay]
+     * /payment/{id}:
+     *   put:
+     *     summary: Обновить платеж
+     *     tags: [Платежи]
+     *     security:
+     *       - bearerAuth: []
      *     parameters:
      *       - in: path
-     *         name: orderNum
+     *         name: id
      *         required: true
      *         schema:
      *           type: string
-     *     responses:
-     *       200:
-     *         description: Детали платежа успешно получены
-     */
-    registerRoute(app, 'get', '/payment/webpay/details/:orderNum', WebpayController, 'getWebpayPayment', false);
-
-    /**
-     * @swagger
-     * /payment/webpay/return:
-     *   get:
-     *     summary: Обработка возврата после успешной оплаты
-     *     tags: [WebPay]
-     *     parameters:
-     *       - in: query
-     *         name: wsb_order_num
-     *         required: true
-     *         schema:
-     *           type: string
-     *       - in: query
-     *         name: wsb_tid
-     *         schema:
-     *           type: string
-     *     responses:
-     *       302:
-     *         description: Редирект на страницу успешной оплаты
-     */
-    registerRoute(app, 'get', '/payment/webpay/return', WebpayController, 'handleReturn', false);
-
-    /**
-     * @swagger
-     * /payment/webpay/cancel:
-     *   get:
-     *     summary: Обработка отмены платежа
-     *     tags: [WebPay]
-     *     parameters:
-     *       - in: query
-     *         name: wsb_order_num
-     *         required: true
-     *         schema:
-     *           type: string
-     *     responses:
-     *       302:
-     *         description: Редирект на страницу отмены оплаты
-     */
-    registerRoute(app, 'get', '/payment/webpay/cancel', WebpayController, 'handleCancel', false);
-
-    /**
-     * @swagger
-     * /payment/webpay/notify:
-     *   post:
-     *     summary: Обработка уведомления от WebPay
-     *     tags: [WebPay]
      *     requestBody:
      *       required: true
      *       content:
@@ -103,7 +94,35 @@ export const initializeWebpayRoutes = (app: express.Application) => {
      *             type: object
      *     responses:
      *       200:
-     *         description: Уведомление успешно обработано
+     *         description: Платеж успешно обновлен
+     *       401:
+     *         description: Не авторизован
+     *       404:
+     *         description: Платеж не найден
      */
-    registerRoute(app, 'post', '/payment/webpay/notify', WebpayController, 'handleNotify', false);
-}; 
+    registerRoute(app, 'put', '/payment/webpay/:id', WebpayController, 'updateWebpayPayment');
+
+    /**
+     * @swagger
+     * /payment/{id}:
+     *   delete:
+     *     summary: Удалить платеж
+     *     tags: [Платежи]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     responses:
+     *       200:
+     *         description: Платеж успешно удален
+     *       401:
+     *         description: Не авторизован
+     *       404:
+     *         description: Платеж не найден
+     */
+    registerRoute(app, 'delete', '/payment/webpay/:id', WebpayController, 'deleteWebpayPayment');
+};

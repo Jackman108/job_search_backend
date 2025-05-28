@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { handleErrors, handleSuccess } from '@middlewares';
-import { safePaymentOperations } from '@services';
+import { safePaymentOperations, updatePayment } from '@services';
 import { AuthenticatedRequest, CreatePaymentParams } from '@interface';
 
 /**
@@ -19,18 +19,21 @@ export class PaymentController {
         } else {
             handleErrors(res, new Error(result.error), 'Error fetching payments');
         }
+
     }
 
     /**
      * Получение информации о конкретном платеже
      */
     async getPayment(req: AuthenticatedRequest, res: Response) {
+
         const result = await safePaymentOperations.getPayment(req.userId!, req.params.id);
 
         if (result.success) {
-            res.status(200).json(result.data);
+
+            handleSuccess(res, 'Payments retrieved successfully', result.data);
         } else {
-            handleErrors(res, new Error(result.error), 'Error fetching payment');
+            handleErrors(res, new Error(result.error), 'Failed to retrieve payments');
         }
     }
 
@@ -51,12 +54,16 @@ export class PaymentController {
             payment_method
         };
 
-        const result = await safePaymentOperations.createPayment(params);
+        try {
+            const result = await safePaymentOperations.createPayment(params);
 
-        if (result.success) {
-            handleSuccess(res, 'Payment created successfully', result.data);
-        } else {
-            handleErrors(res, new Error(result.error), 'Error creating payment');
+            if (result.success) {
+                handleSuccess(res, 'Payment created successfully', result.data);
+            } else {
+                handleErrors(res, new Error(result.error || 'Unknown error'), 'Error creating payment');
+            }
+        } catch (error) {
+            handleErrors(res, error, 'Error creating payment');
         }
     }
 

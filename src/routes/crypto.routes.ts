@@ -4,70 +4,79 @@ import { CryptoPaymentController } from '@controllers';
 
 export const initializeCryptoRoutes = (app: express.Application) => {
     /**
-     * @swagger
-     * /payment/crypto:
-     *   post:
-     *     summary: Создать криптоплатеж
-     *     tags: [Криптоплатежи]
-     *     security:
-     *       - bearerAuth: []
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *           schema:
-     *             type: object
-     *             properties:
-     *               userId:
-     *                 type: string
-     *     responses:
-     *       201:
-     *         description: Криптоплатеж успешно создан
-     *       400:
-     *         description: Нет активной подписки
-     *       401:
-     *         description: Не авторизован
-     */
-    registerRoute(app, 'post', '/payment/crypto', CryptoPaymentController, 'createCryptoPayment');
-    /**
-     * @swagger
-     * /payment/crypto:
-     *   get:
-     *     summary: Получить список криптоплатежей
-     *     tags: [Криптоплатежи]
-     *     security:
-     *       - bearerAuth: []
-     *     responses:
-     *       200:
-     *         description: Список криптоплатежей успешно получен
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: array
-     *               items:
-     *                 $ref: '#/components/schemas/CryptoPaymentDetails'
-     *       401:
-     *         description: Не авторизован
-     */
+    * @swagger
+    * /payment/crypto:
+    *   get:
+    *     summary: Получить список криптоплатежей
+    *     tags: [Криптоплатежи]
+    *     security:
+    *       - bearerAuth: []
+    *     responses:
+    *       200:
+    *         description: Список криптоплатежей успешно получен
+    *         content:
+    *           application/json:
+    *             schema:
+    *               type: array
+    *               items:
+    *                 $ref: '#/components/schemas/CryptoPaymentDetails'
+    *       401:
+    *         description: Не авторизован
+    */
     registerRoute(app, 'get', '/payment/crypto', CryptoPaymentController, 'listCryptoPayments');
 
     /**
-     * @swagger
-     * /payment/crypto/webhook:
-     *   post:
-     *     summary: Обработчик вебхуков от платежной системы
-     *     tags: [Криптоплатежи]
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *           schema:
-     *             type: object
-     *     responses:
-     *       200:
-     *         description: Вебхук успешно обработан
-     */
-    registerRoute(app, 'post', '/payment/crypto/webhook', CryptoPaymentController, 'handleWebhook');
+    * @swagger
+    * /payment/crypto/{paymentId}:
+    *   get:
+    *     summary: Получить информацию о криптоплатеже
+    *     tags: [Криптоплатежи]
+    *     security:
+    *       - bearerAuth: []
+    *     parameters:
+    *       - in: path
+    *         name: paymentId
+    *         required: true
+    *         schema:
+    *           type: string
+    *     responses:
+    *       200:
+    *         description: Информация о криптоплатеже успешно получена
+    *       401:
+    *         description: Не авторизован
+    *       404:
+    *         description: Криптоплатеж не найден
+    */
+    registerRoute(app, 'get', '/payment/crypto/:paymentId', CryptoPaymentController, 'getCryptoPayment');
+
+    /**
+    * @swagger
+    * /payment/crypto:
+    *   post:
+    *     summary: Создать криптоплатеж
+    *     tags: [Криптоплатежи]
+    *     security:
+    *       - bearerAuth: []
+    *     requestBody:
+    *       required: true
+    *       content:
+    *         application/json:
+    *           schema:
+    *             type: object
+    *             properties:
+    *               userId:
+    *                 type: string
+    *     responses:
+    *       201:
+    *         description: Криптоплатеж успешно создан
+    *       400:
+    *         description: Нет активной подписки
+    *       401:
+    *         description: Не авторизован
+    */
+    registerRoute(app, 'post', '/payment/crypto', CryptoPaymentController, 'createCryptoPayment');
+
+
 
     /**
      * @swagger
@@ -94,34 +103,7 @@ export const initializeCryptoRoutes = (app: express.Application) => {
      */
     registerRoute(app, 'put', '/payment/crypto/:paymentId', CryptoPaymentController, 'updateCryptoPayment');
 
-    /**
-     * @swagger
-     * /payment/crypto/status/{paymentId}:
-     *   put:
-     *     summary: Проверить статус криптоплатежа
-     *     tags: [Криптоплатежи]
-     *     security:
-     *       - bearerAuth: []
-     *     parameters:
-     *       - in: path
-     *         name: paymentId
-     *         required: true
-     *         schema:
-     *           type: string
-     *     responses:
-     *       200:
-     *         description: Статус платежа получен
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 status:
-     *                   type: string
-     *       401:
-     *         description: Не авторизован
-     */
-    registerRoute(app, 'put', '/payment/crypto/status/:paymentId', CryptoPaymentController, 'checkCryptoPaymentStatus');
+
 
     /**
      * @swagger
@@ -148,29 +130,7 @@ export const initializeCryptoRoutes = (app: express.Application) => {
      */
     registerRoute(app, 'delete', '/payment/crypto/:paymentId', CryptoPaymentController, 'deleteCryptoPayment');
 
-    /**
-     * @swagger
-     * /payment/crypto/{paymentId}:
-     *   get:
-     *     summary: Получить информацию о криптоплатеже
-     *     tags: [Криптоплатежи]
-     *     security:
-     *       - bearerAuth: []
-     *     parameters:
-     *       - in: path
-     *         name: paymentId
-     *         required: true
-     *         schema:
-     *           type: string
-     *     responses:
-     *       200:
-     *         description: Информация о криптоплатеже успешно получена
-     *       401:
-     *         description: Не авторизован
-     *       404:
-     *         description: Криптоплатеж не найден
-     */
-    registerRoute(app, 'get', '/payment/crypto/:paymentId', CryptoPaymentController, 'getCryptoPayment');
+
 };
 
 

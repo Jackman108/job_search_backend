@@ -1,7 +1,7 @@
 /**
  * Интерфейсы для работы с криптовалютными платежами
  */
-import { IPaymentService, PaymentResult, PaymentStatus } from "@interface";
+import { IPaymentService, PaymentResult, PaymentStatus, PaymentStrategy } from "@interface";
 
 /**
  * Основные данные для создания криптоплатежа
@@ -77,24 +77,46 @@ export interface CryptoProviderConfig {
     supportedNetworks: string[];
 }
 
-/**
- * Операции для работы с криптоплатежами
- */
-export interface CryptoPaymentOperations {
-    createCryptoPayment: (params: InitCryptoPaymentParams) => Promise<PaymentResult<CryptoPaymentDetails>>;
-    getCryptoPayment: (userId: string, paymentId: string) => Promise<PaymentResult<CryptoPaymentDetails>>;
-    listCryptoPayments: () => Promise<PaymentResult<CryptoPaymentDetails[]>>;
-    updateCryptoPayment: (paymentId: string, updates: Partial<CryptoPaymentDetails>) => Promise<PaymentResult<CryptoPaymentDetails>>;
-    deleteCryptoPayment: (userId: string, paymentId: string) => Promise<PaymentResult<void>>;
-    checkCryptoPaymentStatus: (userId: string, paymentId: string) => Promise<PaymentResult<PaymentStatus>>;
-    processWebhook: (data: any, signature: string) => Promise<PaymentResult<boolean>>;
-}
 
 /**
  * Интерфейс для Crypto сервиса, реализующий общий интерфейс платежного сервиса
  */
 export interface ICryptoPaymentService extends IPaymentService {
-    initCryptoPayment: (params: InitCryptoPaymentParams) => Promise<PaymentResult<CryptoPaymentDetails>>;
+    listCryptoPayments: () => Promise<PaymentResult<CryptoPaymentDetails[]>>;
+    getCryptoPayment: (paymentId: string) => Promise<PaymentResult<CryptoPaymentDetails>>;
+    updateCryptoPayment: (paymentId: string, updates: Partial<CryptoPaymentDetails>) => Promise<PaymentResult<CryptoPaymentDetails>>;
+    deleteCryptoPayment: (userId: string, paymentId: string) => Promise<PaymentResult<void>>;
     checkCryptoPaymentStatus: (paymentId: string) => Promise<PaymentResult<PaymentStatus>>;
+}
+
+export interface NowPaymentsConfig {
+    apiKey: string;
+    ipnSecret: string;
+    baseUrl: string;
+    paymentTimeout: number;
+    minAmount: number;
+    maxAmount: number;
+    defaultCurrency: string;
+    maxRetries: number;
+    retryDelay: number;
+}
+
+/**
+ * Интерфейс провайдера криптоплатежей
+ */
+export interface CryptoPaymentProvider {
+    createPayment: (amount: number, currency: string) => Promise<CryptoPaymentDetails>;
+    checkPaymentStatus: (paymentId: string) => Promise<PaymentStatus>;
+    processWebhook: (data: any, signature: string) => Promise<boolean>;
+    validateSignature?: (data: any, signature: string) => boolean;
+}
+
+/**
+ * Интерфейс для стратегии криптоплатежей
+ */
+export interface CryptoPaymentStrategy extends PaymentStrategy {
+    initCryptoPayment: (params: InitCryptoPaymentParams) => Promise<PaymentResult<CryptoPaymentDetails>>;
     validateCryptoWebhookSignature: (data: any, signature: string) => boolean;
+    getCryptoPaymentDetails: (paymentId: string) => Promise<PaymentResult<CryptoPaymentDetails>>;
+    deletePendingCryptoPayment: (subscriptionId: string) => Promise<PaymentResult<boolean>>;
 }

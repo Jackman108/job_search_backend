@@ -1,12 +1,9 @@
 import { USE_MOCK_PROVIDER, WEBPAY_API_BASE_URL, WEBPAY_CANCEL_URL, WEBPAY_RETURN_URL, WEBPAY_SECRET_KEY } from '@config';
-import { InitFiatPaymentParams, IWebPayService, PaymentBase, PaymentResult, PaymentStatus, SimpleWebpayParams, WebpayInitParams, WebpayInitResult, WebPayPayment, WebPayPaymentOperations } from '@interface';
-import { executeQuery, generateOrderNumber, getSubscriptionIdByUserId, withErrorHandling } from '@utils';
+import { InitFiatPaymentParams, IWebPayService, PaymentBase, PaymentResult, PaymentStatus, WebpayInitParams, WebpayInitResult, WebPayPayment } from '@interface';
+import { createWebpayPayment, deletePendingCryptoPayment, deleteWebpayPayment, getPaymentBySubscriptionId, getWebpayPayment, getWebpayPaymentByOrderNum, listWebpayPayments, updatePayment, updatePaymentStatus, updateWebpayPayment, updateWebpayPaymentByOrderNum } from '@services';
+import { executeQuery, generateOrderNumber, getSubscriptionIdByUserId, logger, withErrorHandling } from '@utils';
 import crypto from 'crypto';
-import { mockWebPayResponse } from '../../mock/mockWebPayResponse';
-import { createWebpayPayment, deleteWebpayPayment, getWebpayPayment, getWebpayPaymentByOrderNum, getWebpayPaymentBySubscriptionId, listWebpayPayments, updateWebpayPayment, updateWebpayPaymentByOrderNum } from '@services';
-import { createPayment, getPaymentBySubscriptionId, updatePayment, updatePaymentStatus } from '@services';
-import { deletePendingCryptoPayment } from '@services';
-
+import { mockWebPayResponse } from '../../../mock/mockWebPayResponse';
 
 
 /**
@@ -84,6 +81,65 @@ export async function initWebpayPayment(
         throw error;
     }
 }
+
+/**
+ * Удаляет незавершенные WebPay платежи по subscription_id
+ * @param subscriptionId ID подписки
+ * @returns Результат удаления
+ */
+export const deletePendingWebPayPayment = async (subscriptionId: string): Promise<PaymentResult<boolean>> => {
+    try {
+        logger.info('Deleting pending WebPay payment', { subscriptionId });
+
+        // Находим незавершенные платежи для указанной подписки
+        const query = `
+            SELECT id, wsb_order_num FROM webpay_payments 
+            WHERE subscription_id = $1 
+            AND payment_status IN ($2, $3, $4)
+        `;
+
+        const result = await executeQuery(query, [
+            subscriptionId,
+            PaymentStatus.Pending,
+            PaymentStatus.Processing,
+            PaymentStatus.OnHold
+        ]);
+
+        const rows = Array.isArray(result) ? result : [];
+
+        if (rows.length === 0) {
+            logger.info('No pending WebPay payments found for subscription', { subscriptionId });
+            return {
+                success: true,
+                data: true
+            };
+        }
+
+        // Удаляем найденные платежи
+        for (const row of rows) {
+            logger.info('Updating WebPay payment status to cancelled', {
+                paymentId: row.id,
+                orderNum: row.wsb_order_num
+            });
+
+            // Обновляем статус на отмененный
+            await updateWebpayPayment(row.id, {
+                payment_status: PaymentStatus.Cancelled
+            });
+        }
+
+        return {
+            success: true,
+            data: true
+        };
+    } catch (error) {
+        logger.error('Error deleting pending WebPay payment', { error, subscriptionId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Error deleting pending WebPay payment'
+        };
+    }
+};
 
 /**
  * Проверка подписи уведомления от WebPay
@@ -349,71 +405,6 @@ export const initWebpayFiatPayment = async (
 
 
 /**
- * Реализация интерфейса WebPayPaymentOperations
- */
-export const webPayPaymentOperations: WebPayPaymentOperations = {
-    /**
-     * Создание нового WebPay платежа
-     * @param params Данные для создания WebPay платежа
-     */
-    createWebPay: async (params: WebPayPayment) => {
-        return withErrorHandling(async () => {
-            return await createWebpayPayment(params);
-        });
-    },
-
-    /**
-     * Получение WebPay платежа по номеру заказа
-     * @param orderNum Номер заказа WebPay
-     */
-    getWebPay: async (orderNum: string) => {
-        return withErrorHandling(async () => {
-            const payment = await getWebpayPaymentByOrderNum(orderNum);
-            if (!payment) {
-                throw new Error(`WebPay payment not found for order ${orderNum}`);
-            }
-            return payment;
-        });
-    },
-
-    /**
-     * Получение всех WebPay платежей
-     */
-    listWebPay: async () => {
-        return withErrorHandling(async () => {
-            return await listWebpayPayments();
-        });
-    },
-
-    /**
-     * Обновление WebPay платежа по номеру заказа
-     * @param paymentId ID WebPay платежа
-     * @param updates Поля для обновления
-     */
-    updateWebPay: async (paymentId: string, updates: Partial<WebPayPayment>) => {
-        return withErrorHandling(async () => {
-            const payment = await updateWebpayPayment(paymentId, updates);
-            if (!payment) {
-                throw new Error(`WebPay payment not found for order ${paymentId}`);
-            }
-            return payment;
-        });
-    },
-
-    /**
-     * Удаление WebPay платежа
-     * @param id ID WebPay платежа
-     * @param userId ID пользователя
-     */
-    deleteWebPay: async (userId: string, paymentId: string) => {
-        return withErrorHandling(async () => {
-            return await deleteWebpayPayment(userId, paymentId);
-        });
-    }
-};
-
-
-/**
  * Реализация интерфейса IWebPayService
  */
 export const webpayService: IWebPayService = {
@@ -469,22 +460,36 @@ export const webpayService: IWebPayService = {
         return withErrorHandling(async () => await handleWebpayNotify(data, signature));
     },
 
-    // Методы специфичные для WebPay по новому интерфейсу
-    initWebpayPayment: async (params) => {
-        return withErrorHandling(async () => await initWebpayPayment(params));
+    // Методы для поддержки WebpayController
+    listWebPay: async () => {
+        return withErrorHandling(async () => {
+            return await listWebpayPayments();
+        });
     },
 
-    validateWebpaySignature,
-
-    handleWebpayReturn: async (orderNum, transactionId) => {
-        return withErrorHandling(async () => await handleWebpayReturn(orderNum, transactionId));
+    getWebPay: async (orderNum: string) => {
+        return withErrorHandling(async () => {
+            const payment = await getWebpayPaymentByOrderNum(orderNum);
+            if (!payment) {
+                throw new Error(`WebPay payment not found for order ${orderNum}`);
+            }
+            return payment;
+        });
     },
 
-    handleWebpayCancel: async (orderNum) => {
-        return withErrorHandling(async () => await handleWebpayCancel(orderNum));
+    updateWebPay: async (paymentId: string, updates: Partial<WebPayPayment>) => {
+        return withErrorHandling(async () => {
+            const payment = await updateWebpayPayment(paymentId, updates);
+            if (!payment) {
+                throw new Error(`WebPay payment not found for order ${paymentId}`);
+            }
+            return payment;
+        });
     },
 
-    handleWebpayNotify: async (payload, signature) => {
-        return withErrorHandling(async () => await handleWebpayNotify(payload, signature));
+    deleteWebPay: async (userId: string, paymentId: string) => {
+        return withErrorHandling(async () => {
+            return await deleteWebpayPayment(userId, paymentId);
+        });
     }
 }; 

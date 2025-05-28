@@ -1,4 +1,4 @@
-import { CreatePaymentParams, PaymentBase, PaymentOperations, PaymentStatus } from '@interface';
+import { CreatePaymentParams, PaymentBase, PaymentStatus } from '@interface';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId, withErrorHandling } from '@utils';
 
 /**
@@ -144,44 +144,43 @@ export const deletePayment = async (
 };
 
 /**
- * Возвращает активный незавершённый платеж пользователя
- * @param userId ID пользователя
- * @param paymentId ID платежа
- */
-export const getActivePayment = async (
-    userId: string,
-    paymentId: string
-): Promise<PaymentBase[]> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
-    const query = `
-        SELECT * FROM payments
-        WHERE subscription_id = $1 AND id = $2 AND payment_status = $3;
-    `;
-    return await executeQuery<PaymentBase>(query, [subscriptionId, paymentId, PaymentStatus.Pending]);
-};
-
-/**
- * Базовые операции для работы с платежами
- */
-export const paymentOperations: PaymentOperations = {
-    listPayments,
-    getPayment,
-    createPayment,
-    updatePayment,
-    deletePayment
-};
-
-/**
- * Безопасные операции с обработкой ошибок
+ * Безопасные операции с платежами для использования в контроллерах
+ * Обрабатывают ошибки и возвращают результат в стандартном формате
  */
 export const safePaymentOperations = {
-    listPayments: (userId: string) => withErrorHandling(() => listPayments(userId)),
-    getPayment: (userId: string, paymentId: string) => withErrorHandling(() => getPayment(userId, paymentId)),
-    createPayment: (params: CreatePaymentParams) => withErrorHandling(() => createPayment(params)),
-    updatePayment: (userId: string, paymentId: string, updates: Partial<PaymentBase>) =>
-        withErrorHandling(() => updatePayment(userId, paymentId, updates)),
-    updatePaymentStatus: (paymentId: string, status: PaymentStatus) =>
-        withErrorHandling(() => updatePaymentStatus(paymentId, status)),
-    deletePayment: (userId: string, paymentId: string) => withErrorHandling(() => deletePayment(userId, paymentId)),
-    getActivePayment: (userId: string, paymentId: string) => withErrorHandling(() => getActivePayment(userId, paymentId))
+    listPayments: async (userId: string) => {
+        return withErrorHandling(async () => {
+            return await listPayments(userId);
+        });
+
+    },
+
+    getPayment: async (userId: string, paymentId: string) => {
+        return withErrorHandling(async () => {
+            const payment = await getPayment(userId, paymentId);
+            if (!payment) {
+                throw new Error(`Crypto payment not found for id ${paymentId}`);
+            }
+            return payment;
+        });
+    },
+
+
+    createPayment: async (params: CreatePaymentParams) => {
+        return withErrorHandling(async () => {
+            return await createPayment(params);
+        });
+    },
+
+    updatePayment: async (userId: string, paymentId: string, updates: Partial<PaymentBase>) => {
+        return withErrorHandling(async () => {
+            return await updatePayment(userId, paymentId, updates);
+        });
+    },
+
+    deletePayment: async (userId: string, paymentId: string) => {
+        return withErrorHandling(async () => {
+            await deletePayment(userId, paymentId);
+        });
+    }
 };
