@@ -6,6 +6,8 @@ export * from './process.interfaces.js';
 export * from './common.interfaces.js';
 export * from './subscription.interfaces.js';
 export * from './skill.interfaces.js';
-export * from './payment.interfaces.js';
-export * from './webpay.interfaces.js';
-export * from './crypto.interfaces.js';
+
+// Экспорт платежных интерфейсов
+export * from './payment/base.interfaces';
+export * from './payment/webpay.interfaces';
+export * from './payment/crypto.interfaces';

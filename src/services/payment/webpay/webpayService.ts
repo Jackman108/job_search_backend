@@ -1,5 +1,6 @@
-import { PaymentStatus, WebPayPayment } from '@interface';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId } from '@utils';
+import { IWebPayService, InitWebPayPaymentParams, PaymentResult, PaymentStatus, WebPayPayment, CreatePaymentParams } from '@interface';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId, withErrorHandling } from '@utils';
+import crypto from 'crypto';
 
 
 
@@ -206,3 +207,67 @@ export const deletePendingWebPayPayment = async (subscriptionId: string): Promis
     console.log(`Deleted pending WebPay payment for subscription: ${subscriptionId}`);
 };
 
+
+
+/**
+ * Реализация интерфейса IWebPayService
+ */
+export const webpayService: IWebPayService = {
+    // Методы для поддержки WebpayController
+    listPayments: async () => {
+        return withErrorHandling(async () => {
+            return await listWebpayPayments();
+        });
+    },
+
+    getPayment: async (userId: string, paymentId: string) => {
+        return withErrorHandling(async () => {
+            const payment = await getWebpayPayment(userId, paymentId);
+            if (!payment) {
+                throw new Error(`WebPay payment not found for id ${paymentId}`);
+            }
+            return payment;
+        });
+    },
+
+    createPayment: async (params: CreatePaymentParams) => {
+        return withErrorHandling(async () => {
+            // Создаем объект WebPayPayment из параметров CreatePaymentParams
+            const webpayData: WebPayPayment = {
+                id: crypto.randomUUID(),
+                subscription_id: params.subscription_id,
+                amount: params.amount,
+                wsb_order_num: `ORDER-${Date.now()}`,
+                wsb_currency_id: params.currency || 'USD',
+                wsb_total: params.amount,
+                transaction_id: null,
+                payment_status: PaymentStatus.Pending,
+                payment_method: params.payment_method || 'webpay',
+                signature: null,
+                created_at: new Date(),
+                updated_at: new Date(),
+                success_url: null,
+                cancel_url: null
+            };
+
+            return await createWebpayPayment(webpayData);
+        });
+    },
+
+    updatePayment: async (paymentId: string, updates: Partial<WebPayPayment>) => {
+        return withErrorHandling(async () => {
+            const payment = await updateWebpayPayment(paymentId, updates);
+            if (!payment) {
+                throw new Error(`WebPay payment not found for id ${paymentId}`);
+            }
+            return payment;
+        });
+    },
+
+    deletePayment: async (userId: string, paymentId: string): Promise<PaymentResult<boolean>> => {
+        return withErrorHandling(async () => {
+            await deleteWebpayPayment(userId, paymentId);
+            return true;
+        });
+    }
+}; 

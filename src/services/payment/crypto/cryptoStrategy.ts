@@ -10,10 +10,20 @@ import {
     PaymentResult,
     PaymentStatus
 } from '@interface';
-import { createCryptoPayment as createCryptoPaymentService, createPaymentErrorHandler, deletePendingWebPayPayment, getCryptoPayment as getCryptoPaymentService, updatePaymentStatus, withPaymentErrorHandling } from '@services';
+
+import {
+    cleanupPendingCryptoPayment,
+    cleanupPendingWebPayPayment,
+    createPaymentErrorHandler,
+    initCryptoDirectPayment,
+    updatePaymentStatus,
+    validateCryptoSignature,
+    withPaymentErrorHandling,
+    getCryptoPaymentById
+} from '@services';
+
 import { logger } from '@utils';
 import { mapCryptoStatus } from './cryptoCommon';
-import { validateCryptoWebhookSignature } from './cryptoService';
 
 /**
  * Создание стратегии платежей для криптовалют
@@ -33,10 +43,10 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
 
         try {
             // Проверяем, если есть незавершенные webpay платежи, удаляем их
-            await deletePendingWebPayPayment(params.subscription_id);
+            await cleanupPendingWebPayPayment(params.subscription_id);
 
             // Инициализация криптоплатежа
-            return await initCryptoPayment(params);
+            return await initCryptoStrategyPayment(params);
         } catch (error) {
             return handleError(error, 'initPayment');
         }
@@ -47,12 +57,12 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
      * @param params Параметры криптоплатежа
      * @returns Результат инициализации криптоплатежа
      */
-    const initCryptoPayment = async (params: InitCryptoPaymentParams): Promise<PaymentResult<CryptoPaymentDetails>> => {
+    const initCryptoStrategyPayment = async (params: InitCryptoPaymentParams): Promise<PaymentResult<CryptoPaymentDetails>> => {
         try {
             logger.info('Initializing crypto payment details', { params });
 
             // Вызов сервиса инициализации криптоплатежа
-            const paymentDetails = await createCryptoPaymentService({
+            const result = await initCryptoDirectPayment({
                 id: params.id,
                 subscription_id: params.subscription_id,
                 amount: params.amount,
@@ -60,12 +70,16 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
                 network: params.network || 'BTC'
             });
 
+            if (!result.success || !result.data) {
+                throw new Error(result.error || 'Failed to initialize crypto payment');
+            }
+
             return {
                 success: true,
-                data: paymentDetails
+                data: result.data
             };
         } catch (error) {
-            return handleError(error, 'initCryptoPayment');
+            return handleError(error, 'initCryptoStrategyPayment');
         }
     };
 
@@ -76,7 +90,14 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
      * @returns true если подпись валидна, иначе false
      */
     const validatePaymentSignature = (data: any, signature: string): boolean => {
-        return validateCryptoWebhookSignature(data, signature);
+        return validateCryptoSignature(data, signature);
+    };
+
+    /**
+     * Реализация функции validateCryptoWebhookSignature для совместимости с интерфейсом
+     */
+    const validateCryptoWebhookSignature = (data: any, signature: string): boolean => {
+        return validateCryptoSignature(data, signature);
     };
 
     /**
@@ -90,7 +111,7 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
                 logger.info('Getting crypto payment details', { paymentId });
 
                 // Здесь должен быть вызов сервиса для получения деталей платежа
-                const paymentDetails = await getCryptoPaymentService('', paymentId);
+                const paymentDetails = await getCryptoPaymentById(paymentId);
                 return paymentDetails;
             },
             handleError,
@@ -198,7 +219,8 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
             async () => {
                 logger.info('Deleting pending crypto payment', { subscriptionId });
                 // Вызов сервиса для удаления криптоплатежа
-                return true;
+                const result = await cleanupPendingCryptoPayment(subscriptionId);
+                return result.data || false;
             },
             handleError,
             'deletePendingCryptoPayment'
@@ -224,13 +246,13 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
 
     return {
         initPayment,
-        initCryptoPayment,
+        initCryptoPayment: initCryptoStrategyPayment,
         validatePaymentSignature,
         validateCryptoWebhookSignature,
-        getCryptoPaymentDetails,
         handlePaymentCallback,
         processPaymentWebhook,
         checkPaymentStatus,
+        getCryptoPaymentDetails,
         deletePendingCryptoPayment,
         cleanupPayment
     };

@@ -1,9 +1,8 @@
-import { USE_MOCK_PROVIDER, nowPaymentsConfig } from '@config';
-import { CryptoPaymentData, CryptoPaymentDetails, ICryptoPaymentService, InitCryptoPaymentParams, PaymentBase, PaymentResult, PaymentStatus } from '@interface';
-import { deletePendingWebPayPayment, updatePaymentStatus } from '@services';
+import { CreatePaymentParams, CryptoPaymentData, CryptoPaymentDetails, ICryptoPaymentService, PaymentStatus } from '@interface';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId, withErrorHandling } from '@utils';
-import { mockCryptoResponse } from '../../../mock/mockCryptoResponse';
-import { validateCryptoWebhookSignature as validateWebhookSignature, mapCryptoStatus } from './cryptoCommon';
+import crypto from 'crypto';
+import { USE_MOCK_PROVIDER } from '@config';
+import { logger } from '@utils';
 
 /**
  * Создание таблицы для криптоплатежей
@@ -37,10 +36,8 @@ export const createTableCryptoPayments = async (): Promise<void> => {
 
 /**
  * Получение всех криптоплатежей пользователя
- * @param userId ID пользователя
  */
 export const listCryptoPayments = async (): Promise<CryptoPaymentDetails[]> => {
-
     const query = `SELECT * FROM crypto_payments ORDER BY created_at DESC;`;
     return await executeQuery<CryptoPaymentDetails>(query);
 };
@@ -82,30 +79,31 @@ export const getCryptoPayment = async (userId: string, paymentId: string): Promi
  * @param cryptoData Данные для создания криптоплатежа
  */
 export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promise<CryptoPaymentDetails> => {
-    // Проверяем существующий незавершенный платеж
-    const activeCryptoPayment = await getActiveCryptoPayment(cryptoData.subscription_id, cryptoData.id);
-    if (activeCryptoPayment) return activeCryptoPayment;
 
+    // Проверяем только если ID валидный
+    if (cryptoData.id) {
+        const activeCryptoPayment = await getActiveCryptoPayment(cryptoData.subscription_id, cryptoData.id);
+        if (activeCryptoPayment) return activeCryptoPayment;
+    }
     // Создаем новый платеж
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 минут
 
     const query = `
-        INSERT INTO crypto_payments (
-            id, subscription_id, amount, currency, network,
-            crypto_address, crypto_amount, payment_status, created_at,
-            expires_at, transaction_hash, wallet_provider
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),$9,$10,$11)
-        RETURNING *
-    `;
+            INSERT INTO crypto_payments (
+                 subscription_id, amount, currency, network,
+                crypto_address, crypto_amount, payment_status, created_at,
+                expires_at, transaction_hash, wallet_provider
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),$9,$10)
+            RETURNING *
+        `;
 
     const values = [
-        cryptoData.id,
         cryptoData.subscription_id,
-        cryptoData.amount,
+        cryptoData.amount || 0,
         cryptoData.currency || 'BTC',
         cryptoData.network || 'BTC',
         cryptoData.crypto_address ?? 'mock_address',
-        cryptoData.amount,
+        cryptoData.amount || 0,
         PaymentStatus.Pending,
         expiresAt,
         null,
@@ -114,6 +112,20 @@ export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promis
 
     const [result] = await executeQuery<CryptoPaymentDetails>(query, values);
     return result;
+
+};
+
+/**
+ * Получает существующий криптоплатеж по ID
+ * @param paymentId ID платежа
+ * @returns Детали существующего криптоплатежа или null
+ */
+export const getExistingCryptoPayment = async (
+    paymentId: string
+): Promise<CryptoPaymentDetails | null> => {
+    const query = `SELECT * FROM crypto_payments WHERE id = $1 LIMIT 1;`;
+    const result = await executeQuery<CryptoPaymentDetails>(query, [paymentId]);
+    return result.length > 0 ? result[0] : null;
 };
 
 /**
@@ -125,23 +137,36 @@ export const updateCryptoPayment = async (
     paymentId: string,
     updates: Partial<CryptoPaymentDetails>
 ): Promise<CryptoPaymentDetails> => {
-    if (!updates.subscription_id) {
-        throw new Error('Subscription ID is required for updating crypto payment');
+
+    // Проверяем существование платежа перед обновлением
+    const currentPayment = await getExistingCryptoPayment(paymentId);
+
+    if (!currentPayment) {
+        throw new Error(`Crypto payment not found for id ${paymentId}`);
     }
+
+    // Добавляем subscription_id из существующего платежа, если он не указан
+    const updatesWithSubscription = {
+        ...updates,
+        subscription_id: updates.subscription_id || currentPayment.subscription_id
+    };
 
     // Выполняем обновление полей
     const { query, values } = generateUpdateQueryWithConditions(
         'crypto_payments',
-        { ...updates, updated_at: new Date() },
+        { ...updatesWithSubscription, updated_at: new Date() },
         { id: paymentId }
     );
+
     await executeQuery(query, values);
 
+
     // Получаем обновлённую запись
-    const selectQuery = `SELECT * FROM crypto_payments WHERE id = $1;`;
-    const result = await executeQuery<CryptoPaymentDetails>(selectQuery, [paymentId]);
-    if (!result[0]) throw new Error(`Crypto payment not found for id ${paymentId}`);
-    return result[0];
+    const result = await getExistingCryptoPayment(paymentId);
+    if (!result) {
+        throw new Error(`Crypto payment not found for id ${paymentId} after update`);
+    }
+    return result;
 };
 
 /**
@@ -169,287 +194,56 @@ export const deletePendingCryptoPayment = async (subscriptionId: string): Promis
     await executeQuery(query, [subscriptionId, PaymentStatus.Pending]);
     console.log(`Deleted pending crypto payments for subscription: ${subscriptionId}`);
 };
-
-/**
- * Проверка статуса криптоплатежа
- * @param paymentId ID платежа
+/* Реализация интерфейса ICryptoPaymentService 
+ * Содержит только LCRUD операции для работы с криптоплатежами
  */
-export const checkCryptoPaymentStatus = async (userId: string, paymentId: string): Promise<PaymentStatus> => {
-    // В режиме разработки проверяем, прошла ли 1 минута
-    if (USE_MOCK_PROVIDER) {
-        console.log('Using mock crypto payment status in development mode');
-
-        const query = `SELECT * FROM crypto_payments WHERE id = $1`;
-        const result = await executeQuery<CryptoPaymentDetails>(query, [paymentId]);
-
-        if (result.length > 0) {
-            const cryptoPayment = result[0];
-            const createdAt = new Date(cryptoPayment.created_at);
-            const now = new Date();
-            const oneMinuteInMs = 60 * 1000;
-
-            // Если прошла 1 минута, обновляем статус
-            if ((now.getTime() - createdAt.getTime()) > oneMinuteInMs) {
-                const status = PaymentStatus.Completed;
-
-                // Обновляем статус в таблице crypto_payments
-                await updateCryptoPayment(paymentId, {
-                    payment_status: status,
-                    transaction_hash: mockCryptoResponse.transaction_hash || 'mock-tx-hash',
-                    subscription_id: cryptoPayment.subscription_id
-                });
-
-                // Обновляем статус в основной таблице платежей
-                await updatePaymentStatus(paymentId, status);
-
-                return status;
-            }
-        }
-
-        return PaymentStatus.Pending;
-    }
-
-    // В продакшн режиме или если не прошла 1 минута
-    const query = `SELECT payment_status FROM crypto_payments WHERE id = $1;`;
-    const result = await executeQuery<{ payment_status: PaymentStatus }>(query, [paymentId]);
-    if (!result[0]) throw new Error(`Crypto payment not found for id ${paymentId}`);
-
-    const currentStatus = result[0].payment_status;
-
-    // В продакшн режиме проверяем статус через провайдера
-    if (!USE_MOCK_PROVIDER && currentStatus === PaymentStatus.Pending) {
-        try {
-            const newStatus = await checkCryptoPaymentStatus(userId, paymentId);
-
-            if (newStatus !== currentStatus) {
-                // Обновляем статус в таблицах
-                const subscriptionId = await getSubscriptionIdByUserId(userId);
-
-                await updateCryptoPayment(paymentId, {
-                    payment_status: newStatus,
-                    subscription_id: subscriptionId
-                });
-                await updatePaymentStatus(paymentId, newStatus);
-
-                return newStatus;
-            }
-        } catch (error) {
-            console.error('Error checking crypto payment status:', error);
-            // Возвращаем текущий статус в случае ошибки
-        }
-    }
-
-    return currentStatus;
-};
-
-/**
- * Проверка подписи вебхука от криптопровайдера
- */
-export const validateCryptoWebhookSignature = (data: any, signature: string): boolean => {
-    return validateWebhookSignature(data, signature);
-};
-
-/**
- * Обработка вебхука от криптопровайдера
- */
-export const processCryptoWebhook = async (webhookData: any, signature: string): Promise<boolean> => {
-    if (!validateWebhookSignature(webhookData, signature)) {
-        throw new Error('Invalid webhook signature');
-    }
-
-    const { payment_id, payment_status, txid } = webhookData;
-
-    // Получаем данные о платеже
-    const query = `SELECT * FROM crypto_payments WHERE id = $1`;
-    const result = await executeQuery<CryptoPaymentDetails>(query, [payment_id]);
-
-    if (result.length === 0) {
-        throw new Error(`Crypto payment not found for id ${payment_id}`);
-    }
-
-    const cryptoPayment = result[0];
-
-    // Обновляем статус в таблице crypto_payments
-    await updateCryptoPayment(payment_id, {
-        payment_status: payment_status as PaymentStatus,
-        transaction_hash: txid,
-        subscription_id: cryptoPayment.subscription_id
-    });
-
-    // Обновляем статус в основной таблице платежей
-    await updatePaymentStatus(payment_id, payment_status as PaymentStatus);
-
-    // Логируем вебхук
-    await executeQuery(
-        `INSERT INTO webhook_logs (payment_id, payment_status, data, created_at) VALUES ($1, $2, $3, $4)`,
-        [payment_id, payment_status, JSON.stringify(webhookData), new Date()]
-    );
-
-    return true;
-};
-
-/**
- * Инициализация криптоплатежа
- */
-export const initCryptoPayment = async (
-    params: InitCryptoPaymentParams
-): Promise<PaymentResult<CryptoPaymentDetails>> => {
-    return withErrorHandling(async () => {
-        const { id, subscription_id, amount, currency, network } = params;
-
-        // Удаляем существующие платежи WebPay при переключении на криптоплатеж
-        await deletePendingWebPayPayment(subscription_id);
-
-        // Генерируем данные для криптоплатежа
-        const cryptoData: CryptoPaymentData = {
-            id,
-            subscription_id,
-            amount,
-            currency: currency || 'BTC',
-            network: network || 'BTC'
-        };
-
-        // В режиме разработки используем моковые данные
-        if (USE_MOCK_PROVIDER) {
-            // Добавляем моковый адрес
-            cryptoData.crypto_address = mockCryptoResponse.crypto_address;
-
-            // Создаем запись в БД
-            const payment = await createCryptoPayment(cryptoData);
-
-            // Запускаем обработку вебхука через минуту
-            setTimeout(async () => {
-                try {
-                    await processCryptoWebhook({
-                        payment_id: payment.id,
-                        payment_status: PaymentStatus.Completed,
-                        txid: 'mock-tx-' + Date.now()
-                    }, 'mock-signature');
-                    console.log(`Mock crypto payment ${payment.id} completed successfully`);
-                } catch (error) {
-                    console.error('Error processing mock webhook:', error);
-                }
-            }, 60000);
-
-            return payment;
-        }
-
-        // В продакшн режиме используем реального провайдера
-        const providerResponse = await createCryptoPayment({
-            id: id,
-            subscription_id: subscription_id,
-            amount: amount,
-            currency: currency || 'BTC',
-            network: network || 'BTC',
-            crypto_address: 'mock_crypto_address',
-        });
-
-        // Добавляем адрес из ответа провайдера
-        cryptoData.crypto_address = providerResponse.crypto_address;
-
-        // Создаем запись в БД
-        return await createCryptoPayment(cryptoData);
-    });
-};
-
-/**
- * Реализация интерфейса ICryptoPaymentService
- */
-export const cryptoPaymentService: ICryptoPaymentService = {
-    // Реализация общего интерфейса IPaymentService
-    createPayment: async (params) => {
+export const cryptoService: ICryptoPaymentService = {
+    // Create - Создание криптоплатежа
+    createPayment: async (params: CreatePaymentParams) => {
         return withErrorHandling(async () => {
-            const cryptoParams: InitCryptoPaymentParams = {
-                id: params.subscription_id || '',
-                subscription_id: params.subscription_id || '',
+
+            // Создаем запись в БД для криптоплатежа
+            const cryptoPayment = await createCryptoPayment({
+                id: params.id, // Передаем id, если он есть в params
+                subscription_id: params.subscription_id,
                 amount: params.amount,
-                currency: params.currency
-            };
+                currency: params.currency || 'BTC',
+                network: params.payment_method === 'crypto' ? 'BTC' : params.payment_method || 'BTC'
+            });
 
-            const result = await initCryptoPayment(cryptoParams);
-            if (!result.success || !result.data) {
-                return {
-                    id: '',
-                    subscription_id: params.subscription_id || '',
-                    amount: params.amount,
-                    payment_status: PaymentStatus.Failed,
-                    payment_method: 'crypto',
-                    created_at: new Date(),
-                    updated_at: new Date()
-                } as PaymentBase;
-            }
 
-            // Явно преобразуем CryptoPaymentDetails в PaymentBase
-            const paymentBase: PaymentBase = {
-                id: result.data.id,
-                subscription_id: result.data.subscription_id,
-                amount: result.data.amount,
-                payment_status: result.data.payment_status,
-                payment_method: 'crypto',
-                created_at: result.data.created_at,
-                updated_at: new Date()
-            };
 
-            return paymentBase;
+            return cryptoPayment;
+
         });
     },
 
-    updatePaymentStatus: async (paymentId, status) => {
+    // Read - Получение криптоплатежа
+    getPayment: async (userId: string, paymentId: string) => {
         return withErrorHandling(async () => {
-            return await updatePaymentStatus(paymentId, status);
+            return await getCryptoPayment(userId, paymentId);
         });
     },
 
-    handlePaymentRedirect: async (params) => {
+    // Update - Обновление статуса криптоплатежа
+    updatePayment: async (paymentId: string, params: Partial<CryptoPaymentDetails>) => {
         return withErrorHandling(async () => {
-            return '/payment/success';
+            return await updateCryptoPayment(paymentId, params);
         });
     },
 
-    processPaymentWebhook: async (data, signature) => {
+    // Delete - Удаление криптоплатежа
+    deletePayment: async (userId: string, paymentId: string) => {
         return withErrorHandling(async () => {
-            return await processCryptoWebhook(data, signature);
+            await deleteCryptoPayment(userId, paymentId);
+            return true;
         });
     },
 
-    listCryptoPayments: async () => {
+    // List - Список всех криптоплатежей
+    listPayments: async () => {
         return withErrorHandling(async () => {
             return await listCryptoPayments();
         });
     },
-
-    getCryptoPayment: async (paymentId: string) => {
-        return withErrorHandling(async () => {
-            // Используем пустую строку как userId - в этом контексте нам не важен пользователь
-            const payment = await getCryptoPayment('', paymentId);
-            if (!payment) {
-                throw new Error(`Crypto payment not found for id ${paymentId}`);
-            }
-            return payment;
-        });
-    },
-
-    updateCryptoPayment: async (paymentId: string, updates: Partial<CryptoPaymentDetails>) => {
-        return withErrorHandling(async () => {
-            const payment = await updateCryptoPayment(paymentId, updates);
-            if (!payment) {
-                throw new Error(`Crypto payment not found for id ${paymentId}`);
-            }
-            return payment;
-        });
-    },
-
-    deleteCryptoPayment: async (userId: string, paymentId: string) => {
-        return withErrorHandling(async () => {
-            return await deleteCryptoPayment(userId, paymentId);
-        });
-    },
-
-    // Методы специфичные для CryptoPayment
-    checkCryptoPaymentStatus: async (paymentId) => {
-        return withErrorHandling(async () => {
-            // Используем пустую строку как userId - в этом контексте нам не важен пользователь
-            return await checkCryptoPaymentStatus('', paymentId);
-        });
-    }
-};
+}; 

@@ -1,27 +1,26 @@
-import { IPaymentService, PaymentBase, PaymentResult, PaymentStatus, PaymentStrategy } from "@interface";
+/**
+ * Интерфейсы для работы с WebPay платежами
+ */
+import { IPaymentService, PaymentBase, PaymentResult, PaymentStatus, PaymentStrategy } from './base.interfaces';
 
 /**
  * Отдельная модель для WebPay платежей со специфичными полями
  */
-export interface WebPayPayment {
-    id: string;
-    subscription_id: string; // ID подписки
-    wsb_order_num: string; // Номер заказа в WebPay
-    wsb_currency_id: string; // Валюта платежа
-    wsb_total: number; // Сумма платежа
-    transaction_id: string | null; // ID транзакции в WebPay (wsb_tid)
-    payment_status: PaymentStatus;
-    signature: string | null; // Подпись запроса
-    created_at: Date;
-    updated_at: Date;
-    success_url: string | null; // URL для редиректа при успешной оплате
-    cancel_url: string | null; // URL для редиректа при отмене
+export interface WebPayPayment extends PaymentBase {
+    wsb_order_num: string;
+    wsb_currency_id: string;
+    wsb_total: number;
+    amount: number;
+    transaction_id: string | null;
+    signature: string | null;
+    success_url: string | null;
+    cancel_url: string | null;
 }
 
 /**
  * Параметры для инициализации fiat-платежа
  */
-export interface InitFiatPaymentParams {
+export interface InitWebPayPaymentParams {
     userId: string;
     amount: number;
     currency: string;
@@ -33,7 +32,7 @@ export interface InitFiatPaymentParams {
 /**
  * Результат инициализации fiat-платежа
  */
-export interface InitFiatPaymentResult {
+export interface InitWebPayPaymentResult {
     paymentId: string;
     redirectUrl: string;
 }
@@ -82,11 +81,8 @@ export interface SimpleWebpayParams {
 /**
  * Интерфейс для WebPay сервиса, реализующий общий интерфейс платежного сервиса
  */
-export interface IWebPayService extends IPaymentService {
-    listWebPay: () => Promise<PaymentResult<WebPayPayment[]>>;
-    getWebPay: (orderNum: string) => Promise<PaymentResult<WebPayPayment>>;
-    updateWebPay: (paymentId: string, updates: Partial<WebPayPayment>) => Promise<PaymentResult<WebPayPayment>>;
-    deleteWebPay: (userId: string, paymentId: string) => Promise<PaymentResult<void>>;
+export interface IWebPayService extends IPaymentService<WebPayPayment> {
+    // Дополнительные методы для WebPayService, если нужны
 }
 
 /**

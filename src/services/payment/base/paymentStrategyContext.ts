@@ -9,7 +9,7 @@ import { logger } from '@utils';
  * Контекст стратегии платежей - объект, который выбирает и выполняет
  * конкретную стратегию оплаты в зависимости от выбранного метода
  */
-export const createPaymentStrategyContext = (): PaymentStrategyContext => {
+export const createPaymentStrategyContext = () => {
     // Текущая активная стратегия платежа
     let currentStrategy: PaymentStrategy | null = null;
 
@@ -102,9 +102,8 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
     };
 
     return {
+        strategy: currentStrategy!,
         setStrategy,
-        executePayment,
-        validateWebhook,
-        checkStatus
+        executePayment
     };
 }; 

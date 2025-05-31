@@ -3,7 +3,6 @@
  * Использует паттерн стратегии для переключения между разными платежными системами
  */
 import {
-    PaymentStrategyContext,
     PaymentStrategy,
     PaymentResult,
     CryptoPaymentDetails,
@@ -28,7 +27,7 @@ const getCryptoStrategy = async (): Promise<CryptoPaymentStrategy> => {
 };
 
 // Создаем контекст стратегии платежей
-const paymentContext: PaymentStrategyContext = createPaymentStrategyContext();
+const paymentContext = createPaymentStrategyContext();
 
 /**
  * Инициализирует платеж с использованием WebPay стратегии
@@ -117,8 +116,8 @@ export const processPaymentWebhook = async (
         // Устанавливаем выбранную стратегию
         paymentContext.setStrategy(strategy);
 
-        // Обрабатываем вебхук через контекст
-        return await paymentContext.validateWebhook(data, signature);
+        // Обрабатываем вебхук напрямую через стратегию
+        return await strategy.processPaymentWebhook(data, signature);
     } catch (error) {
         logger.error('Error processing payment webhook', { error, paymentMethod });
         return {
@@ -161,8 +160,8 @@ export const checkPaymentStatus = async (
         // Устанавливаем выбранную стратегию
         paymentContext.setStrategy(strategy);
 
-        // Проверяем статус платежа через контекст
-        return await paymentContext.checkStatus(paymentId);
+        // Проверяем статус платежа напрямую через стратегию
+        return await strategy.checkPaymentStatus(paymentId);
     } catch (error) {
         logger.error('Error checking payment status', { error, paymentMethod, paymentId });
         return {

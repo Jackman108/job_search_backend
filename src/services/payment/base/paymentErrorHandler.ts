@@ -6,6 +6,79 @@ import { PaymentResult } from '@interface';
 import { logger } from '@utils';
 
 /**
+ * Типы ошибок платежей для более точной обработки
+ */
+export enum PaymentErrorType {
+    VALIDATION = 'validation',
+    CONNECTION = 'connection',
+    PROVIDER = 'provider',
+    AUTHENTICATION = 'authentication',
+    DATABASE = 'database',
+    UNKNOWN = 'unknown'
+}
+
+/**
+ * Структура ошибки платежа с дополнительными метаданными
+ */
+interface PaymentError {
+    message: string;
+    type: PaymentErrorType;
+    code?: string;
+    originalError?: unknown;
+}
+
+/**
+ * Определяет тип ошибки на основе сообщения или класса ошибки
+ * @param error Объект ошибки
+ * @returns Тип ошибки платежа
+ */
+const determineErrorType = (error: unknown): PaymentErrorType => {
+    if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+
+        if (message.includes('invalid') || message.includes('validation') || message.includes('required')) {
+            return PaymentErrorType.VALIDATION;
+        }
+
+        if (message.includes('connection') || message.includes('timeout') || message.includes('network')) {
+            return PaymentErrorType.CONNECTION;
+        }
+
+        if (message.includes('provider') || message.includes('api')) {
+            return PaymentErrorType.PROVIDER;
+        }
+
+        if (message.includes('auth') || message.includes('token') || message.includes('signature')) {
+            return PaymentErrorType.AUTHENTICATION;
+        }
+
+        if (message.includes('database') || message.includes('sql') || message.includes('query')) {
+            return PaymentErrorType.DATABASE;
+        }
+    }
+
+    return PaymentErrorType.UNKNOWN;
+};
+
+/**
+ * Форматирует объект ошибки для логирования и возврата клиенту
+ * @param error Объект ошибки
+ * @param context Контекст операции
+ * @returns Структурированная ошибка платежа
+ */
+const formatPaymentError = (error: unknown, context: string): PaymentError => {
+    const errorType = determineErrorType(error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    return {
+        message: errorMessage,
+        type: errorType,
+        code: `${errorType.toUpperCase()}_${context.toUpperCase()}`,
+        originalError: error
+    };
+};
+
+/**
  * Создаёт обработчик ошибок для указанного платежного метода
  * @param paymentMethod Метод оплаты (webpay, crypto и т.д.)
  * @returns Функция для обработки ошибок
@@ -18,10 +91,20 @@ export const createPaymentErrorHandler = (paymentMethod: string) => {
      * @returns PaymentResult с ошибкой
      */
     return <T>(error: unknown, context: string): PaymentResult<T> => {
-        logger.error(`Error in ${paymentMethod} strategy: ${context}`, { error });
+        const formattedError = formatPaymentError(error, context);
+
+        logger.error(`Error in ${paymentMethod} strategy: ${context}`, {
+            error: formattedError,
+            method: paymentMethod,
+            context,
+            timestamp: new Date().toISOString()
+        });
+
         return {
             success: false,
-            error: error instanceof Error ? error.message : `Unknown error in ${context}`
+            error: formattedError.message,
+            errorCode: formattedError.code,
+            errorType: formattedError.type
         };
     };
 };

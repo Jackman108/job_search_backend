@@ -32,22 +32,14 @@ export * from './payment/crypto/cryptoStrategy.js';
 export * from './payment/crypto/cryptoService.js';
 export * from './payment/webpay/webpayService.js';
 
+// Общие функции для обработки платежей
+export * from './payment/common/paymentCleaner.js';
+export * from './payment/common/signatureValidator.js';
+
 // Необходимые функции из интеграционных сервисов
-export {
-    createMockCryptoPayment,
-    processWebhook,
-    deletePendingCryptoPayment
-} from './payment/crypto/cryptoIntegrationService.js';
+export * from './payment/crypto/cryptoIntegrationService.js';
 
-export {
-    initWebpayFiatPayment,
-    validateWebpaySignature,
-    deletePendingWebPayPayment,
-    webpayService
-} from './payment/webpay/webpayIntegrationService.js';
-
-// Экспорт сервисов для работы с платежами
-export { cryptoPaymentService } from './payment/crypto/cryptoService.js';
+export * from './payment/webpay/webpayIntegrationService.js';
 
 // Экспорт сервиса информации о платежах
 export * from './payment/base/infoPaymentService.js';

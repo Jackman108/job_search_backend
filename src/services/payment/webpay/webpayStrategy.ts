@@ -4,12 +4,9 @@
  */
 import { PaymentResult, PaymentStatus, WebPayStrategy, SimpleWebpayParams, WebpayInitResult } from '@interface';
 import { logger } from '@utils';
-import { updatePaymentStatus, deletePendingWebPayPayment, createPaymentErrorHandler, withPaymentErrorHandling } from '@services';
-import { deletePendingCryptoPayment } from '../crypto/cryptoIntegrationService';
-import {
-    initWebpayFiatPayment,
-    validateWebpaySignature
-} from '../webpay/webpayIntegrationService';
+import { updatePaymentStatus, createPaymentErrorHandler, withPaymentErrorHandling } from '@services';
+import { cleanupPendingCryptoPayment, cleanupPendingWebPayPayment, validateWebpaySignature, initWebpayFiatPayment } from '@services';
+
 import { FRONTEND_URL } from '@config';
 
 /**
@@ -30,10 +27,10 @@ export const createWebPayStrategy = (): WebPayStrategy => {
 
         try {
             // Проверяем, если есть незавершенные криптоплатежи, удаляем их
-            await deletePendingCryptoPayment(params.subscription_id);
+            await cleanupPendingCryptoPayment(params.subscription_id);
 
             // Инициализация платежа через WebPay
-            return await initWebpayPayment(params);
+            return await initWebpayStrategyPayment(params);
         } catch (error) {
             return handleError(error, 'initPayment');
         }
@@ -44,7 +41,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @param params Параметры платежа WebPay
      * @returns Результат инициализации платежа
      */
-    const initWebpayPayment = async (params: SimpleWebpayParams): Promise<PaymentResult<WebpayInitResult>> => {
+    const initWebpayStrategyPayment = async (params: SimpleWebpayParams): Promise<PaymentResult<WebpayInitResult>> => {
         try {
             logger.info('Initializing WebPay payment details', { params });
 
@@ -71,7 +68,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
                 }
             };
         } catch (error) {
-            return handleError(error, 'initWebpayPayment');
+            return handleError(error, 'initWebpayStrategyPayment');
         }
     };
 
@@ -132,7 +129,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
                 logger.info('Handling WebPay cancel', { orderNum });
 
                 // Обновляем статус платежа
-                await updatePaymentStatus(orderNum, PaymentStatus.Cancelled);
+                await updatePaymentStatus(orderNum, PaymentStatus.Canceled);
 
                 return `${FRONTEND_URL}/payment/cancel`;
             },
@@ -206,9 +203,25 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         );
     };
 
+    /**
+     * Удаляет незавершенный WebPay платеж с тем же subscription_id
+     * @param subscriptionId ID подписки
+     * @returns Результат удаления
+     */
+    const deletePendingWebPayPayment = async (subscriptionId: string): Promise<PaymentResult<boolean>> => {
+        return withPaymentErrorHandling(
+            async () => {
+                const result = await cleanupPendingWebPayPayment(subscriptionId);
+                return result.data || false;
+            },
+            handleError,
+            'deletePendingWebPayPayment'
+        );
+    };
+
     return {
         initPayment,
-        initWebpayPayment,
+        initWebpayPayment: initWebpayStrategyPayment,
         validatePaymentSignature,
         validateWebpaySignature,
         handlePaymentCallback,

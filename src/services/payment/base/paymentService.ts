@@ -64,7 +64,14 @@ export const createPayment = async (
     params: CreatePaymentParams
 ): Promise<PaymentBase> => {
     const { userId, amount, payment_method, subscription_id } = params;
-    const actualSubscriptionId = subscription_id || await getSubscriptionIdByUserId(userId);
+
+    // Проверяем, что хотя бы один из userId или subscription_id определен
+    if (!userId && !subscription_id) {
+        throw new Error('Either userId or subscription_id must be provided');
+    }
+
+    // Получаем subscription_id из userId, если subscription_id не указан
+    const actualSubscriptionId = subscription_id || (userId ? await getSubscriptionIdByUserId(userId) : '');
 
     const query = `
         INSERT INTO payments (subscription_id, amount, payment_status, payment_method)

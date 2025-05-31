@@ -1,4 +1,6 @@
 import { PaymentResult } from '@interface';
+import { logger } from './logger';
+import { USE_MOCK_PROVIDER } from '@config';
 
 /**
  * Функция-обертка для обработки ошибок в платежных сервисах
@@ -10,7 +12,10 @@ export const withErrorHandling = async <T>(fn: () => Promise<T>): Promise<Paymen
         const result = await fn();
         return { success: true, data: result };
     } catch (error) {
-        console.error('Payment service error:', error);
+        // Логируем ошибки только в режиме разработки
+        if (USE_MOCK_PROVIDER) {
+            logger.error('Payment service error:', { error });
+        }
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Unknown payment service error'
