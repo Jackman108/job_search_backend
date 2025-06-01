@@ -7,29 +7,29 @@ import { executeQuery, logger } from '@utils';
 
 /**
  * Удаляет незавершенные криптоплатежи по subscription_id
- * @param subscriptionId ID подписки
+ * @param paymentId ID платежа
  * @returns Результат удаления
  */
-export const cleanupPendingCryptoPayment = async (subscriptionId: string): Promise<PaymentResult<boolean>> => {
+export const cleanupPendingCryptoPayment = async (paymentId: string): Promise<PaymentResult<boolean>> => {
     try {
-        logger.info('Deleting pending crypto payment', { subscriptionId });
+        logger.info('Deleting pending crypto payment', { paymentId });
 
         // Находим незавершенные платежи для указанной подписки
         const query = `
             SELECT id FROM crypto_payments 
-            WHERE subscription_id = $1 
+            WHERE payment_id = $1 
             AND payment_status = $2
         `;
 
         const result = await executeQuery(query, [
-            subscriptionId,
+            paymentId,
             PaymentStatus.Pending
         ]);
 
         const rows = Array.isArray(result) ? result : [];
 
         if (rows.length === 0) {
-            logger.info('No pending crypto payments found for subscription', { subscriptionId });
+            logger.info('Незавершенные криптоплатежи не найдены', { paymentId });
             return {
                 success: true,
                 data: true
@@ -38,7 +38,7 @@ export const cleanupPendingCryptoPayment = async (subscriptionId: string): Promi
 
         // Удаляем найденные платежи
         for (const row of rows) {
-            logger.info('Updating crypto payment status to canceled', { paymentId: row.id });
+            logger.info('Обновление статуса криптоплатежа на отмененный', { paymentId: row.id });
 
             // Обновляем статус на отмененный
             await executeQuery(
@@ -54,7 +54,7 @@ export const cleanupPendingCryptoPayment = async (subscriptionId: string): Promi
             data: true
         };
     } catch (error) {
-        logger.error('Error deleting pending crypto payment', { error, subscriptionId });
+        logger.error('Ошибка при удалении незавершенного криптоплатежа', { error, paymentId });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Error deleting pending crypto payment'
@@ -67,26 +67,26 @@ export const cleanupPendingCryptoPayment = async (subscriptionId: string): Promi
  * @param subscriptionId ID подписки
  * @returns Результат удаления
  */
-export const cleanupPendingWebPayPayment = async (subscriptionId: string): Promise<PaymentResult<boolean>> => {
+export const cleanupPendingWebPayPayment = async (paymentId: string): Promise<PaymentResult<boolean>> => {
     try {
-        logger.info('Deleting pending WebPay payment', { subscriptionId });
+        logger.info('Удаление незавершенного WebPay платежа', { paymentId });
 
         // Находим незавершенные платежи для указанной подписки
         const query = `
             SELECT id, wsb_order_num FROM webpay_payments 
-            WHERE subscription_id = $1 
+            WHERE payment_id = $1 
             AND payment_status = $2
         `;
 
         const result = await executeQuery(query, [
-            subscriptionId,
+            paymentId,
             PaymentStatus.Pending
         ]);
 
         const rows = Array.isArray(result) ? result : [];
 
         if (rows.length === 0) {
-            logger.info('No pending WebPay payments found for subscription', { subscriptionId });
+            logger.info('Незавершенные WebPay платежи не найдены', { paymentId });
             return {
                 success: true,
                 data: true
@@ -95,7 +95,7 @@ export const cleanupPendingWebPayPayment = async (subscriptionId: string): Promi
 
         // Удаляем найденные платежи
         for (const row of rows) {
-            logger.info('Updating WebPay payment status to canceled', {
+            logger.info('Обновление статуса WebPay платежа на отмененный', {
                 paymentId: row.id,
                 orderNum: row.wsb_order_num
             });
@@ -114,7 +114,7 @@ export const cleanupPendingWebPayPayment = async (subscriptionId: string): Promi
             data: true
         };
     } catch (error) {
-        logger.error('Error deleting pending WebPay payment', { error, subscriptionId });
+        logger.error('Ошибка при удалении незавершенного WebPay платежа', { error, paymentId });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Error deleting pending WebPay payment'

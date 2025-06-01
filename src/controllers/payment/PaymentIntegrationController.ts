@@ -2,10 +2,11 @@
  * Контроллер для интеграции платежных сервисов
  * Переключает стратегии платежей и обрабатывает общие операции
  */
-import { Request, Response } from 'express';
-import { logger } from '@utils';
-import { initializeCryptoPayment, initializeWebpayPayment, processPaymentWebhook, checkPaymentStatus } from '@services';
 import { isPaymentMethodAvailable } from '@config';
+import { AuthenticatedRequest, PaymentMethod } from '@interface';
+import { checkPaymentStatus, initializeCryptoPayment, initializeWebpayPayment, processPaymentWebhook } from '@services';
+import { logger } from '@utils';
+import { Request, Response } from 'express';
 
 /**
  * Общая функция для обработки ошибок в контроллере
@@ -37,7 +38,7 @@ const validateRequiredFields = (data: Record<string, any>, requiredFields: strin
  * @param req Запрос Express
  * @param res Ответ Express
  */
-export const initializePayment = async (req: Request, res: Response): Promise<void> => {
+export const initializePayment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { paymentMethod } = req.params;
         const paymentData = req.body;
@@ -54,12 +55,9 @@ export const initializePayment = async (req: Request, res: Response): Promise<vo
         }
 
         // Проверяем обязательные поля
-        const missingFields = validateRequiredFields(paymentData, ['subscription_id', 'amount']);
+        const missingFields = validateRequiredFields(paymentData, ['payment_id', 'amount', 'currency']);
         if (missingFields) {
-            res.status(400).json({
-                success: false,
-                error: `Missing required fields: ${missingFields.join(', ')}`
-            });
+            handleControllerError(res, new Error(`Missing required fields: ${missingFields.join(', ')}`), 'Failed to retrieve payments');
             return;
         }
 
@@ -69,18 +67,18 @@ export const initializePayment = async (req: Request, res: Response): Promise<vo
         switch (paymentMethod.toLowerCase()) {
             case 'webpay':
                 result = await initializeWebpayPayment({
-                    subscription_id: paymentData.subscription_id,
+                    paymentId: paymentData.payment_id,
                     amount: paymentData.amount,
                     currency: paymentData.currency || 'BYN',
-                    success_url: paymentData.success_url,
-                    cancel_url: paymentData.cancel_url
+                    paymentMethod: paymentMethod as PaymentMethod,
+                    userId: req.userId!
                 });
                 break;
 
             case 'crypto':
                 result = await initializeCryptoPayment({
                     id: paymentData.id || `crypto-${Date.now()}`,
-                    subscription_id: paymentData.subscription_id,
+                    payment_id: paymentData.payment_id,
                     amount: paymentData.amount,
                     currency: paymentData.currency,
                     network: paymentData.network

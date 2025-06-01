@@ -15,11 +15,11 @@ import {
     cleanupPendingCryptoPayment,
     cleanupPendingWebPayPayment,
     createPaymentErrorHandler,
+    getCryptoPaymentById,
     initCryptoDirectPayment,
     updatePaymentStatus,
     validateCryptoSignature,
-    withPaymentErrorHandling,
-    getCryptoPaymentById
+    withPaymentErrorHandling
 } from '@services';
 
 import { logger } from '@utils';
@@ -43,7 +43,7 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
 
         try {
             // Проверяем, если есть незавершенные webpay платежи, удаляем их
-            await cleanupPendingWebPayPayment(params.subscription_id);
+            await cleanupPendingWebPayPayment(params.payment_id);
 
             // Инициализация криптоплатежа
             return await initCryptoStrategyPayment(params);
@@ -64,7 +64,7 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
             // Вызов сервиса инициализации криптоплатежа
             const result = await initCryptoDirectPayment({
                 id: params.id,
-                subscription_id: params.subscription_id,
+                payment_id: params.payment_id,
                 amount: params.amount,
                 currency: params.currency || nowPaymentsConfig.defaultCurrency,
                 network: params.network || 'BTC'

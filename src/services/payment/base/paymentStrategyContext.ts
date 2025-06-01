@@ -8,8 +8,9 @@ import { logger } from '@utils';
 /**
  * Контекст стратегии платежей - объект, который выбирает и выполняет
  * конкретную стратегию оплаты в зависимости от выбранного метода
+ * @returns Объект контекста стратегии платежей
  */
-export const createPaymentStrategyContext = () => {
+export const createPaymentStrategyContext = (): PaymentStrategyContext => {
     // Текущая активная стратегия платежа
     let currentStrategy: PaymentStrategy | null = null;
 
@@ -101,9 +102,12 @@ export const createPaymentStrategyContext = () => {
         }
     };
 
+    // Возвращаем объект контекста, соответствующий интерфейсу
     return {
         strategy: currentStrategy!,
         setStrategy,
-        executePayment
+        executePayment,
+        validateWebhook,
+        checkStatus
     };
 }; 

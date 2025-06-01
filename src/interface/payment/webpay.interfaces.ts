@@ -1,20 +1,43 @@
 /**
  * Интерфейсы для работы с WebPay платежами
  */
-import { IPaymentService, PaymentBase, PaymentResult, PaymentStatus, PaymentStrategy } from './base.interfaces';
+import { CreatePaymentParams, IPaymentService, PaymentMethod, PaymentResult, PaymentStatus, PaymentStrategy } from './base.interfaces';
 
 /**
  * Отдельная модель для WebPay платежей со специфичными полями
  */
-export interface WebPayPayment extends PaymentBase {
+export interface WebPayPayment {
+    id?: string;
     wsb_order_num: string;
     wsb_currency_id: string;
     wsb_total: number;
     amount: number;
     transaction_id: string | null;
+    payment_status: PaymentStatus;
     signature: string | null;
     success_url: string | null;
     cancel_url: string | null;
+    payment_id: string;
+    created_at: Date;
+    updated_at: Date;
+}
+
+/**
+ * Данные для создания WebPay платежа    
+ */
+export interface WebPayPaymentData {
+    id?: string;
+    payment_id: string;
+    wsb_order_num: string;
+    wsb_currency_id: string;
+    wsb_total: number;
+    transaction_id: string | null;
+    payment_status: PaymentStatus;
+    signature: string | null;
+    success_url: string | null;
+    cancel_url: string | null;
+    created_at: Date;
+    updated_at: Date;
 }
 
 /**
@@ -22,11 +45,10 @@ export interface WebPayPayment extends PaymentBase {
  */
 export interface InitWebPayPaymentParams {
     userId: string;
+    paymentId: string;
+    currency: "BYN" | "USD" | "EUR" | "RUB";
     amount: number;
-    currency: string;
-    payment_method: string;
-    success_url?: string;
-    cancel_url?: string;
+    paymentMethod: PaymentMethod;
 }
 
 /**
@@ -71,7 +93,7 @@ export interface WebpayInitResult {
  * Упрощенные параметры для инициализации WebPay платежа
  */
 export interface SimpleWebpayParams {
-    subscription_id: string;
+    payment_id: string;
     amount: number;
     currency: string;
     success_url?: string;
@@ -81,7 +103,7 @@ export interface SimpleWebpayParams {
 /**
  * Интерфейс для WebPay сервиса, реализующий общий интерфейс платежного сервиса
  */
-export interface IWebPayService extends IPaymentService<WebPayPayment> {
+export interface IWebPayService extends IPaymentService<WebPayPayment, CreateWebPayPaymentParams> {
     // Дополнительные методы для WebPayService, если нужны
 }
 
@@ -89,9 +111,19 @@ export interface IWebPayService extends IPaymentService<WebPayPayment> {
  * Интерфейс для стратегии WebPay платежей
  */
 export interface WebPayStrategy extends PaymentStrategy {
-    initWebpayPayment: (params: SimpleWebpayParams) => Promise<PaymentResult<WebpayInitResult>>;
+    initWebpayPayment: (params: InitWebPayPaymentParams) => Promise<PaymentResult<WebpayInitResult>>;
     validateWebpaySignature: (data: any, signature: string) => boolean;
     handleWebpayReturn: (orderNum: string, transactionId: string) => Promise<PaymentResult<string>>;
     handleWebpayCancel: (orderNum: string) => Promise<PaymentResult<string>>;
     deletePendingWebPayPayment: (subscriptionId: string) => Promise<PaymentResult<boolean>>;
+}
+
+/**
+ * Параметры для создания WebPay платежа, расширяет базовый интерфейс CreatePaymentParams
+ */
+export interface CreateWebPayPaymentParams extends CreatePaymentParams {
+    id?: string;
+    payment_id: string;
+    success_url?: string;
+    cancel_url?: string;
 } 

@@ -1,5 +1,16 @@
 import { CreatePaymentParams, PaymentBase, PaymentStatus } from '@interface';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId, withErrorHandling } from '@utils';
+import { getSubscriptionIdByUserId, withErrorHandling } from '@services';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
+
+
+/**
+ * @module PaymentService
+ * @description Базовый сервис для управления платежами
+ * Этот модуль содержит функции для работы с таблицей payments:
+ * - Создание и обновление таблицы
+ * - CRUD операции с платежами
+ * - Безопасные операции с обработкой ошибок
+ */
 
 /**
  * Создание таблицы payments с необходимыми полями
@@ -28,16 +39,6 @@ export const listPayments = async (userId: string): Promise<PaymentBase[]> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
     const query = `SELECT * FROM payments WHERE subscription_id = $1;`;
     return await executeQuery<PaymentBase>(query, [subscriptionId]);
-};
-
-/**
- * Получение платежа по ID подписки
- * @param subscriptionId ID подписки
- */
-export const getPaymentBySubscriptionId = async (subscriptionId: string): Promise<PaymentBase | null> => {
-    const query = `SELECT * FROM payments WHERE subscription_id = $1 ORDER BY created_at DESC LIMIT 1;`;
-    const result = await executeQuery<PaymentBase>(query, [subscriptionId]);
-    return result.length > 0 ? result[0] : null;
 };
 
 /**
@@ -117,26 +118,6 @@ export const updatePayment = async (
 };
 
 /**
- * Обновление статуса платежа
- * @param paymentId ID платежа
- * @param status Новый статус платежа
- */
-export const updatePaymentStatus = async (
-    paymentId: string,
-    status: PaymentStatus
-): Promise<PaymentBase> => {
-    const query = `
-        UPDATE payments
-        SET payment_status = $1, updated_at = NOW()
-        WHERE id = $2
-        RETURNING *;
-    `;
-    const [updated] = await executeQuery<PaymentBase>(query, [status, paymentId]);
-    if (!updated) throw new Error(`Payment not found for id ${paymentId}`);
-    return updated;
-};
-
-/**
  * Удаление платежа по subscription_id и id
  * @param userId ID пользователя
  * @param paymentId ID платежа
@@ -159,19 +140,17 @@ export const safePaymentOperations = {
         return withErrorHandling(async () => {
             return await listPayments(userId);
         });
-
     },
 
     getPayment: async (userId: string, paymentId: string) => {
         return withErrorHandling(async () => {
             const payment = await getPayment(userId, paymentId);
             if (!payment) {
-                throw new Error(`Crypto payment not found for id ${paymentId}`);
+                throw new Error(`Payment not found for id ${paymentId}`);
             }
             return payment;
         });
     },
-
 
     createPayment: async (params: CreatePaymentParams) => {
         return withErrorHandling(async () => {

@@ -2,10 +2,9 @@
  * Стратегия для обработки платежей через WebPay
  * Реализует интерфейс PaymentStrategy для WebPay
  */
-import { PaymentResult, PaymentStatus, WebPayStrategy, SimpleWebpayParams, WebpayInitResult } from '@interface';
+import { InitWebPayPaymentParams, PaymentResult, PaymentStatus, WebpayInitResult, WebPayStrategy } from '@interface';
+import { cleanupPendingCryptoPayment, cleanupPendingWebPayPayment, createPaymentErrorHandler, initWebpayFiatPayment, updatePaymentStatus, validateWebpaySignature, withPaymentErrorHandling } from '@services';
 import { logger } from '@utils';
-import { updatePaymentStatus, createPaymentErrorHandler, withPaymentErrorHandling } from '@services';
-import { cleanupPendingCryptoPayment, cleanupPendingWebPayPayment, validateWebpaySignature, initWebpayFiatPayment } from '@services';
 
 import { FRONTEND_URL } from '@config';
 
@@ -22,12 +21,12 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @param params Параметры платежа
      * @returns Результат инициализации платежа
      */
-    const initPayment = async (params: SimpleWebpayParams): Promise<PaymentResult<WebpayInitResult>> => {
+    const initPayment = async (params: InitWebPayPaymentParams): Promise<PaymentResult<WebpayInitResult>> => {
         logger.info('Initializing WebPay payment', { params });
 
         try {
             // Проверяем, если есть незавершенные криптоплатежи, удаляем их
-            await cleanupPendingCryptoPayment(params.subscription_id);
+            await cleanupPendingCryptoPayment(params.paymentId);
 
             // Инициализация платежа через WebPay
             return await initWebpayStrategyPayment(params);
@@ -41,18 +40,18 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @param params Параметры платежа WebPay
      * @returns Результат инициализации платежа
      */
-    const initWebpayStrategyPayment = async (params: SimpleWebpayParams): Promise<PaymentResult<WebpayInitResult>> => {
+    const initWebpayStrategyPayment = async (params: InitWebPayPaymentParams): Promise<PaymentResult<WebpayInitResult>> => {
         try {
             logger.info('Initializing WebPay payment details', { params });
 
             // Вызов сервиса инициализации WebPay
             const result = await initWebpayFiatPayment({
-                amount: params.amount,
+                userId: params.userId,
+                paymentId: params.paymentId,
                 currency: params.currency,
-                payment_method: 'webpay',
-                userId: '',  // This will be set by the controller
-                success_url: params.success_url || `${FRONTEND_URL}/payment/success`,
-                cancel_url: params.cancel_url || `${FRONTEND_URL}/payment/cancel`
+                amount: params.amount,
+                paymentMethod: params.paymentMethod
+
             });
 
             if (!result.success || !result.data) {

@@ -1,7 +1,7 @@
 -- Таблица для криптоплатежей
 CREATE TABLE IF NOT EXISTS crypto_payments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    subscription_id UUID NOT NULL REFERENCES subscriptions(id),
+    payment_id UUID NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
     amount DECIMAL(10,2) NOT NULL,
     currency VARCHAR(3) NOT NULL,
     crypto_address VARCHAR(100) NOT NULL,
@@ -27,5 +27,5 @@ CREATE TABLE IF NOT EXISTS webhook_logs (
 
 -- Индексы для оптимизации запросов
 CREATE INDEX IF NOT EXISTS idx_crypto_payments_status ON crypto_payments(status);
-CREATE INDEX IF NOT EXISTS idx_crypto_payments_subscription_id ON crypto_payments(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_crypto_payments_payment_id ON crypto_payments(payment_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_payment_id ON webhook_logs(payment_id); 

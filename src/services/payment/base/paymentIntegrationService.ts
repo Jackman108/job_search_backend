@@ -3,14 +3,14 @@
  * Использует паттерн стратегии для переключения между разными платежными системами
  */
 import {
-    PaymentStrategy,
-    PaymentResult,
     CryptoPaymentDetails,
-    WebpayInitResult,
     CryptoPaymentStrategy,
-    WebPayStrategy,
-    SimpleWebpayParams,
-    InitCryptoPaymentParams
+    InitCryptoPaymentParams,
+    InitWebPayPaymentParams,
+    PaymentResult,
+    PaymentStrategy,
+    WebpayInitResult,
+    WebPayStrategy
 } from '@interface';
 import { createPaymentStrategyContext } from '@services';
 import { logger } from '@utils';
@@ -34,7 +34,7 @@ const paymentContext = createPaymentStrategyContext();
  * @param params Параметры платежа WebPay
  * @returns Результат инициализации платежа
  */
-export const initializeWebpayPayment = async (params: SimpleWebpayParams): Promise<PaymentResult<WebpayInitResult>> => {
+export const initializeWebpayPayment = async (params: InitWebPayPaymentParams): Promise<PaymentResult<WebpayInitResult>> => {
     try {
         logger.info('Initializing WebPay payment through strategy', { params });
 

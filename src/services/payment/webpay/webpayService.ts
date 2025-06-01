@@ -1,8 +1,15 @@
-import { IWebPayService, InitWebPayPaymentParams, PaymentResult, PaymentStatus, WebPayPayment, CreatePaymentParams } from '@interface';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId, withErrorHandling } from '@utils';
-import crypto from 'crypto';
+import { CreateWebPayPaymentParams, IWebPayService, PaymentResult, PaymentStatus, WebPayPayment, WebPayPaymentData } from '@interface';
+import { generateOrderNumber, getPaymentIdByUserId, withErrorHandling } from '@services';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, } from '@utils';
 
-
+/**
+ * @module WebpayService
+ * @description Сервис для управления WebPay платежами в БД
+ * Этот модуль содержит функции для:
+ * - Создания и управления таблицей webpay_payments
+ * - CRUD операций с WebPay платежами
+ * - Безопасных операций с обработкой ошибок
+ */
 
 /**
  * Создание таблицы webpay_payments с необходимыми полями
@@ -14,7 +21,7 @@ export const createTableWebpayPayments = async (): Promise<void> => {
     const query = `
     CREATE TABLE IF NOT EXISTS webpay_payments (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-        subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
+        payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
         wsb_order_num VARCHAR(100) NOT NULL,
         wsb_currency_id VARCHAR(10) NOT NULL,
         wsb_total DECIMAL(10,2) NOT NULL,
@@ -28,7 +35,7 @@ export const createTableWebpayPayments = async (): Promise<void> => {
         UNIQUE(wsb_order_num)
     );
     
-    CREATE INDEX IF NOT EXISTS idx_webpay_subscription_id ON webpay_payments(subscription_id);
+    CREATE INDEX IF NOT EXISTS idx_webpay_payment_id ON webpay_payments(payment_id);
     CREATE INDEX IF NOT EXISTS idx_webpay_order_num ON webpay_payments(wsb_order_num);
     `;
 
@@ -45,32 +52,33 @@ export const listWebpayPayments = async (): Promise<WebPayPayment[]> => {
 
 /**
  * Получение активного (незавершенного) криптоплатежа
- * @param subscriptionId ID подписки
- * @param paymentId ID платежа
+ * @param paymentId ID платежа в таблице payments
+ * @param webpayPaymentId ID webpay платежа
  */
 export const getActiveWebpayPayment = async (
-    subscriptionId: string,
-    paymentId: string
+    paymentId: string,
+    webpayPaymentId: string
 ): Promise<WebPayPayment | null> => {
     const query = `
         SELECT * FROM webpay_payments
-        WHERE subscription_id = $1 AND id = $2 AND payment_status = $3
+        WHERE payment_id = $1 AND id = $2 AND payment_status = $3
         LIMIT 1;
     `;
-    const result = await executeQuery<WebPayPayment>(query, [subscriptionId, paymentId, PaymentStatus.Pending]);
+    const result = await executeQuery<WebPayPayment>(query, [paymentId, webpayPaymentId, PaymentStatus.Pending]);
     return result.length > 0 ? result[0] : null;
 };
 
 
 /**
  * Получение WebPay платежа по ID
- * @param id ID платежа WebPay
+ * @param userId ID пользователя
+ * @param webpayPaymentId ID платежа WebPay
  */
-export const getWebpayPayment = async (userId: string, paymentId: string): Promise<WebPayPayment | null> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
-    const query = `SELECT * FROM webpay_payments WHERE subscription_id = $1 AND id = $2;`;
-    const result = await executeQuery<WebPayPayment>(query, [subscriptionId, paymentId]);
-    if (!result[0]) throw new Error(`WebPay payment not found for id ${paymentId}`);
+export const getWebpayPayment = async (userId: string, webpayPaymentId: string): Promise<WebPayPayment | null> => {
+    const paymentId = await getPaymentIdByUserId(userId);
+    const query = `SELECT * FROM webpay_payments WHERE payment_id = $1 AND id = $2;`;
+    const result = await executeQuery<WebPayPayment>(query, [paymentId, webpayPaymentId]);
+    if (!result[0]) throw new Error(`WebPay payment not found for id ${webpayPaymentId}`);
     return result[0];
 };
 
@@ -85,12 +93,12 @@ export const getWebpayPaymentByOrderNum = async (orderNum: string): Promise<WebP
 };
 
 /**
- * Получение WebPay платежа по ID подписки
- * @param subscriptionId ID подписки
+ * Получение WebPay платежа по ID платежа
+ * @param paymentId ID платежа
  */
-export const getWebpayPaymentBySubscriptionId = async (subscriptionId: string): Promise<WebPayPayment | null> => {
-    const query = `SELECT * FROM webpay_payments WHERE subscription_id = $1;`;
-    const result = await executeQuery<WebPayPayment>(query, [subscriptionId]);
+export const getWebpayPaymentByPaymentId = async (paymentId: string): Promise<WebPayPayment | null> => {
+    const query = `SELECT * FROM webpay_payments WHERE payment_id = $1;`;
+    const result = await executeQuery<WebPayPayment>(query, [paymentId]);
     return result[0] || null;
 };
 
@@ -99,14 +107,18 @@ export const getWebpayPaymentBySubscriptionId = async (subscriptionId: string): 
  * @param webpayData Данные для создания WebPay платежа
  */
 export const createWebpayPayment = async (
-    webpayData: WebPayPayment
+    webpayData: WebPayPaymentData
 ): Promise<WebPayPayment> => {
-    const activeWebpayPayment = await getActiveWebpayPayment(webpayData.subscription_id, webpayData.id);
+    // Проверяем наличие активного платежа только если id определен
+    let activeWebpayPayment = null;
+    if (webpayData.id) {
+        activeWebpayPayment = await getActiveWebpayPayment(webpayData.payment_id, webpayData.id);
+    }
     if (activeWebpayPayment) return activeWebpayPayment;
 
     const query = `
     INSERT INTO webpay_payments (
-        id, subscription_id, wsb_order_num,  wsb_currency_id,
+         payment_id, wsb_order_num,  wsb_currency_id,
         wsb_total, transaction_id, payment_status, signature,
         success_url, cancel_url, created_at, updated_at
     )
@@ -114,8 +126,7 @@ export const createWebpayPayment = async (
     RETURNING *;
 `;
     const values = [
-        webpayData.id,
-        webpayData.subscription_id,
+        webpayData.payment_id,
         webpayData.wsb_order_num || '',
         webpayData.wsb_currency_id || '',
         webpayData.wsb_total || 0,
@@ -142,8 +153,8 @@ export const updateWebpayPayment = async (
     paymentId: string,
     updates: Partial<WebPayPayment>
 ): Promise<WebPayPayment> => {
-    if (!updates.subscription_id) {
-        throw new Error('Subscription ID is required for updating webpay payment');
+    if (!updates.payment_id) {
+        throw new Error('Payment ID is required for updating webpay payment');
     }
 
     const { query, values } = generateUpdateQueryWithConditions(
@@ -184,27 +195,28 @@ export const updateWebpayPaymentByOrderNum = async (
 
 /**
  * Удаление WebPay платежа
- * @param id ID WebPay платежа
+ * @param userId ID пользователя
+ * @param webpayPaymentId ID WebPay платежа
  */
 export const deleteWebpayPayment = async (
-    userId: string, paymentId: string
+    userId: string, webpayPaymentId: string
 ): Promise<void> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
-    const query = `DELETE FROM webpay_payments WHERE subscription_id = $1 AND id = $2;`;
-    await executeQuery(query, [subscriptionId, paymentId]);
+    const paymentId = await getPaymentIdByUserId(userId);
+    const query = `DELETE FROM webpay_payments WHERE payment_id = $1 AND id = $2;`;
+    await executeQuery(query, [paymentId, webpayPaymentId]);
 };
 
 /**
  * Проверяет и удаляет существующий WebPay платеж при переключении на криптоплатеж
- * @param subscriptionId ID подписки
+ * @param paymentId ID платежа
  */
-export const deletePendingWebPayPayment = async (subscriptionId: string): Promise<void> => {
+export const deletePendingWebPayPayment = async (paymentId: string): Promise<void> => {
     const query = `
         DELETE FROM webpay_payments 
-        WHERE subscription_id = $1 AND payment_status = $2
+        WHERE payment_id = $1 AND payment_status = $2
     `;
-    await executeQuery(query, [subscriptionId, PaymentStatus.Pending]);
-    console.log(`Deleted pending WebPay payment for subscription: ${subscriptionId}`);
+    await executeQuery(query, [paymentId, PaymentStatus.Pending]);
+    console.log(`Deleted pending WebPay payments for payment: ${paymentId}`);
 };
 
 
@@ -230,24 +242,21 @@ export const webpayService: IWebPayService = {
         });
     },
 
-    createPayment: async (params: CreatePaymentParams) => {
+    createPayment: async (params: CreateWebPayPaymentParams) => {
         return withErrorHandling(async () => {
-            // Создаем объект WebPayPayment из параметров CreatePaymentParams
-            const webpayData: WebPayPayment = {
-                id: crypto.randomUUID(),
-                subscription_id: params.subscription_id,
-                amount: params.amount,
-                wsb_order_num: `ORDER-${Date.now()}`,
+            // Создаем объект WebPayPaymentData из параметров CreateWebPayPaymentParams
+            const webpayData = {
+                payment_id: params.payment_id,
+                wsb_order_num: generateOrderNumber(),
                 wsb_currency_id: params.currency || 'USD',
                 wsb_total: params.amount,
                 transaction_id: null,
                 payment_status: PaymentStatus.Pending,
-                payment_method: params.payment_method || 'webpay',
                 signature: null,
                 created_at: new Date(),
                 updated_at: new Date(),
-                success_url: null,
-                cancel_url: null
+                success_url: params.success_url || null,
+                cancel_url: params.cancel_url || null,
             };
 
             return await createWebpayPayment(webpayData);

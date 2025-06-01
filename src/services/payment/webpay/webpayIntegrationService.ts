@@ -1,13 +1,30 @@
 import { USE_MOCK_PROVIDER, WEBPAY_API_BASE_URL, WEBPAY_CANCEL_URL, WEBPAY_RETURN_URL, WEBPAY_SECRET_KEY } from '@config';
-import { InitWebPayPaymentParams, PaymentBase, PaymentResult, PaymentStatus, WebpayInitParams, WebpayInitResult } from '@interface';
-import { getPaymentBySubscriptionId, updatePayment, updatePaymentStatus, validateWebpaySignature } from '@services';
-import { executeQuery, generateOrderNumber, getSubscriptionIdByUserId, logger, withErrorHandling } from '@utils';
+import { InitWebPayPaymentParams, PaymentBase, PaymentMethod, PaymentResult, PaymentStatus, WebpayInitParams, WebpayInitResult } from '@interface';
+import {
+    createWebpayPayment,
+    deletePendingCryptoPayment,
+    generateOrderNumber,
+    getPaymentBySubscriptionId,
+    getSubscriptionIdByUserId,
+    getWebpayPaymentByOrderNum,
+    updatePayment,
+    updatePaymentStatus,
+    updateWebpayPaymentByOrderNum,
+    validateWebpaySignature,
+    withErrorHandling
+} from '@services';
+import { executeQuery, logger } from '@utils';
 import crypto from 'crypto';
 import { mockWebPayResponse } from '../../../mock/mockWebPayResponse';
-import { createWebpayPayment, updateWebpayPaymentByOrderNum } from './webpayService';
-import { getWebpayPaymentByOrderNum } from './webpayService';
-import { deletePendingCryptoPayment } from '../crypto/cryptoService';
 
+/**
+ * @module WebpayIntegrationService
+ * @description Интеграция с API WebPay для обработки платежей
+ * Модуль содержит функции для:
+ * - Инициализации платежей через WebPay API
+ * - Обработки уведомлений от WebPay
+ * - Обработки возвратов после платежей
+ */
 
 /**
  * Инициализация платежа через WebPay (Host-to-Host JSON API)
@@ -108,7 +125,7 @@ export const handleWebpayReturn = async (
         SET payment_status = $1, updated_at = NOW()
         WHERE subscription_id = $2
     `;
-    await executeQuery(updateQuery, [PaymentStatus.Completed, webpayPayment.subscription_id]);
+    await executeQuery(updateQuery, [PaymentStatus.Completed, webpayPayment.payment_id]);
 
     // Возвращаем URL для редиректа
     return webpayPayment.success_url ||
@@ -137,7 +154,7 @@ export const handleWebpayCancel = async (orderNum: string): Promise<string> => {
         SET payment_status = $1, updated_at = NOW()
         WHERE subscription_id = $2
     `;
-    await executeQuery(updateQuery, [PaymentStatus.Failed, webpayPayment.subscription_id]);
+    await executeQuery(updateQuery, [PaymentStatus.Failed, webpayPayment.payment_id]);
 
     // Возвращаем URL для редиректа
     return webpayPayment.cancel_url ||
@@ -189,7 +206,7 @@ export const handleWebpayNotify = async (
         SET payment_status = $1, updated_at = NOW()
         WHERE subscription_id = $2
     `;
-    await executeQuery(updateQuery, [paymentStatus, webpayPayment.subscription_id]);
+    await executeQuery(updateQuery, [paymentStatus, webpayPayment.payment_id]);
 
     return true;
 };
@@ -216,7 +233,7 @@ export const processWebpayWebhook = async (orderNum: string, transactionId: stri
         });
 
         // Обновляем статус в основной таблице payments
-        await updatePaymentStatus(webpayPayment.subscription_id, PaymentStatus.Completed);
+        await updatePaymentStatus(webpayPayment.payment_id, PaymentStatus.Completed);
 
         console.log(`Mock WebPay payment ${orderNum} completed successfully`);
         return true;
@@ -233,7 +250,7 @@ export const initWebpayFiatPayment = async (
     params: InitWebPayPaymentParams
 ): Promise<PaymentResult<any>> => {
     return withErrorHandling(async () => {
-        const { userId, amount, currency, payment_method } = params;
+        const { userId, paymentId, currency, amount, paymentMethod } = params;
         const orderNum = generateOrderNumber();
         const subscriptionId = await getSubscriptionIdByUserId(userId);
 
@@ -242,15 +259,15 @@ export const initWebpayFiatPayment = async (
 
         if (existingPayment && existingPayment.payment_status === PaymentStatus.Pending) {
             // Если есть существующий платеж в статусе Pending, обновляем его
-            const payment: PaymentBase = await updatePayment(userId, existingPayment.id, {
-                payment_method,
+            const payment: PaymentBase = await updatePayment(userId, paymentId, {
+                payment_method: paymentMethod,
                 amount,
                 updated_at: new Date()
             });
 
             // Если метод оплаты изменился на webpay, удаляем криптоплатежи
-            if (payment_method === 'webpay') {
-                await deletePendingCryptoPayment(subscriptionId);
+            if (paymentMethod === PaymentMethod.WebPay) {
+                await deletePendingCryptoPayment(existingPayment.id);
             }
         }
 
@@ -263,33 +280,30 @@ export const initWebpayFiatPayment = async (
             wsb_currency_id: currency as "BYN" | "USD" | "EUR" | "RUB",
             wsb_total: amount,
             wsb_version: 2,
-            wsb_return_url: params.success_url || WEBPAY_RETURN_URL,
-            wsb_cancel_return_url: params.cancel_url || WEBPAY_CANCEL_URL,
+            wsb_return_url: WEBPAY_RETURN_URL,
+            wsb_cancel_return_url: WEBPAY_CANCEL_URL,
             wsb_notify_url: process.env.WEBPAY_NOTIFY_URL || 'http://localhost:8000/api/webpay/notify',
             wsb_invoice_item_name: ['Subscription'],
             wsb_invoice_item_quantity: [1],
             wsb_invoice_item_price: [amount],
-            success_url: params.success_url,
-            cancel_url: params.cancel_url
+            success_url: WEBPAY_RETURN_URL,
+            cancel_url: WEBPAY_CANCEL_URL
         };
 
 
         // Создаем запись в таблице webpay_payments
         await createWebpayPayment({
-            id: '',
-            amount: amount,
             transaction_id: '',
             signature: '',
             created_at: new Date(),
             updated_at: new Date(),
-            subscription_id: subscriptionId,
+            payment_id: existingPayment?.id || '',
             wsb_order_num: orderNum,
             wsb_currency_id: currency,
             wsb_total: amount,
             payment_status: PaymentStatus.Pending,
-            payment_method: params.payment_method || 'webpay',
-            success_url: params.success_url || WEBPAY_RETURN_URL,
-            cancel_url: params.cancel_url || WEBPAY_CANCEL_URL
+            success_url: WEBPAY_RETURN_URL,
+            cancel_url: WEBPAY_CANCEL_URL
         });
 
         const result = await initWebpayDirectPayment(webpayParams);

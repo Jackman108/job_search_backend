@@ -1,7 +1,7 @@
-import { Response } from 'express';
-import { handleErrors, handleSuccess } from '@middlewares';
-import { safePaymentOperations, updatePayment } from '@services';
 import { AuthenticatedRequest, CreatePaymentParams } from '@interface';
+import { handleErrors, handleSuccess } from '@middlewares';
+import { safePaymentOperations } from '@services';
+import { Response } from 'express';
 
 /**
  * Контроллер для работы с платежами

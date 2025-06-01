@@ -1,8 +1,6 @@
-import { CreatePaymentParams, CryptoPaymentData, CryptoPaymentDetails, ICryptoPaymentService, PaymentStatus } from '@interface';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, getSubscriptionIdByUserId, withErrorHandling } from '@utils';
-import crypto from 'crypto';
-import { USE_MOCK_PROVIDER } from '@config';
-import { logger } from '@utils';
+import { CreateCryptoPaymentParams, CryptoPaymentData, CryptoPaymentDetails, ICryptoPaymentService, PaymentStatus } from '@interface';
+import { getPaymentIdByUserId, withErrorHandling } from '@services';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
 
 /**
  * Создание таблицы для криптоплатежей
@@ -16,7 +14,7 @@ export const createTableCryptoPayments = async (): Promise<void> => {
     const query = `
     CREATE TABLE IF NOT EXISTS crypto_payments (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
+      payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
       amount DECIMAL(10,2) NOT NULL,
       currency VARCHAR(3) NOT NULL,
       crypto_address VARCHAR(100) NOT NULL,
@@ -44,33 +42,33 @@ export const listCryptoPayments = async (): Promise<CryptoPaymentDetails[]> => {
 
 /**
  * Получение активного (незавершенного) криптоплатежа
- * @param subscriptionId ID подписки
- * @param paymentId ID платежа
+ * @param paymentId ID платежа в таблице payments
+ * @param cryptoPaymentId ID крипто платежа
  */
 export const getActiveCryptoPayment = async (
-    subscriptionId: string,
-    paymentId: string
+    paymentId: string,
+    cryptoPaymentId: string
 ): Promise<CryptoPaymentDetails | null> => {
     const query = `
         SELECT * FROM crypto_payments
-        WHERE subscription_id = $1 AND id = $2 AND payment_status = $3
+        WHERE payment_id = $1 AND id = $2 AND payment_status = $3
         LIMIT 1;
     `;
-    const result = await executeQuery<CryptoPaymentDetails>(query, [subscriptionId, paymentId, PaymentStatus.Pending]);
+    const result = await executeQuery<CryptoPaymentDetails>(query, [paymentId, cryptoPaymentId, PaymentStatus.Pending]);
     return result.length > 0 ? result[0] : null;
 };
 
 /**
  * Получение криптоплатежа по ID
  * @param userId ID пользователя
- * @param paymentId ID платежа
+ * @param cryptoPaymentId ID крипто платежа
  */
-export const getCryptoPayment = async (userId: string, paymentId: string): Promise<CryptoPaymentDetails> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
-    const query = `SELECT * FROM crypto_payments WHERE subscription_id = $1 AND id = $2;`;
+export const getCryptoPayment = async (userId: string, cryptoPaymentId: string): Promise<CryptoPaymentDetails> => {
+    const paymentId = await getPaymentIdByUserId(userId);
+    const query = `SELECT * FROM crypto_payments WHERE payment_id = $1 AND id = $2;`;
 
-    const result = await executeQuery<CryptoPaymentDetails>(query, [subscriptionId, paymentId]);
-    if (!result[0]) throw new Error(`Crypto payment not found for id ${paymentId}`);
+    const result = await executeQuery<CryptoPaymentDetails>(query, [paymentId, cryptoPaymentId]);
+    if (!result[0]) throw new Error(`Crypto payment not found for id ${cryptoPaymentId}`);
     return result[0];
 };
 
@@ -79,40 +77,42 @@ export const getCryptoPayment = async (userId: string, paymentId: string): Promi
  * @param cryptoData Данные для создания криптоплатежа
  */
 export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promise<CryptoPaymentDetails> => {
-
     // Проверяем только если ID валидный
+    let activeCryptoPayment = null;
+
     if (cryptoData.id) {
-        const activeCryptoPayment = await getActiveCryptoPayment(cryptoData.subscription_id, cryptoData.id);
-        if (activeCryptoPayment) return activeCryptoPayment;
+        activeCryptoPayment = await getActiveCryptoPayment(cryptoData.payment_id, cryptoData.id);
     }
+    if (activeCryptoPayment) return activeCryptoPayment;
+
     // Создаем новый платеж
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 минут
 
     const query = `
             INSERT INTO crypto_payments (
-                 subscription_id, amount, currency, network,
+                 payment_id, amount, currency, network,
                 crypto_address, crypto_amount, payment_status, created_at,
                 expires_at, transaction_hash, wallet_provider
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),$9,$10)
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
             RETURNING *
         `;
 
     const values = [
-        cryptoData.subscription_id,
+        cryptoData.payment_id,
         cryptoData.amount || 0,
         cryptoData.currency || 'BTC',
         cryptoData.network || 'BTC',
         cryptoData.crypto_address ?? 'mock_address',
         cryptoData.amount || 0,
         PaymentStatus.Pending,
+        new Date(),
         expiresAt,
         null,
-        'NOWCRYPTO'
+        cryptoData.wallet_provider || 'NOWCRYPTO'
     ];
 
     const [result] = await executeQuery<CryptoPaymentDetails>(query, values);
     return result;
-
 };
 
 /**
@@ -145,16 +145,16 @@ export const updateCryptoPayment = async (
         throw new Error(`Crypto payment not found for id ${paymentId}`);
     }
 
-    // Добавляем subscription_id из существующего платежа, если он не указан
-    const updatesWithSubscription = {
+    // Добавляем payment_id из существующего платежа, если он не указан
+    const updatesWithPayment = {
         ...updates,
-        subscription_id: updates.subscription_id || currentPayment.subscription_id
+        payment_id: updates.payment_id || currentPayment.payment_id
     };
 
     // Выполняем обновление полей
     const { query, values } = generateUpdateQueryWithConditions(
         'crypto_payments',
-        { ...updatesWithSubscription, updated_at: new Date() },
+        { ...updatesWithPayment, updated_at: new Date() },
         { id: paymentId }
     );
 
@@ -172,49 +172,46 @@ export const updateCryptoPayment = async (
 /**
  * Удаление криптоплатежа
  * @param userId ID пользователя
- * @param paymentId ID платежа
+ * @param cryptoPaymentId ID крипто платежа
  */
 export const deleteCryptoPayment = async (
-    userId: string, paymentId: string
+    userId: string, cryptoPaymentId: string
 ): Promise<void> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
-    const query = `DELETE FROM crypto_payments WHERE subscription_id = $1 AND id = $2;`;
-    await executeQuery(query, [subscriptionId, paymentId]);
+    const paymentId = await getPaymentIdByUserId(userId);
+    const query = `DELETE FROM crypto_payments WHERE payment_id = $1 AND id = $2;`;
+    await executeQuery(query, [paymentId, cryptoPaymentId]);
 };
 
 /**
  * Проверяет и удаляет существующий криптоплатеж при переключении на WebPay
- * @param subscriptionId ID подписки
+ * @param paymentId ID платежа
  */
-export const deletePendingCryptoPayment = async (subscriptionId: string): Promise<void> => {
+export const deletePendingCryptoPayment = async (paymentId: string): Promise<void> => {
     const query = `
         DELETE FROM crypto_payments 
-        WHERE subscription_id = $1 AND payment_status = $2
+        WHERE payment_id = $1 AND payment_status = $2
     `;
-    await executeQuery(query, [subscriptionId, PaymentStatus.Pending]);
-    console.log(`Deleted pending crypto payments for subscription: ${subscriptionId}`);
+    await executeQuery(query, [paymentId, PaymentStatus.Pending]);
+    console.log(`Deleted pending crypto payments for payment: ${paymentId}`);
 };
 /* Реализация интерфейса ICryptoPaymentService 
  * Содержит только LCRUD операции для работы с криптоплатежами
  */
 export const cryptoService: ICryptoPaymentService = {
     // Create - Создание криптоплатежа
-    createPayment: async (params: CreatePaymentParams) => {
+    createPayment: async (params: CreateCryptoPaymentParams) => {
         return withErrorHandling(async () => {
 
             // Создаем запись в БД для криптоплатежа
             const cryptoPayment = await createCryptoPayment({
-                id: params.id, // Передаем id, если он есть в params
-                subscription_id: params.subscription_id,
+                payment_id: params.payment_id,
                 amount: params.amount,
-                currency: params.currency || 'BTC',
-                network: params.payment_method === 'crypto' ? 'BTC' : params.payment_method || 'BTC'
+                currency: params.currency,
+                network: params.network,
+                crypto_address: params.crypto_address,
             });
 
-
-
             return cryptoPayment;
-
         });
     },
 

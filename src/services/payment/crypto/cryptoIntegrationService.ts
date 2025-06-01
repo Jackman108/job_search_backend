@@ -1,11 +1,28 @@
 import { nowPaymentsConfig, USE_MOCK_PROVIDER } from '@config';
 import { CryptoPaymentData, CryptoPaymentDetails, InitCryptoPaymentParams, PaymentBase, PaymentResult, PaymentStatus } from '@interface';
-import { updatePayment, updatePaymentStatus } from '@services';
-import { executeQuery, getSubscriptionIdByUserId, logger, withErrorHandling } from '@utils';
+import {
+    checkPaymentStatusWithProvider,
+    createCryptoPayment,
+    deletePendingWebPayPayment,
+    updateCryptoPayment,
+    updatePayment,
+    updatePaymentStatus,
+    validateCryptoWebhookSignature,
+    withErrorHandling
+} from '@services';
+import { executeQuery, logger } from '@utils';
 import { mockCryptoResponse } from '../../../mock/mockCryptoResponse';
-import { checkPaymentStatusWithProvider, validateCryptoWebhookSignature } from './cryptoCommon';
-import { deletePendingWebPayPayment } from '../webpay/webpayService';
-import { createCryptoPayment, updateCryptoPayment } from './cryptoService';
+
+
+/**
+ * @module CryptoIntegrationService
+ * @description Интеграция с API криптоплатежей
+ * Этот модуль содержит функции для:
+ * - Инициализации криптоплатежей
+ * - Обработки вебхуков от провайдера
+ * - Проверки статуса платежей
+ */
+
 
 /**
  * Получает криптоплатеж по ID
@@ -67,7 +84,7 @@ export const checkCryptoPaymentStatus = async (paymentId: string): Promise<Payme
 
                     // Обновляем статус в основной таблице платежей
                     await updatePayment(
-                        cryptoDetails.subscription_id,
+                        cryptoDetails.payment_id,
                         paymentId,
                         { payment_status: status as PaymentBase['payment_status'] }
                     );
@@ -93,7 +110,7 @@ export const checkCryptoPaymentStatus = async (paymentId: string): Promise<Payme
         }
 
         await updatePayment(
-            cryptoDetails.subscription_id,
+            cryptoDetails.payment_id,
             paymentId,
             { payment_status: status as PaymentBase['payment_status'] }
         );
@@ -158,18 +175,19 @@ export const initCryptoDirectPayment = async (
     params: InitCryptoPaymentParams
 ): Promise<PaymentResult<CryptoPaymentDetails>> => {
     return withErrorHandling(async () => {
-        const { id, subscription_id, amount, currency, network } = params;
+        const { id, payment_id, amount, currency, network } = params;
 
         // Удаляем существующие платежи WebPay при переключении на криптоплатеж
-        await deletePendingWebPayPayment(subscription_id);
+        await deletePendingWebPayPayment(payment_id);
 
         // Генерируем данные для криптоплатежа
         const cryptoData: CryptoPaymentData = {
             id,
-            subscription_id,
+            payment_id,
             amount,
             currency: currency || 'BTC',
-            network: network || 'BTC'
+            network: network || 'BTC',
+            wallet_provider: 'NOWCRYPTO'
         };
 
         // В режиме разработки используем моковые данные
@@ -184,7 +202,7 @@ export const initCryptoDirectPayment = async (
             setTimeout(async () => {
                 try {
                     await processWebhook({
-                        payment_id: payment.id,
+                        payment_id: payment.id, // Используем ID платежа, а не payment_id
                         payment_status: PaymentStatus.Completed,
                         txid: 'mock-tx-' + Date.now()
                     }, 'mock-signature');
@@ -198,20 +216,21 @@ export const initCryptoDirectPayment = async (
         }
 
         // В продакшн режиме используем реального провайдера
-        const providerResponse = await createCryptoPayment({
-            id: id,
-            subscription_id: subscription_id,
-            amount: amount,
-            currency: currency || nowPaymentsConfig.defaultCurrency,
-            network: network || 'BTC',
-            crypto_address: 'mock_crypto_address',
-        });
-
-        // Добавляем адрес из ответа провайдера
-        cryptoData.crypto_address = providerResponse.crypto_address;
-
-        // Создаем запись в БД
-        return await createCryptoPayment(cryptoData);
+        try {
+            // Создаем запись в БД
+            return await createCryptoPayment({
+                id: id,
+                payment_id: payment_id,
+                amount: amount,
+                currency: currency || 'BTC',
+                network: network || 'BTC',
+                crypto_address: 'provider_crypto_address', // Будет заменен провайдером
+                wallet_provider: 'NOWCRYPTO'
+            });
+        } catch (error) {
+            logger.error('Error creating crypto payment', { error, params });
+            throw error;
+        }
     });
 };
 
@@ -240,7 +259,7 @@ export const checkUserCryptoPaymentStatus = async (userId: string, paymentId: st
                 await updateCryptoPayment(paymentId, {
                     payment_status: status,
                     transaction_hash: mockCryptoResponse.transaction_hash || 'mock-tx-hash',
-                    subscription_id: cryptoPayment.subscription_id
+                    payment_id: cryptoPayment.payment_id
                 });
 
                 // Обновляем статус в основной таблице платежей
@@ -272,11 +291,10 @@ export const checkUserCryptoPaymentStatus = async (userId: string, paymentId: st
 
             if (result.success && result.data && result.data !== currentStatus) {
                 // Обновляем статус в таблицах
-                const subscriptionId = await getSubscriptionIdByUserId(userId);
 
                 await updateCryptoPayment(paymentId, {
                     payment_status: result.data,
-                    subscription_id: subscriptionId
+                    payment_id: paymentId
                 });
                 await updatePaymentStatus(paymentId, result.data);
 

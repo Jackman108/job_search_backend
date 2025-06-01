@@ -17,14 +17,24 @@ export enum PaymentStatus {
 }
 
 /**
- * Базовый интерфейс для платежных данных
+ * Методы оплаты
+ */
+export enum PaymentMethod {
+    WebPay = 'webpay',
+    Crypto = 'crypto',
+    Card = 'card',
+    Other = 'other'
+}
+
+/**
+ * Базовый интерфейс для платежных данных, соответствует таблице payments
  */
 export interface PaymentBase {
     id: string;
     subscription_id: string;
     amount: number;
     payment_status: PaymentStatus;
-    payment_method: string;
+    payment_method: PaymentMethod | string;
     created_at: Date;
     updated_at: Date;
 }
@@ -46,18 +56,17 @@ export interface PaymentResult<T> {
  */
 export interface CreatePaymentParams {
     userId?: string;
-    subscription_id: string;
+    subscription_id?: string;
     amount: number;
     currency?: string;
-    payment_method: string;
-    id?: string;
+    payment_method: PaymentMethod | string;
 }
 
 /**
  * Общий интерфейс для платежных сервисов с типизацией возвращаемых значений
  */
-export interface IPaymentService<T extends PaymentBase> {
-    createPayment: (params: CreatePaymentParams) => Promise<PaymentResult<T>>;
+export interface IPaymentService<T, P extends CreatePaymentParams = CreatePaymentParams> {
+    createPayment: (params: P) => Promise<PaymentResult<T>>;
     getPayment: (userId: string, paymentId: string) => Promise<PaymentResult<T>>;
     updatePayment: (paymentId: string, updates: Partial<T>) => Promise<PaymentResult<T>>;
     deletePayment: (userId: string, paymentId: string) => Promise<PaymentResult<boolean>>;
@@ -83,6 +92,8 @@ export interface PaymentStrategyContext {
     strategy: PaymentStrategy;
     setStrategy: (strategy: PaymentStrategy) => void;
     executePayment: (params: any) => Promise<PaymentResult<any>>;
+    validateWebhook: (data: any, signature: string) => Promise<PaymentResult<boolean>>;
+    checkStatus: (paymentId: string) => Promise<PaymentResult<PaymentStatus>>;
 }
 
 /**

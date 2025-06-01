@@ -9,4 +9,3 @@ export * from './resumeCacheQuery';
 export * from './stopManager';
 export * from './vacancyUtils';
 export * from './logger';
-export * from './paymentUtils';
