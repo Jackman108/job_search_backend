@@ -5,6 +5,7 @@
 import { nowPaymentsConfig, USE_MOCK_PROVIDER, WEBPAY_SECRET_KEY } from '@config';
 import crypto from 'crypto';
 import { logger } from '@utils';
+import { createHmac, createHash } from 'crypto';
 
 /**
  * Алгоритмы хеширования для разных платежных систем
@@ -167,4 +168,100 @@ export const generateSignature = (
         logger.error('Error generating signature', { error, algorithm });
         throw new Error(`Failed to generate ${algorithm} signature: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+};
+
+/**
+ * Создает HMAC подпись для данных с использованием указанного секрета
+ * @param data Данные для подписи
+ * @param secret Секретный ключ
+ * @param algorithm Алгоритм хеширования (по умолчанию sha256)
+ * @returns HMAC подпись
+ */
+export const createHmacSignature = (
+    data: string,
+    secret: string,
+    algorithm: string = 'sha256'
+): string => {
+    return createHmac(algorithm, secret)
+        .update(data)
+        .digest('hex');
+};
+
+/**
+ * Проверяет HMAC подпись
+ * @param data Данные, которые были подписаны
+ * @param signature Подпись для проверки
+ * @param secret Секретный ключ
+ * @param algorithm Алгоритм хеширования (по умолчанию sha256)
+ * @returns true если подпись валидна
+ */
+export const verifyHmacSignature = (
+    data: string,
+    signature: string,
+    secret: string,
+    algorithm: string = 'sha256'
+): boolean => {
+    const calculatedSignature = createHmacSignature(data, secret, algorithm);
+    const isValid = calculatedSignature === signature;
+
+    if (!isValid) {
+        logger.warn('Invalid signature', {
+            expected: calculatedSignature,
+            received: signature
+        });
+    }
+
+    return isValid;
+};
+
+/**
+ * Создает хеш данных с использованием указанного алгоритма
+ * @param data Данные для хеширования
+ * @param algorithm Алгоритм хеширования (по умолчанию sha256)
+ * @returns Хеш данных
+ */
+export const createDataHash = (
+    data: string,
+    algorithm: string = 'sha256'
+): string => {
+    return createHash(algorithm)
+        .update(data)
+        .digest('hex');
+};
+
+/**
+ * Нормализует данные для подписи (сортирует ключи, удаляет пустые значения)
+ * @param data Объект с данными
+ * @param options Опции нормализации
+ * @returns Строка для подписи
+ */
+export const normalizeDataForSignature = (
+    data: Record<string, any>,
+    options: {
+        sortKeys?: boolean;
+        excludeEmpty?: boolean;
+        excludeKeys?: string[];
+    } = {}
+): string => {
+    const {
+        sortKeys = true,
+        excludeEmpty = true,
+        excludeKeys = []
+    } = options;
+
+    // Фильтруем и преобразуем данные
+    let entries = Object.entries(data)
+        .filter(([key, value]) => {
+            if (excludeKeys.includes(key)) return false;
+            if (excludeEmpty && (value === null || value === undefined || value === '')) return false;
+            return true;
+        });
+
+    // Сортируем ключи, если нужно
+    if (sortKeys) {
+        entries = entries.sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+    }
+
+    // Соединяем в строку
+    return entries.map(([key, value]) => `${key}=${value}`).join('&');
 }; 

@@ -3,34 +3,28 @@
  * Переключает стратегии платежей и обрабатывает общие операции
  */
 import { isPaymentMethodAvailable } from '@config';
+import { checkPaymentStatus, initializeCryptoPayment, initializeWebpayPayment, processPaymentWebhook } from '@integrations';
+import { validatePaymentParams } from '@integrations';
 import { AuthenticatedRequest, PaymentMethod } from '@interface';
-import { checkPaymentStatus, initializeCryptoPayment, initializeWebpayPayment, processPaymentWebhook } from '@services';
+import { handleControllerError } from '@middlewares';
 import { logger } from '@utils';
 import { Request, Response } from 'express';
 
 /**
- * Общая функция для обработки ошибок в контроллере
- * @param res Объект Response Express
- * @param error Ошибка для обработки
- * @param message Сообщение для пользователя
+ * Проверяет доступность метода оплаты и возвращает соответствующий ответ в случае ошибки
+ * @param res Ответ Express
+ * @param paymentMethod Метод оплаты
+ * @returns true если метод доступен, false если нет (и отправляет ответ)
  */
-const handleControllerError = (res: Response, error: unknown, message: string): void => {
-    logger.error(`Payment integration controller error: ${message}`, { error });
-    res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : message
-    });
-};
-
-/**
- * Проверяет наличие обязательных полей в запросе
- * @param data Данные запроса
- * @param requiredFields Массив обязательных полей
- * @returns Массив отсутствующих полей или null если все поля присутствуют
- */
-const validateRequiredFields = (data: Record<string, any>, requiredFields: string[]): string[] | null => {
-    const missingFields = requiredFields.filter(field => !data[field]);
-    return missingFields.length > 0 ? missingFields : null;
+const validatePaymentMethod = (res: Response, paymentMethod: string): boolean => {
+    if (!isPaymentMethodAvailable(paymentMethod)) {
+        res.status(400).json({
+            success: false,
+            error: `Payment method '${paymentMethod}' is not available`
+        });
+        return false;
+    }
+    return true;
 };
 
 /**
@@ -46,54 +40,43 @@ export const initializePayment = async (req: AuthenticatedRequest, res: Response
         logger.info('Initializing payment with integration controller', { paymentMethod, paymentData });
 
         // Проверяем, что платежный метод доступен
-        if (!isPaymentMethodAvailable(paymentMethod)) {
+        if (!validatePaymentMethod(res, paymentMethod)) return;
+
+        // Проверяем обязательные параметры платежа
+        const validationResult = validatePaymentParams(paymentData, ['amount']);
+        if (!validationResult.success) {
             res.status(400).json({
                 success: false,
-                error: `Payment method '${paymentMethod}' is not available`
+                error: validationResult.error
             });
             return;
         }
 
-        // Проверяем обязательные поля
-        const missingFields = validateRequiredFields(paymentData, ['payment_id', 'amount', 'currency']);
-        if (missingFields) {
-            handleControllerError(res, new Error(`Missing required fields: ${missingFields.join(', ')}`), 'Failed to retrieve payments');
-            return;
-        }
+        // Базовые параметры платежа
+        const baseParams = {
+            paymentId: paymentData.payment_id,
+            amount: paymentData.amount,
+            userId: req.userId!
+        };
 
         // Выполняем платеж в зависимости от метода оплаты
-        let result;
-
-        switch (paymentMethod.toLowerCase()) {
-            case 'webpay':
-                result = await initializeWebpayPayment({
-                    paymentId: paymentData.payment_id,
-                    amount: paymentData.amount,
-                    currency: paymentData.currency || 'BYN',
-                    paymentMethod: paymentMethod as PaymentMethod,
-                    userId: req.userId!
-                });
-                break;
-
-            case 'crypto':
-                result = await initializeCryptoPayment({
-                    id: paymentData.id || `crypto-${Date.now()}`,
-                    payment_id: paymentData.payment_id,
-                    amount: paymentData.amount,
+        const result = await (paymentMethod.toLowerCase() === 'webpay'
+            ? initializeWebpayPayment({
+                ...baseParams,
+                currency: paymentData.currency || 'BYN'
+            })
+            : paymentMethod.toLowerCase() === 'crypto'
+                ? initializeCryptoPayment({
+                    ...baseParams,
                     currency: paymentData.currency,
                     network: paymentData.network
-                });
-                break;
-
-            default:
-                res.status(400).json({
+                })
+                : {
                     success: false,
                     error: `Unsupported payment method: ${paymentMethod}`
                 });
-                return;
-        }
 
-        if (result.success && result.data) {
+        if (result.success && 'data' in result) {
             res.status(200).json(result);
         } else {
             res.status(400).json({
@@ -120,13 +103,7 @@ export const handlePaymentWebhook = async (req: Request, res: Response): Promise
         logger.info('Processing payment webhook', { paymentMethod, webhookData });
 
         // Проверяем, что платежный метод доступен
-        if (!isPaymentMethodAvailable(paymentMethod)) {
-            res.status(400).json({
-                success: false,
-                error: `Payment method '${paymentMethod}' is not available`
-            });
-            return;
-        }
+        if (!validatePaymentMethod(res, paymentMethod)) return;
 
         if (!webhookData) {
             res.status(400).json({
@@ -161,13 +138,7 @@ export const checkPaymentStatusController = async (req: Request, res: Response):
         const { paymentMethod, paymentId } = req.params;
 
         // Проверяем, что платежный метод доступен
-        if (!isPaymentMethodAvailable(paymentMethod)) {
-            res.status(400).json({
-                success: false,
-                error: `Payment method '${paymentMethod}' is not available`
-            });
-            return;
-        }
+        if (!validatePaymentMethod(res, paymentMethod)) return;
 
         if (!paymentId) {
             res.status(400).json({

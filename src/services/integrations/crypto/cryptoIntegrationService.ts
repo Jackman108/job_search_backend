@@ -1,15 +1,17 @@
-import { nowPaymentsConfig, USE_MOCK_PROVIDER } from '@config';
+import { USE_MOCK_PROVIDER } from '@config';
 import { CryptoPaymentData, CryptoPaymentDetails, InitCryptoPaymentParams, PaymentBase, PaymentResult, PaymentStatus } from '@interface';
 import {
-    checkPaymentStatusWithProvider,
     createCryptoPayment,
     deletePendingWebPayPayment,
     updateCryptoPayment,
     updatePayment,
+} from '@services';
+import {
+    checkPaymentStatusWithProvider,
     updatePaymentStatus,
     validateCryptoWebhookSignature,
     withErrorHandling
-} from '@services';
+} from '@integrations';
 import { executeQuery, logger } from '@utils';
 import { mockCryptoResponse } from '../../../mock/mockCryptoResponse';
 
@@ -175,15 +177,14 @@ export const initCryptoDirectPayment = async (
     params: InitCryptoPaymentParams
 ): Promise<PaymentResult<CryptoPaymentDetails>> => {
     return withErrorHandling(async () => {
-        const { id, payment_id, amount, currency, network } = params;
+        const { paymentId, amount, currency, network } = params;
 
         // Удаляем существующие платежи WebPay при переключении на криптоплатеж
-        await deletePendingWebPayPayment(payment_id);
+        await deletePendingWebPayPayment(paymentId);
 
         // Генерируем данные для криптоплатежа
         const cryptoData: CryptoPaymentData = {
-            id,
-            payment_id,
+            payment_id: paymentId,
             amount,
             currency: currency || 'BTC',
             network: network || 'BTC',
@@ -202,7 +203,7 @@ export const initCryptoDirectPayment = async (
             setTimeout(async () => {
                 try {
                     await processWebhook({
-                        payment_id: payment.id, // Используем ID платежа, а не payment_id
+                        payment_id: payment.id,
                         payment_status: PaymentStatus.Completed,
                         txid: 'mock-tx-' + Date.now()
                     }, 'mock-signature');
@@ -219,8 +220,7 @@ export const initCryptoDirectPayment = async (
         try {
             // Создаем запись в БД
             return await createCryptoPayment({
-                id: id,
-                payment_id: payment_id,
+                payment_id: paymentId,
                 amount: amount,
                 currency: currency || 'BTC',
                 network: network || 'BTC',

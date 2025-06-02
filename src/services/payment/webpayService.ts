@@ -1,5 +1,5 @@
 import { CreateWebPayPaymentParams, IWebPayService, PaymentResult, PaymentStatus, WebPayPayment, WebPayPaymentData } from '@interface';
-import { generateOrderNumber, getPaymentIdByUserId, withErrorHandling } from '@services';
+import { generateOrderNumber, getPaymentIdByUserId, withErrorHandling } from '@integrations';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, } from '@utils';
 
 /**

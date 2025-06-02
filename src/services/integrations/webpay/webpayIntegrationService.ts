@@ -1,17 +1,24 @@
 import { USE_MOCK_PROVIDER, WEBPAY_API_BASE_URL, WEBPAY_CANCEL_URL, WEBPAY_RETURN_URL, WEBPAY_SECRET_KEY } from '@config';
-import { InitWebPayPaymentParams, PaymentBase, PaymentMethod, PaymentResult, PaymentStatus, WebpayInitParams, WebpayInitResult } from '@interface';
+import {
+    generateOrderNumber,
+    getPaymentByPaymentId,
+    updatePaymentStatus,
+    validateWebpaySignature,
+    withErrorHandling
+} from '@integrations';
+import {
+    InitWebPayPaymentParams,
+    PaymentBase, PaymentMethod,
+    PaymentResult, PaymentStatus,
+    WebpayInitParams,
+    WebpayInitResult
+} from '@interface';
 import {
     createWebpayPayment,
     deletePendingCryptoPayment,
-    generateOrderNumber,
-    getPaymentBySubscriptionId,
-    getSubscriptionIdByUserId,
     getWebpayPaymentByOrderNum,
     updatePayment,
-    updatePaymentStatus,
     updateWebpayPaymentByOrderNum,
-    validateWebpaySignature,
-    withErrorHandling
 } from '@services';
 import { executeQuery, logger } from '@utils';
 import crypto from 'crypto';
@@ -250,23 +257,21 @@ export const initWebpayFiatPayment = async (
     params: InitWebPayPaymentParams
 ): Promise<PaymentResult<any>> => {
     return withErrorHandling(async () => {
-        const { userId, paymentId, currency, amount, paymentMethod } = params;
+        const { userId, paymentId, currency, amount } = params;
         const orderNum = generateOrderNumber();
-        const subscriptionId = await getSubscriptionIdByUserId(userId);
 
         // Проверяем существующий платеж для этой подписки
-        const existingPayment = await getPaymentBySubscriptionId(subscriptionId);
+        const existingPayment = await getPaymentByPaymentId(paymentId);
 
         if (existingPayment && existingPayment.payment_status === PaymentStatus.Pending) {
             // Если есть существующий платеж в статусе Pending, обновляем его
             const payment: PaymentBase = await updatePayment(userId, paymentId, {
-                payment_method: paymentMethod,
                 amount,
                 updated_at: new Date()
             });
 
             // Если метод оплаты изменился на webpay, удаляем криптоплатежи
-            if (paymentMethod === PaymentMethod.WebPay) {
+            if (payment.payment_method === PaymentMethod.WebPay) {
                 await deletePendingCryptoPayment(existingPayment.id);
             }
         }

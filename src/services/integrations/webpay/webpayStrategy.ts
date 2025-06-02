@@ -3,10 +3,21 @@
  * Реализует интерфейс PaymentStrategy для WebPay
  */
 import { InitWebPayPaymentParams, PaymentResult, PaymentStatus, WebpayInitResult, WebPayStrategy } from '@interface';
-import { cleanupPendingCryptoPayment, cleanupPendingWebPayPayment, createPaymentErrorHandler, initWebpayFiatPayment, updatePaymentStatus, validateWebpaySignature, withPaymentErrorHandling } from '@services';
+import {
+    cleanupPendingCryptoPayment,
+    cleanupPendingWebPayPayment,
+    createPaymentErrorHandler,
+    formatAmount,
+    generatePaymentId,
+    initWebpayFiatPayment,
+    normalizeDataForSignature,
+    updatePaymentStatus,
+    validateWebpaySignature,
+    verifyHmacSignature,
+    withPaymentErrorHandling
+} from '@integrations';
 import { logger } from '@utils';
-
-import { FRONTEND_URL } from '@config';
+import { FRONTEND_URL, WEBPAY_SECRET_KEY } from '@config';
 
 /**
  * Создание стратегии платежей для WebPay
@@ -44,14 +55,36 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         try {
             logger.info('Initializing WebPay payment details', { params });
 
+            // Создаем уникальный номер заказа
+            const orderNum = generatePaymentId('WBP');
+
+            // Форматируем сумму к нужному формату
+            const formattedAmount = formatAmount(params.amount, {
+                decimals: 2,
+                asString: false,
+                multiplyBy: 1
+            }) as number;
+
+            // Подготавливаем данные для подписи
+            const paymentData = {
+                order_num: orderNum,
+                amount: formattedAmount,
+                currency: params.currency,
+                payment_id: params.paymentId
+            };
+
+            // Нормализуем данные для подписи
+            const normalizedData = normalizeDataForSignature(paymentData, {
+                sortKeys: true,
+                excludeEmpty: true
+            });
+
             // Вызов сервиса инициализации WebPay
             const result = await initWebpayFiatPayment({
                 userId: params.userId,
                 paymentId: params.paymentId,
                 currency: params.currency,
-                amount: params.amount,
-                paymentMethod: params.paymentMethod
-
+                amount: formattedAmount
             });
 
             if (!result.success || !result.data) {
@@ -63,7 +96,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
                 data: {
                     wt: result.data.wt || '',
                     redirectUrl: result.data.redirectUrl,
-                    orderNum: result.data.orderNum
+                    orderNum: orderNum
                 }
             };
         } catch (error) {
@@ -78,7 +111,18 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns true если подпись валидна, иначе false
      */
     const validatePaymentSignature = (data: any, signature: string): boolean => {
-        return validateWebpaySignature(data, signature);
+        if (!WEBPAY_SECRET_KEY) {
+            logger.error('Missing WebPay secret key for signature validation');
+            return false;
+        }
+
+        // Нормализуем данные для проверки подписи
+        const normalizedData = normalizeDataForSignature(data, {
+            excludeKeys: ['signature', 'wsb_signature']
+        });
+
+        // Проверяем подпись с использованием HMAC
+        return verifyHmacSignature(normalizedData, signature, WEBPAY_SECRET_KEY, 'sha1');
     };
 
     /**

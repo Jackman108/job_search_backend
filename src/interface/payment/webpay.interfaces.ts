@@ -48,7 +48,6 @@ export interface InitWebPayPaymentParams {
     paymentId: string;
     currency: "BYN" | "USD" | "EUR" | "RUB";
     amount: number;
-    paymentMethod: PaymentMethod;
 }
 
 /**

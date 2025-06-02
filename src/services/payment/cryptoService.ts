@@ -1,5 +1,5 @@
 import { CreateCryptoPaymentParams, CryptoPaymentData, CryptoPaymentDetails, ICryptoPaymentService, PaymentStatus } from '@interface';
-import { getPaymentIdByUserId, withErrorHandling } from '@services';
+import { getPaymentIdByUserId, withErrorHandling } from '@integrations';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
 
 /**

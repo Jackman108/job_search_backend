@@ -1,7 +1,7 @@
 import { AuthenticatedRequest } from '@interface';
 import { handleErrors, handleSuccess } from '@middlewares';
 import { Response } from 'express';
-import { webpayService } from '../../services/payment/webpay/webpayService.js';
+import { webpayService } from '../../services/payment/webpayService.js';
 
 /**
  * Контроллер для работы с WebPay платежами

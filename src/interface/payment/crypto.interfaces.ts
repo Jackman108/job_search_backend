@@ -45,8 +45,8 @@ export interface CryptoPaymentData {
  * Параметры для инициализации криптоплатежа
  */
 export interface InitCryptoPaymentParams {
-    id: string;
-    payment_id: string;
+    userId: string;
+    paymentId: string;
     amount: number;
     currency?: string;
     network?: string;

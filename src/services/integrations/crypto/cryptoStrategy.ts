@@ -14,16 +14,19 @@ import {
 import {
     cleanupPendingCryptoPayment,
     cleanupPendingWebPayPayment,
+    createDataHash,
+    createPaymentError,
     createPaymentErrorHandler,
     getCryptoPaymentById,
     initCryptoDirectPayment,
+    mapCryptoStatus,
+    normalizeDataForSignature,
     updatePaymentStatus,
-    validateCryptoSignature,
+    verifyHmacSignature,
     withPaymentErrorHandling
-} from '@services';
+} from '@integrations';
 
 import { logger } from '@utils';
-import { mapCryptoStatus } from './cryptoCommon';
 
 /**
  * Создание стратегии платежей для криптовалют
@@ -43,12 +46,12 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
 
         try {
             // Проверяем, если есть незавершенные webpay платежи, удаляем их
-            await cleanupPendingWebPayPayment(params.payment_id);
+            await cleanupPendingWebPayPayment(params.paymentId);
 
             // Инициализация криптоплатежа
             return await initCryptoStrategyPayment(params);
         } catch (error) {
-            return handleError(error, 'initPayment');
+            return createPaymentError(error, 'Failed to initialize crypto payment');
         }
     };
 
@@ -61,13 +64,19 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
         try {
             logger.info('Initializing crypto payment details', { params });
 
+            // Нормализуем параметры для подписи
+            const normalizedParams = normalizeDataForSignature(params, {
+                sortKeys: true,
+                excludeEmpty: true
+            });
+
             // Вызов сервиса инициализации криптоплатежа
             const result = await initCryptoDirectPayment({
-                id: params.id,
-                payment_id: params.payment_id,
+                paymentId: params.paymentId,
                 amount: params.amount,
                 currency: params.currency || nowPaymentsConfig.defaultCurrency,
-                network: params.network || 'BTC'
+                network: params.network || 'BTC',
+                userId: params.userId
             });
 
             if (!result.success || !result.data) {
@@ -79,7 +88,7 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
                 data: result.data
             };
         } catch (error) {
-            return handleError(error, 'initCryptoStrategyPayment');
+            return createPaymentError(error, 'Failed to initialize crypto payment');
         }
     };
 
@@ -90,14 +99,33 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
      * @returns true если подпись валидна, иначе false
      */
     const validatePaymentSignature = (data: any, signature: string): boolean => {
-        return validateCryptoSignature(data, signature);
+        if (!nowPaymentsConfig.ipnSecret) {
+            logger.error('Missing crypto IPN secret for signature validation');
+            return false;
+        }
+
+        // Нормализуем данные для проверки подписи
+        const normalizedData = normalizeDataForSignature(data, {
+            excludeKeys: ['signature', 'hmac']
+        });
+
+        // Создаем хеш данных для сравнения с подписью
+        const dataHash = createDataHash(normalizedData, 'sha256');
+
+        // Проверяем HMAC подпись
+        return verifyHmacSignature(
+            dataHash,
+            signature,
+            nowPaymentsConfig.ipnSecret,
+            'sha512'
+        );
     };
 
     /**
      * Реализация функции validateCryptoWebhookSignature для совместимости с интерфейсом
      */
     const validateCryptoWebhookSignature = (data: any, signature: string): boolean => {
-        return validateCryptoSignature(data, signature);
+        return validatePaymentSignature(data, signature);
     };
 
     /**

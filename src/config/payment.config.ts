@@ -1,4 +1,5 @@
 import { ENV } from './base.config.js';
+import { PaymentMethod } from '@interface';
 
 /**
  * Флаг использования мок-провайдера для режима разработки
@@ -44,11 +45,22 @@ export const PAYMENT_CONFIG = {
 };
 
 /**
- * Возвращает признак доступности указанного платежного метода
- * @param paymentMethod Код платежного метода
- * @returns true если метод доступен
+ * Список активных платежных методов
  */
-export const isPaymentMethodAvailable = (paymentMethod: string): boolean => {
-    return PAYMENT_CONFIG.availablePaymentMethods.includes(paymentMethod.toLowerCase());
+export const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
+    PaymentMethod.WebPay,
+    PaymentMethod.Crypto
+];
+
+/**
+ * Проверяет, доступен ли указанный метод оплаты
+ * @param method Метод оплаты
+ * @returns true если метод доступен, иначе false
+ */
+export const isPaymentMethodAvailable = (method: string): boolean => {
+    const methodLower = method.toLowerCase();
+    return AVAILABLE_PAYMENT_METHODS.some(m =>
+        m.toLowerCase() === methodLower
+    );
 };
 

@@ -1,5 +1,5 @@
 import { USE_MOCK_PROVIDER } from '@config';
-import { getSubscriptionIdByUserId, withErrorHandling } from '@services';
+import { getSubscriptionIdByUserId, withErrorHandling } from '@integrations';
 
 /**
  * Получение информации о доступных платежных методах

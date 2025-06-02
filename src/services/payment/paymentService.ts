@@ -1,5 +1,5 @@
 import { CreatePaymentParams, PaymentBase, PaymentStatus } from '@interface';
-import { getSubscriptionIdByUserId, withErrorHandling } from '@services';
+import { getSubscriptionIdByUserId, withErrorHandling } from '@integrations';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
 
 
