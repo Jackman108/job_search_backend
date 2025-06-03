@@ -1,6 +1,22 @@
-import { CreateWebPayPaymentParams, IWebPayService, PaymentResult, PaymentStatus, WebPayPayment, WebPayPaymentData } from '@interface';
-import { generateOrderNumber, getPaymentIdByUserId, withErrorHandling } from '@integrations';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions, } from '@utils';
+import {
+    generateOrderNumber,
+    getPaymentIdByUserId,
+    withErrorHandling
+} from '@integrations';
+import {
+    CreateWebPayPaymentParams,
+    IWebPayService,
+    PaymentResult,
+    PaymentStatus,
+    RefundPaymentParams,
+    WebPayPayment,
+    WebPayPaymentData
+} from '@interface';
+import {
+    checkTableExists,
+    executeQuery,
+    generateUpdateQueryWithConditions,
+} from '@utils';
 
 /**
  * @module WebpayService
@@ -277,6 +293,16 @@ export const webpayService: IWebPayService = {
         return withErrorHandling(async () => {
             await deleteWebpayPayment(userId, paymentId);
             return true;
+        });
+    },
+
+    refundPayment: async (params: RefundPaymentParams): Promise<PaymentResult<WebPayPayment>> => {
+        return withErrorHandling(async () => {
+            // Обновляем статус платежа на "refunded"
+            const payment = await updateWebpayPayment(params.paymentId, {
+                payment_status: PaymentStatus.Refunded
+            });
+            return payment;
         });
     }
 }; 

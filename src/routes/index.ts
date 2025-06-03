@@ -1,16 +1,16 @@
 import express from 'express';
 import { initializeAuthRoutes } from './auth.routes';
-import { initializeJobRoutes } from './job.routes';
-import { initializeUserRoutes } from './user.routes';
 import { initializeCryptoRoutes } from './crypto.routes';
-import { initializePaymentRoutes } from './payment.routes';
-import { initializeSubscriptionRoutes } from './subscription.routes';
-import { initializeUtilRoutes } from './util.routes';
-import { initializeVacancyRoutes } from './sending.routes';
-import { swaggerRouter } from './swagger';
 import { initializeInfoPaymentRoutes } from './infoPayment.routes';
+import { initializeIntegrationRoutes } from './integration.routes';
+import { initializeJobRoutes } from './job.routes';
+import { initializePaymentRoutes } from './payment.routes';
+import { initializeVacancyRoutes } from './sending.routes';
+import { initializeSubscriptionRoutes } from './subscription.routes';
+import { swaggerRouter } from './swagger';
+import { initializeUserRoutes } from './user.routes';
+import { initializeUtilRoutes } from './util.routes';
 import { initializeWebpayRoutes } from './webpay.routes';
-import { initializePaymentIntegrationRoutes } from './paymentIntegration.routes';
 
 export const initializeRoutes = (app: express.Application) => {
     // Swagger documentation
@@ -29,5 +29,5 @@ export const initializeRoutes = (app: express.Application) => {
     initializeWebpayRoutes(app);
 
     // Инициализация интеграционных маршрутов
-    initializePaymentIntegrationRoutes(app);
+    initializeIntegrationRoutes(app);
 }; 

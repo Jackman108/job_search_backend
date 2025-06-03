@@ -2,165 +2,206 @@
  * Контроллер для интеграции платежных сервисов
  * Переключает стратегии платежей и обрабатывает общие операции
  */
-import { isPaymentMethodAvailable } from '@config';
-import { checkPaymentStatus, initializeCryptoPayment, initializeWebpayPayment, processPaymentWebhook } from '@integrations';
-import { validatePaymentParams } from '@integrations';
-import { AuthenticatedRequest, PaymentMethod } from '@interface';
-import { handleControllerError } from '@middlewares';
+import {
+    checkPaymentStatus,
+    getPaymentDetails,
+    initializeCryptoPayment,
+    initializeWebpayPayment,
+    processPaymentWebhook,
+    refundPayment,
+    validatePaymentMethod,
+    validatePaymentParams
+} from '@integrations';
+import { AuthenticatedRequest, RefundPaymentParams } from '@interface';
+import { handleControllerError, handleErrors, handleSuccess } from '@middlewares';
 import { logger } from '@utils';
 import { Request, Response } from 'express';
 
-/**
- * Проверяет доступность метода оплаты и возвращает соответствующий ответ в случае ошибки
- * @param res Ответ Express
- * @param paymentMethod Метод оплаты
- * @returns true если метод доступен, false если нет (и отправляет ответ)
- */
-const validatePaymentMethod = (res: Response, paymentMethod: string): boolean => {
-    if (!isPaymentMethodAvailable(paymentMethod)) {
-        res.status(400).json({
-            success: false,
-            error: `Payment method '${paymentMethod}' is not available`
-        });
-        return false;
-    }
-    return true;
-};
 
-/**
- * Инициализирует платеж с использованием выбранного метода оплаты
+export class PaymentIntegrationController {
+
+    /**
+     * Инициализирует платеж с использованием выбранного метода оплаты
  * @param req Запрос Express
  * @param res Ответ Express
- */
-export const initializePayment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-        const { paymentMethod } = req.params;
-        const paymentData = req.body;
+     */
+    async initializePayment(req: AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+            const { paymentMethod } = req.params;
+            const paymentData = req.body;
 
-        logger.info('Initializing payment with integration controller', { paymentMethod, paymentData });
+            logger.info('Initializing payment with integration controller', { paymentMethod, paymentData });
 
-        // Проверяем, что платежный метод доступен
-        if (!validatePaymentMethod(res, paymentMethod)) return;
+            // Проверяем, что платежный метод доступен
+            if (!validatePaymentMethod(res, paymentMethod)) return;
 
-        // Проверяем обязательные параметры платежа
-        const validationResult = validatePaymentParams(paymentData, ['amount']);
-        if (!validationResult.success) {
-            res.status(400).json({
-                success: false,
-                error: validationResult.error
-            });
-            return;
-        }
+            // Проверяем обязательные параметры платежа
+            const validationResult = validatePaymentParams(paymentData, ['amount']);
+            if (!validationResult.success) {
+                handleErrors(res, new Error(validationResult.error), 'Initializing payment with validation error');
+                return;
+            }
 
-        // Базовые параметры платежа
-        const baseParams = {
-            paymentId: paymentData.payment_id,
-            amount: paymentData.amount,
-            userId: req.userId!
-        };
+            // Базовые параметры платежа
+            const baseParams = {
+                paymentId: paymentData.payment_id,
+                amount: paymentData.amount,
+                userId: req.userId!
+            };
 
-        // Выполняем платеж в зависимости от метода оплаты
-        const result = await (paymentMethod.toLowerCase() === 'webpay'
-            ? initializeWebpayPayment({
-                ...baseParams,
-                currency: paymentData.currency || 'BYN'
-            })
-            : paymentMethod.toLowerCase() === 'crypto'
-                ? initializeCryptoPayment({
+            // Выполняем платеж в зависимости от метода оплаты
+            const result = await (paymentMethod.toLowerCase() === 'webpay'
+                ? initializeWebpayPayment({
                     ...baseParams,
-                    currency: paymentData.currency,
-                    network: paymentData.network
+                    currency: paymentData.currency || 'BYN'
                 })
-                : {
-                    success: false,
-                    error: `Unsupported payment method: ${paymentMethod}`
-                });
+                : paymentMethod.toLowerCase() === 'crypto'
+                    ? initializeCryptoPayment({
+                        ...baseParams,
+                        currency: paymentData.currency || 'BTC',
+                        network: paymentData.network || 'BTC'
+                    })
+                    : {
+                        success: false,
+                        error: `Unsupported payment method: ${paymentMethod}`
+                    });
 
-        if (result.success && 'data' in result) {
-            res.status(200).json(result);
-        } else {
-            res.status(400).json({
-                success: false,
-                error: result.error || 'Payment initialization failed'
-            });
+            if (result.success && 'data' in result) {
+                handleSuccess(res, 'Payment initialized successfully', result.data);
+            } else {
+                handleErrors(res, new Error(result.error), 'Payment initialization failed');
+            }
+        } catch (error) {
+            handleControllerError(res, error, 'Error in payment initialization');
         }
-    } catch (error) {
-        handleControllerError(res, error, 'Error in payment initialization');
-    }
-};
+    };
 
-/**
- * Обрабатывает вебхук от платежной системы
- * @param req Запрос Express
- * @param res Ответ Express
- */
-export const handlePaymentWebhook = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { paymentMethod } = req.params;
-        const webhookData = req.body;
-        const signature = req.headers['x-webhook-signature'] as string || '';
+    /**
+     * Обрабатывает вебхук от платежной системы
+     * @param req Запрос Express
+     * @param res Ответ Express
+     */
+    async handlePaymentWebhook(req: Request, res: Response): Promise<void> {
+        try {
+            const { paymentMethod } = req.params;
+            const webhookData = req.body;
+            const signature = req.headers['x-webhook-signature'] as string || '';
 
-        logger.info('Processing payment webhook', { paymentMethod, webhookData });
+            logger.info('Processing payment webhook', { paymentMethod, webhookData });
 
-        // Проверяем, что платежный метод доступен
-        if (!validatePaymentMethod(res, paymentMethod)) return;
+            // Проверяем, что платежный метод доступен
+            if (!validatePaymentMethod(res, paymentMethod)) return;
 
-        if (!webhookData) {
-            res.status(400).json({
-                success: false,
-                error: 'Empty webhook data'
-            });
-            return;
+            if (!webhookData) {
+                handleErrors(res, new Error('Empty webhook data'), 'Empty webhook data');
+                return;
+            }
+
+            const result = await processPaymentWebhook(paymentMethod, webhookData, signature);
+
+            if (result.success) {
+                handleSuccess(res, 'Webhook processed successfully');
+            } else {
+                handleErrors(res, new Error(result.error), 'Webhook processing failed');
+            }
+        } catch (error) {
+            handleControllerError(res, error, 'Error processing payment webhook');
         }
+    };
 
-        const result = await processPaymentWebhook(paymentMethod, webhookData, signature);
+    /**
+     * Проверяет статус платежа
+     * @param req Запрос Express
+     * @param res Ответ Express
+     */
+    async checkPaymentStatusController(req: Request, res: Response): Promise<void> {
+        try {
+            const { paymentMethod, paymentId } = req.params;
 
-        if (result.success) {
-            res.status(200).json({ success: true });
-        } else {
-            res.status(400).json({
-                success: false,
-                error: result.error || 'Webhook processing failed'
-            });
+            // Проверяем, что платежный метод доступен
+            if (!validatePaymentMethod(res, paymentMethod)) return;
+
+            if (!paymentId) {
+                handleErrors(res, new Error('Payment ID is required'), 'Payment ID is required');
+                return;
+            }
+
+            logger.info('Checking payment status', { paymentMethod, paymentId });
+
+            const result = await checkPaymentStatus(paymentMethod, paymentId);
+
+            if (result.success) {
+                handleSuccess(res, 'Payment status retrieved successfully', result.data);
+            } else {
+                handleErrors(res, new Error(result.error), 'Status check failed');
+            }
+        } catch (error) {
+            handleControllerError(res, error, 'Error checking payment status');
         }
-    } catch (error) {
-        handleControllerError(res, error, 'Error processing payment webhook');
-    }
-};
+    };
 
-/**
- * Проверяет статус платежа
- * @param req Запрос Express
- * @param res Ответ Express
- */
-export const checkPaymentStatusController = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { paymentMethod, paymentId } = req.params;
+    /**
+     * Обрабатывает запрос на возврат средств (рефанд)
+     * @param req Запрос Express
+     * @param res Ответ Express
+     */
+    async handlePaymentRefund(req: Request, res: Response): Promise<void> {
+        try {
+            const { paymentMethod } = req.params;
+            const refundData = req.body as RefundPaymentParams;
 
-        // Проверяем, что платежный метод доступен
-        if (!validatePaymentMethod(res, paymentMethod)) return;
+            logger.info('Processing payment refund', { paymentMethod, refundData });
 
-        if (!paymentId) {
-            res.status(400).json({
-                success: false,
-                error: 'Payment ID is required'
-            });
-            return;
+            // Проверяем, что платежный метод доступен
+            if (!validatePaymentMethod(res, paymentMethod)) return;
+
+            // Проверяем обязательные параметры рефанда
+            const validationResult = validatePaymentParams(refundData, ['paymentId']);
+            if (!validationResult.success) {
+                handleErrors(res, new Error(validationResult.error), 'Validation error');
+                return;
+            }
+
+            const result = await refundPayment(paymentMethod, refundData);
+
+            if (result.success) {
+                handleSuccess(res, 'Payment refunded successfully', result.data);
+            } else {
+                handleErrors(res, new Error(result.error), 'Refund processing failed');
+            }
+        } catch (error) {
+            handleControllerError(res, error, 'Error processing payment refund');
         }
+    };
 
-        logger.info('Checking payment status', { paymentMethod, paymentId });
+    /**
+     * Получает детальную информацию о платеже
+     * @param req Запрос Express
+     * @param res Ответ Express
+     */
+    async getPaymentDetailsController(req: Request, res: Response): Promise<void> {
+        try {
+            const { paymentMethod, paymentId } = req.params;
 
-        const result = await checkPaymentStatus(paymentMethod, paymentId);
+            // Проверяем, что платежный метод доступен
+            if (!validatePaymentMethod(res, paymentMethod)) return;
 
-        if (result.success) {
-            res.status(200).json(result);
-        } else {
-            res.status(400).json({
-                success: false,
-                error: result.error || 'Status check failed'
-            });
+            if (!paymentId) {
+                handleErrors(res, new Error('Payment ID is required'), 'Payment ID is required');
+                return;
+            }
+
+            logger.info('Getting payment details', { paymentMethod, paymentId });
+
+            const result = await getPaymentDetails(paymentMethod, paymentId);
+
+            if (result.success) {
+                handleSuccess(res, 'Payment details retrieved successfully', result.data);
+            } else {
+                handleErrors(res, new Error(result.error), 'Failed to get payment details');
+            }
+        } catch (error) {
+            handleControllerError(res, error, 'Error getting payment details');
         }
-    } catch (error) {
-        handleControllerError(res, error, 'Error checking payment status');
-    }
-}; 
+    };
+}

@@ -2,10 +2,13 @@
  * Модуль для функций валидации подписей
  * Содержит общие функции для проверки подписей от разных платежных систем
  */
-import { nowPaymentsConfig, USE_MOCK_PROVIDER, WEBPAY_SECRET_KEY } from '@config';
-import crypto from 'crypto';
+import {
+    nowPaymentsConfig,
+    USE_MOCK_PROVIDER,
+    WEBPAY_SECRET_KEY
+} from '@config';
 import { logger } from '@utils';
-import { createHmac, createHash } from 'crypto';
+import crypto, { createHash, createHmac } from 'crypto';
 
 /**
  * Алгоритмы хеширования для разных платежных систем
@@ -139,6 +142,33 @@ export const validateWebpaySignature = (
         logger.error('Error validating WebPay signature', { error });
         return false;
     }
+};
+
+
+/**
+ * Общие функции для работы с криптоплатежами
+ */
+
+/**
+ * Проверяет подпись вебхука от криптопровайдера
+ * @param data Данные вебхука
+ * @param signature Подпись вебхука
+ * @returns true если подпись валидна, иначе false
+ */
+export const validateCryptoWebhookSignature = (data: any, signature: string): boolean => {
+    // В режиме разработки всегда считаем подпись валидной
+    if (USE_MOCK_PROVIDER) {
+        logger.info('Using mock signature validation in development mode');
+        return true;
+    }
+
+    if (!nowPaymentsConfig.ipnSecret) {
+        throw new Error('IPN secret is not configured');
+    }
+
+    const hmac = crypto.createHmac('sha512', nowPaymentsConfig.ipnSecret);
+    const expectedSignature = hmac.update(JSON.stringify(data)).digest('hex');
+    return expectedSignature === signature;
 };
 
 /**

@@ -1,7 +1,7 @@
 /**
  * Интерфейсы для работы с WebPay платежами
  */
-import { CreatePaymentParams, IPaymentService, PaymentMethod, PaymentResult, PaymentStatus, PaymentStrategy } from './base.interfaces';
+import { CreatePaymentParams, IPaymentService, PaymentResult, PaymentStatus, PaymentStrategy } from './base.interfaces';
 
 /**
  * Отдельная модель для WebPay платежей со специфичными полями
@@ -114,7 +114,6 @@ export interface WebPayStrategy extends PaymentStrategy {
     validateWebpaySignature: (data: any, signature: string) => boolean;
     handleWebpayReturn: (orderNum: string, transactionId: string) => Promise<PaymentResult<string>>;
     handleWebpayCancel: (orderNum: string) => Promise<PaymentResult<string>>;
-    deletePendingWebPayPayment: (subscriptionId: string) => Promise<PaymentResult<boolean>>;
 }
 
 /**

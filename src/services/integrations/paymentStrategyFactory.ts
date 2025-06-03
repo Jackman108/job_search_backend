@@ -2,7 +2,7 @@
  * Фабрика для создания платежных стратегий
  * Позволяет выбирать подходящую стратегию по типу платежа
  */
-import { PaymentMethod, PaymentStrategy, WebPayStrategy, CryptoPaymentStrategy } from '@interface';
+import { PaymentMethod, PaymentStrategy } from '@interface';
 import { logger } from '@utils';
 
 /**

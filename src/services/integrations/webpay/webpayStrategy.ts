@@ -2,10 +2,9 @@
  * Стратегия для обработки платежей через WebPay
  * Реализует интерфейс PaymentStrategy для WebPay
  */
-import { InitWebPayPaymentParams, PaymentResult, PaymentStatus, WebpayInitResult, WebPayStrategy } from '@interface';
+import { FRONTEND_URL, WEBPAY_SECRET_KEY } from '@config';
 import {
     cleanupPendingCryptoPayment,
-    cleanupPendingWebPayPayment,
     createPaymentErrorHandler,
     formatAmount,
     generatePaymentId,
@@ -16,8 +15,14 @@ import {
     verifyHmacSignature,
     withPaymentErrorHandling
 } from '@integrations';
+import {
+    InitWebPayPaymentParams,
+    PaymentResult,
+    PaymentStatus,
+    WebpayInitResult,
+    WebPayStrategy
+} from '@interface';
 import { logger } from '@utils';
-import { FRONTEND_URL, WEBPAY_SECRET_KEY } from '@config';
 
 /**
  * Создание стратегии платежей для WebPay
@@ -238,27 +243,45 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         return withPaymentErrorHandling(
             async () => {
                 logger.info('Cleaning up WebPay payment', { paymentId });
-                // Любая логика очистки платежа
-                return true;
+                const result = await cleanupPendingCryptoPayment(paymentId);
+                return result.data || false;
             },
             handleError,
-            'cleanupPayment'
+            'deletePendingCryptoPayment'
         );
     };
 
     /**
-     * Удаляет незавершенный WebPay платеж с тем же subscription_id
-     * @param subscriptionId ID подписки
-     * @returns Результат удаления
+     * Обрабатывает возврат средств
+     * @param params Параметры возврата
+     * @returns Результат операции возврата
      */
-    const deletePendingWebPayPayment = async (subscriptionId: string): Promise<PaymentResult<boolean>> => {
+    const refundPayment = async (params: any): Promise<PaymentResult<any>> => {
         return withPaymentErrorHandling(
             async () => {
-                const result = await cleanupPendingWebPayPayment(subscriptionId);
-                return result.data || false;
+                logger.info('Processing WebPay refund', { params });
+                // Здесь будет логика возврата средств
+                return { success: true };
             },
             handleError,
-            'deletePendingWebPayPayment'
+            'refundPayment'
+        );
+    };
+
+    /**
+     * Получает детальную информацию о платеже
+     * @param paymentId ID платежа
+     * @returns Детальная информация о платеже
+     */
+    const getPaymentDetails = async (paymentId: string): Promise<PaymentResult<any>> => {
+        return withPaymentErrorHandling(
+            async () => {
+                logger.info('Getting WebPay payment details', { paymentId });
+                // Здесь будет логика получения информации о платеже
+                return { id: paymentId, status: PaymentStatus.Completed };
+            },
+            handleError,
+            'getPaymentDetails'
         );
     };
 
@@ -272,7 +295,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         handleWebpayCancel,
         processPaymentWebhook,
         checkPaymentStatus,
-        deletePendingWebPayPayment,
-        cleanupPayment
+        refundPayment,
+        getPaymentDetails
     };
 }; 

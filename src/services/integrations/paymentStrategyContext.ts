@@ -2,7 +2,13 @@
  * Контекст для реализации паттерна Стратегия платежей
  * Позволяет динамически переключаться между разными платежными системами
  */
-import { PaymentStrategy, PaymentStrategyContext, PaymentResult, PaymentStatus } from '@interface';
+import {
+    PaymentResult,
+    PaymentStatus,
+    PaymentStrategy,
+    PaymentStrategyContext,
+    RefundPaymentParams
+} from '@interface';
 import { logger } from '@utils';
 
 /**
@@ -102,12 +108,68 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
         }
     };
 
+    /**
+     * Возврат средств (рефанд) с использованием выбранной стратегии
+     * @param params Параметры возврата средств
+     * @returns Результат операции возврата
+     */
+    const refundPayment = async (params: RefundPaymentParams): Promise<PaymentResult<any>> => {
+        if (!currentStrategy) {
+            logger.error('Payment strategy not set for refund operation');
+            return {
+                success: false,
+                error: 'Payment strategy not set'
+            };
+        }
+
+        try {
+            logger.info('Processing refund with strategy', { params });
+            return await currentStrategy.refundPayment(params);
+        } catch (error) {
+            logger.error('Error processing refund', { error });
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                errorCode: 'REFUND_ERROR'
+            };
+        }
+    };
+
+    /**
+     * Получение детальной информации о платеже
+     * @param paymentId Идентификатор платежа
+     * @returns Детальная информация о платеже
+     */
+    const getPaymentDetails = async (paymentId: string): Promise<PaymentResult<any>> => {
+        if (!currentStrategy) {
+            logger.error('Payment strategy not set for getting payment details');
+            return {
+                success: false,
+                error: 'Payment strategy not set'
+            };
+        }
+
+        try {
+            logger.info('Getting payment details with strategy', { paymentId });
+            return await currentStrategy.getPaymentDetails(paymentId);
+        } catch (error) {
+            logger.error('Error getting payment details', { error });
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                errorCode: 'DETAILS_ERROR'
+            };
+        }
+    };
+
     // Возвращаем объект контекста, соответствующий интерфейсу
     return {
         strategy: currentStrategy!,
         setStrategy,
         executePayment,
         validateWebhook,
-        checkStatus
+        checkStatus,
+        refundPayment,
+        getPaymentDetails
     };
 }; 

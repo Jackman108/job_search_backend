@@ -6,7 +6,7 @@ import { PaymentResult, PaymentStatus } from '@interface';
 import { executeQuery, logger } from '@utils';
 
 /**
- * Удаляет незавершенные криптоплатежи по subscription_id
+ * Удаляет незавершенные криптоплатежи по payment_id
  * @param paymentId ID платежа
  * @returns Результат удаления
  */
@@ -63,15 +63,15 @@ export const cleanupPendingCryptoPayment = async (paymentId: string): Promise<Pa
 };
 
 /**
- * Удаляет незавершенные WebPay платежи по subscription_id
- * @param subscriptionId ID подписки
+ * Удаляет незавершенные WebPay платежи по payment_id
+ * @param paymentId ID платежа
  * @returns Результат удаления
  */
 export const cleanupPendingWebPayPayment = async (paymentId: string): Promise<PaymentResult<boolean>> => {
     try {
         logger.info('Удаление незавершенного WebPay платежа', { paymentId });
 
-        // Находим незавершенные платежи для указанной подписки
+        // Находим незавершенные платежи для указанного платежа
         const query = `
             SELECT id, wsb_order_num FROM webpay_payments 
             WHERE payment_id = $1 

@@ -1,6 +1,8 @@
-import { USE_MOCK_PROVIDER } from '@config';
+import { isPaymentMethodAvailable, USE_MOCK_PROVIDER } from '@config';
 import { PaymentBase, PaymentResult, PaymentStatus } from '@interface';
+import { handleErrors } from '@middlewares';
 import { executeQuery, logger } from '@utils';
+import { Response } from 'express';
 
 /**
  * @module PaymentCommon
@@ -11,6 +13,21 @@ import { executeQuery, logger } from '@utils';
  * - Стандартизация форматов
  * - Обработка ошибок
  */
+
+
+/**
+ * Проверяет доступность метода оплаты и возвращает соответствующий ответ в случае ошибки
+ * @param res Ответ Express
+ * @param paymentMethod Метод оплаты
+ * @returns true если метод доступен, false если нет (и отправляет ответ)
+ */
+export const validatePaymentMethod = (res: Response, paymentMethod: string): boolean => {
+    if (!isPaymentMethodAvailable(paymentMethod)) {
+        handleErrors(res, new Error(`Payment method '${paymentMethod}' is not available`), `Payment method '${paymentMethod}' is not available`);
+        return false;
+    }
+    return true;
+};
 
 /**
  * Общие функции для работы с платежами
@@ -92,21 +109,49 @@ export const normalizePaymentStatus = (
 };
 
 /**
- * Создает стандартизированный ответ об ошибке платежа
- * @param error Объект ошибки
- * @param defaultMessage Сообщение по умолчанию
- * @returns Результат операции с ошибкой
+ * Создает обработчик ошибок для конкретной платежной системы
+ * @param paymentSystemName Название платежной системы (для логирования)
+ * @returns Функция-обработчик ошибок
  */
-export const createPaymentError = <T>(
-    error: unknown,
-    defaultMessage = 'Payment operation failed'
-): PaymentResult<T> => {
-    const errorMessage = error instanceof Error ? error.message : defaultMessage;
-    logger.error(errorMessage, { error });
-    return {
-        success: false,
-        error: errorMessage
+export const createPaymentErrorHandler = (paymentSystemName: string) => {
+    return <T>(error: unknown, operation?: string): PaymentResult<T> => {
+        const prefix = operation
+            ? `[${paymentSystemName}:${operation}] `
+            : `[${paymentSystemName}] `;
+
+        const errorMessage = error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+                ? error
+                : 'Unknown payment system error';
+
+        logger.error(`${prefix}Payment error: ${errorMessage}`, { error });
+
+        return {
+            success: false,
+            error: `${prefix}${errorMessage}`
+        };
     };
+};
+
+/**
+ * Обертка для обработки ошибок в платежных операциях
+ * @param fn Функция, которую нужно выполнить
+ * @param errorHandler Обработчик ошибок
+ * @param operationName Название операции (для логирования)
+ * @returns Результат операции
+ */
+export const withPaymentErrorHandling = async <T>(
+    fn: () => Promise<T>,
+    errorHandler: <T>(error: unknown, operation?: string) => PaymentResult<T>,
+    operationName?: string
+): Promise<PaymentResult<T>> => {
+    try {
+        const result = await fn();
+        return { success: true, data: result };
+    } catch (error) {
+        return errorHandler<T>(error, operationName);
+    }
 };
 
 /**
@@ -230,33 +275,6 @@ export const withErrorHandling = async <T>(fn: () => Promise<T>): Promise<Paymen
     }
 };
 
-/**
- * Общие функции для работы с криптоплатежами
- */
-import { nowPaymentsConfig } from '@config';
-import crypto from 'crypto';
-
-/**
- * Проверяет подпись вебхука от криптопровайдера
- * @param data Данные вебхука
- * @param signature Подпись вебхука
- * @returns true если подпись валидна, иначе false
- */
-export const validateCryptoWebhookSignature = (data: any, signature: string): boolean => {
-    // В режиме разработки всегда считаем подпись валидной
-    if (USE_MOCK_PROVIDER) {
-        logger.info('Using mock signature validation in development mode');
-        return true;
-    }
-
-    if (!nowPaymentsConfig.ipnSecret) {
-        throw new Error('IPN secret is not configured');
-    }
-
-    const hmac = crypto.createHmac('sha512', nowPaymentsConfig.ipnSecret);
-    const expectedSignature = hmac.update(JSON.stringify(data)).digest('hex');
-    return expectedSignature === signature;
-};
 
 /**
  * Проверяет статус платежа у провайдера

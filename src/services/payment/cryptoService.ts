@@ -1,6 +1,20 @@
-import { CreateCryptoPaymentParams, CryptoPaymentData, CryptoPaymentDetails, ICryptoPaymentService, PaymentStatus } from '@interface';
-import { getPaymentIdByUserId, withErrorHandling } from '@integrations';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
+import {
+    getPaymentIdByUserId,
+    withErrorHandling
+} from '@integrations';
+import {
+    CreateCryptoPaymentParams,
+    CryptoPaymentData,
+    CryptoPaymentDetails,
+    ICryptoPaymentService,
+    PaymentStatus,
+    RefundPaymentParams
+} from '@interface';
+import {
+    checkTableExists,
+    executeQuery,
+    generateUpdateQueryWithConditions
+} from '@utils';
 
 /**
  * Создание таблицы для криптоплатежей
@@ -243,4 +257,19 @@ export const cryptoService: ICryptoPaymentService = {
             return await listCryptoPayments();
         });
     },
+
+    // Refund - Возврат криптоплатежа
+    refundPayment: async (params: RefundPaymentParams) => {
+        return withErrorHandling(async () => {
+            // Обновляем статус платежа на "refunded"
+            const payment = await updateCryptoPayment(params.paymentId, {
+                payment_status: PaymentStatus.Refunded
+            });
+
+            // Здесь может быть дополнительная логика для фактического возврата средств
+            // через API криптопровайдера
+
+            return payment;
+        });
+    }
 }; 

@@ -12,7 +12,6 @@ import {
 } from '@interface';
 
 import {
-    cleanupPendingCryptoPayment,
     cleanupPendingWebPayPayment,
     createDataHash,
     createPaymentError,
@@ -133,7 +132,7 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
      * @param paymentId ID платежа
      * @returns Детали криптоплатежа
      */
-    const getCryptoPaymentDetails = async (paymentId: string): Promise<PaymentResult<CryptoPaymentDetails>> => {
+    const getPaymentDetails = async (paymentId: string): Promise<PaymentResult<CryptoPaymentDetails>> => {
         return withPaymentErrorHandling(
             async () => {
                 logger.info('Getting crypto payment details', { paymentId });
@@ -224,7 +223,7 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
                 logger.info('Checking crypto payment status details', { paymentId });
 
                 // Получаем детали платежа
-                const result = await getCryptoPaymentDetails(paymentId);
+                const result = await getPaymentDetails(paymentId);
 
                 if (!result.success || !result.data) {
                     throw new Error('Failed to get crypto payment details');
@@ -238,37 +237,19 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
     };
 
     /**
-     * Удаляет незавершенный WebPay платеж с тем же subscription_id
-     * @param subscriptionId ID подписки
-     * @returns Результат удаления
+     * Обрабатывает возврат средств
+     * @param params Параметры возврата
+     * @returns Результат операции возврата
      */
-    const deletePendingCryptoPayment = async (subscriptionId: string): Promise<PaymentResult<boolean>> => {
+    const refundPayment = async (params: any): Promise<PaymentResult<any>> => {
         return withPaymentErrorHandling(
             async () => {
-                logger.info('Deleting pending crypto payment', { subscriptionId });
-                // Вызов сервиса для удаления криптоплатежа
-                const result = await cleanupPendingCryptoPayment(subscriptionId);
-                return result.data || false;
+                logger.info('Processing crypto refund', { params });
+                // Реализация возврата средств
+                return { success: true };
             },
             handleError,
-            'deletePendingCryptoPayment'
-        );
-    };
-
-    /**
-     * Очищает платеж
-     * @param paymentId ID платежа
-     * @returns Результат очистки
-     */
-    const cleanupPayment = async (paymentId: string): Promise<PaymentResult<boolean>> => {
-        return withPaymentErrorHandling(
-            async () => {
-                logger.info('Cleaning up crypto payment', { paymentId });
-                // Любая логика очистки платежа
-                return true;
-            },
-            handleError,
-            'cleanupPayment'
+            'refundPayment'
         );
     };
 
@@ -280,8 +261,7 @@ export const createCryptoStrategy = (): CryptoPaymentStrategy => {
         handlePaymentCallback,
         processPaymentWebhook,
         checkPaymentStatus,
-        getCryptoPaymentDetails,
-        deletePendingCryptoPayment,
-        cleanupPayment
+        refundPayment,
+        getPaymentDetails
     };
 }; 

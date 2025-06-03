@@ -2,8 +2,6 @@ import { AuthenticatedRequest } from '@interface';
 import { handleErrors, handleSuccess } from '@middlewares';
 import { cryptoService } from '@services';
 import { Response } from 'express';
-import { USE_MOCK_PROVIDER } from '@config';
-import { logger } from '@utils';
 
 /**
  * Контроллер для работы с криптоплатежами
@@ -19,7 +17,7 @@ export class CryptoPaymentController {
         if (result.success) {
             res.status(200).json(result.data);
         } else {
-            handleErrors(res, new Error(result.error), 'Error listing crypto payments');
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Error listing crypto payments');
         }
     }
 
@@ -32,7 +30,7 @@ export class CryptoPaymentController {
         if (result.success) {
             handleSuccess(res, 'Crypto payment retrieved successfully', result.data);
         } else {
-            handleErrors(res, new Error(result.error), 'Failed to fetch crypto payment');
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to fetch crypto payment');
         }
     }
 
@@ -40,7 +38,7 @@ export class CryptoPaymentController {
      * Создание нового криптоплатежа
      */
     async createCryptoPayment(req: AuthenticatedRequest, res: Response) {
-        const { subscription_id, amount, currency = 'BTC', payment_method = 'crypto', id } = req.body;
+        const { subscription_id, amount, currency, payment_id, network } = req.body;
 
         if (!subscription_id) {
             return handleErrors(res, new Error('Missing required fields'), 'Subscription ID and amount are required');
@@ -50,41 +48,27 @@ export class CryptoPaymentController {
             subscription_id,
             amount,
             currency,
-            payment_method,
-            id
+            payment_id,
+            network
         });
 
         if (result.success) {
             handleSuccess(res, 'Crypto payment created successfully', result.data);
         } else {
-            handleErrors(res, new Error(result.error), 'Failed to create crypto payment');
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to create crypto payment');
         }
-
     }
 
     /**
     * Обновление криптоплатежа
     */
     async updateCryptoPayment(req: AuthenticatedRequest, res: Response) {
-        const { paymentId } = req.params;
-        const updateData = req.body;
-
-        if (!paymentId) {
-            return handleErrors(res, new Error('Missing payment ID'), 'Payment ID is required');
-        }
-
-        // Проверяем наличие минимально необходимых полей
-        if (Object.keys(updateData).length === 0) {
-            return handleErrors(res, new Error('No update data provided'), 'Update data is required');
-        }
-
-        const result = await cryptoService.updatePayment(paymentId, updateData);
+        const result = await cryptoService.updatePayment(req.params.paymentId, req.body);
         if (result.success) {
             handleSuccess(res, 'Crypto payment updated successfully', result.data);
         } else {
-            handleErrors(res, new Error(result.error), 'Failed to update crypto payment');
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to update crypto payment');
         }
-
     }
 
     /**
@@ -96,7 +80,7 @@ export class CryptoPaymentController {
         if (result.success) {
             handleSuccess(res, 'Crypto payment deleted successfully');
         } else {
-            handleErrors(res, new Error(result.error), 'Failed to delete crypto payment');
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to delete crypto payment');
         }
     }
 } 

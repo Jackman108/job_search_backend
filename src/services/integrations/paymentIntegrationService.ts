@@ -3,16 +3,23 @@
  * Использует паттерн стратегии для переключения между разными платежными системами
  */
 import {
+    createPaymentError,
+    createPaymentStrategyContext
+} from '@integrations';
+import {
     CryptoPaymentDetails,
     InitCryptoPaymentParams,
     InitWebPayPaymentParams,
     PaymentMethod,
     PaymentResult,
+    PaymentStatus,
+    RefundPaymentParams,
     WebpayInitResult
 } from '@interface';
-import { createPaymentError, createPaymentStrategyContext } from '@integrations';
 import { logger } from '@utils';
-import { createPaymentStrategyFactory } from './paymentStrategyFactory.js';
+import { createPaymentStrategyFactory } from './paymentStrategyFactory';
+
+
 
 // Создаем фабрику стратегий и контекст
 const paymentStrategyFactory = createPaymentStrategyFactory();
@@ -90,9 +97,10 @@ export const processPaymentWebhook = async (
 
         // Получаем стратегию для указанного метода
         const strategy = await paymentStrategyFactory.getStrategy(paymentMethod);
+        paymentContext.setStrategy(strategy);
 
-        // Обрабатываем вебхук напрямую через стратегию
-        return await strategy.processPaymentWebhook(data, signature);
+        // Обрабатываем вебхук через контекст
+        return await paymentContext.validateWebhook(data, signature);
     } catch (error) {
         return createPaymentError<boolean>(error, 'Error processing payment webhook');
     }
@@ -107,7 +115,7 @@ export const processPaymentWebhook = async (
 export const checkPaymentStatus = async (
     paymentMethod: string,
     paymentId: string
-): Promise<PaymentResult<any>> => {
+): Promise<PaymentResult<PaymentStatus>> => {
     try {
         logger.info('Checking payment status', { paymentMethod, paymentId });
 
@@ -121,10 +129,83 @@ export const checkPaymentStatus = async (
 
         // Получаем стратегию для указанного метода
         const strategy = await paymentStrategyFactory.getStrategy(paymentMethod);
+        paymentContext.setStrategy(strategy);
 
-        // Проверяем статус платежа напрямую через стратегию
-        return await strategy.checkPaymentStatus(paymentId);
+        // Проверяем статус платежа через контекст
+        return await paymentContext.checkStatus(paymentId);
     } catch (error) {
-        return createPaymentError(error, 'Error checking payment status');
+        return createPaymentError<PaymentStatus>(error, 'Error checking payment status');
     }
+};
+
+/**
+ * Выполняет возврат средств (рефанд) с использованием соответствующей стратегии
+ * @param paymentMethod Метод оплаты (webpay, crypto и т.д.)
+ * @param params Параметры возврата средств
+ * @returns Результат операции возврата
+ */
+export const refundPayment = async (
+    paymentMethod: string,
+    params: RefundPaymentParams
+): Promise<PaymentResult<any>> => {
+    try {
+        logger.info('Processing refund', { paymentMethod, params });
+
+        // Проверяем поддержку метода
+        if (!paymentStrategyFactory.supportsMethod(paymentMethod)) {
+            return {
+                success: false,
+                error: `Unsupported payment method: ${paymentMethod}`
+            };
+        }
+
+        // Получаем стратегию для указанного метода
+        const strategy = await paymentStrategyFactory.getStrategy(paymentMethod);
+        paymentContext.setStrategy(strategy);
+
+        // Выполняем рефанд через контекст
+        return await paymentContext.refundPayment(params);
+    } catch (error) {
+        return createPaymentError(error, 'Error processing refund');
+    }
+};
+
+/**
+ * Получает детальную информацию о платеже с использованием соответствующей стратегии
+ * @param paymentMethod Метод оплаты (webpay, crypto и т.д.)
+ * @param paymentId ID платежа
+ * @returns Детальная информация о платеже
+ */
+export const getPaymentDetails = async (
+    paymentMethod: string,
+    paymentId: string
+): Promise<PaymentResult<any>> => {
+    try {
+        logger.info('Getting payment details', { paymentMethod, paymentId });
+
+        // Проверяем поддержку метода
+        if (!paymentStrategyFactory.supportsMethod(paymentMethod)) {
+            return {
+                success: false,
+                error: `Unsupported payment method: ${paymentMethod}`
+            };
+        }
+
+        // Получаем стратегию для указанного метода
+        const strategy = await paymentStrategyFactory.getStrategy(paymentMethod);
+        paymentContext.setStrategy(strategy);
+
+        // Получаем детали платежа через контекст
+        return await paymentContext.getPaymentDetails(paymentId);
+    } catch (error) {
+        return createPaymentError(error, 'Error getting payment details');
+    }
+};
+
+/**
+ * Возвращает список доступных методов оплаты
+ * @returns Список доступных методов оплаты
+ */
+export const getAvailablePaymentMethods = (): string[] => {
+    return paymentStrategyFactory.getAvailableMethods();
 }; 

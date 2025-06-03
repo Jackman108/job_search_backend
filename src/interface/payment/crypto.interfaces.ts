@@ -75,6 +75,4 @@ export interface ICryptoPaymentService extends IPaymentService<CryptoPaymentDeta
 export interface CryptoPaymentStrategy extends PaymentStrategy {
     initCryptoPayment: (params: InitCryptoPaymentParams) => Promise<PaymentResult<CryptoPaymentDetails>>;
     validateCryptoWebhookSignature: (data: any, signature: string) => boolean;
-    getCryptoPaymentDetails: (paymentId: string) => Promise<PaymentResult<CryptoPaymentDetails>>;
-    deletePendingCryptoPayment: (paymentId: string) => Promise<PaymentResult<boolean>>;
 } 
