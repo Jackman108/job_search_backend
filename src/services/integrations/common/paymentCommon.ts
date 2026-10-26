@@ -95,66 +95,6 @@ export const generatePaymentId = (prefix = 'PAY'): string => {
 };
 
 /**
- * Нормализует статус платежа из различных платежных систем
- * @param status Статус платежа из внешней системы
- * @param statusMap Карта соответствия статусов
- * @returns Нормализованный статус платежа
- */
-export const normalizePaymentStatus = (
-    status: string,
-    statusMap: Record<string, PaymentStatus>
-): PaymentStatus => {
-    const normalizedStatus = statusMap[status.toLowerCase()];
-    return normalizedStatus || PaymentStatus.Pending;
-};
-
-/**
- * Создает обработчик ошибок для конкретной платежной системы
- * @param paymentSystemName Название платежной системы (для логирования)
- * @returns Функция-обработчик ошибок
- */
-export const createPaymentErrorHandler = (paymentSystemName: string) => {
-    return <T>(error: unknown, operation?: string): PaymentResult<T> => {
-        const prefix = operation
-            ? `[${paymentSystemName}:${operation}] `
-            : `[${paymentSystemName}] `;
-
-        const errorMessage = error instanceof Error
-            ? error.message
-            : typeof error === 'string'
-                ? error
-                : 'Unknown payment system error';
-
-        logger.error(`${prefix}Payment error: ${errorMessage}`, { error });
-
-        return {
-            success: false,
-            error: `${prefix}${errorMessage}`
-        };
-    };
-};
-
-/**
- * Обертка для обработки ошибок в платежных операциях
- * @param fn Функция, которую нужно выполнить
- * @param errorHandler Обработчик ошибок
- * @param operationName Название операции (для логирования)
- * @returns Результат операции
- */
-export const withPaymentErrorHandling = async <T>(
-    fn: () => Promise<T>,
-    errorHandler: <T>(error: unknown, operation?: string) => PaymentResult<T>,
-    operationName?: string
-): Promise<PaymentResult<T>> => {
-    try {
-        const result = await fn();
-        return { success: true, data: result };
-    } catch (error) {
-        return errorHandler<T>(error, operationName);
-    }
-};
-
-/**
  * Генерирует уникальный номер заказа для платежей
  * @returns Уникальный идентификатор заказа
  */
@@ -230,29 +170,7 @@ export const updatePaymentStatus = async (paymentId: string, status: PaymentStat
     await executeQuery(query, [status, paymentId]);
 };
 
-/**
- * Стандартизирует статус платежа
- * @param status Статус платежа в любом формате
- * @returns Стандартизированный статус платежа
- */
-export const standardizePaymentStatus = (status: string): PaymentStatus => {
-    const statusMap: Record<string, PaymentStatus> = {
-        'pending': PaymentStatus.Pending,
-        'processing': PaymentStatus.Processing,
-        'on_hold': PaymentStatus.OnHold,
-        'completed': PaymentStatus.Completed,
-        'successful': PaymentStatus.Completed,
-        'success': PaymentStatus.Completed,
-        'failed': PaymentStatus.Failed,
-        'error': PaymentStatus.Failed,
-        'expired': PaymentStatus.Expired,
-        'canceled': PaymentStatus.Canceled,
-        'refunded': PaymentStatus.Refunded,
-    };
 
-    const normalizedStatus = status.toLowerCase();
-    return statusMap[normalizedStatus] || PaymentStatus.Pending;
-};
 
 /**
  * Функция-обертка для обработки ошибок в платежных сервисах
@@ -276,103 +194,5 @@ export const withErrorHandling = async <T>(fn: () => Promise<T>): Promise<Paymen
 };
 
 
-/**
- * Проверяет статус платежа у провайдера
- * @param paymentId ID платежа
- * @returns Статус платежа
- */
-export const checkPaymentStatusWithProvider = async (paymentId: string): Promise<string> => {
-    // В режиме разработки возвращаем моковые данные
-    if (USE_MOCK_PROVIDER) {
-        return PaymentStatus.Pending;
-    }
 
-    // В продакшн режиме здесь должен быть запрос к API провайдера
-    // Например:
-    // const response = await fetch(`${nowPaymentsConfig.baseUrl}/payment/${paymentId}`, {
-    //     headers: { 'x-api-key': nowPaymentsConfig.apiKey }
-    // });
-    // const data = await response.json();
-    // return data.payment_status;
 
-    // Временная заглушка
-    return PaymentStatus.Pending;
-};
-
-/**
- * Соответствие статусов провайдера статусам приложения
- */
-const CRYPTO_STATUS_MAPPING: Record<string, PaymentStatus> = {
-    // Успешные статусы
-    'finished': PaymentStatus.Completed,
-    'confirmed': PaymentStatus.Completed,
-    'complete': PaymentStatus.Completed,
-    'paid': PaymentStatus.Completed,
-    'success': PaymentStatus.Completed,
-
-    // Ожидающие статусы
-    'waiting': PaymentStatus.Pending,
-    'confirming': PaymentStatus.Pending,
-    'pending': PaymentStatus.Pending,
-    'in_progress': PaymentStatus.Processing,
-    'sending': PaymentStatus.Processing,
-    'received': PaymentStatus.Processing,
-
-    // Проблемные статусы
-    'failed': PaymentStatus.Failed,
-    'error': PaymentStatus.Failed,
-    'invalid': PaymentStatus.Failed,
-
-    // Отмененные статусы
-    'refunded': PaymentStatus.Refunded,
-    'cancelled': PaymentStatus.Canceled,
-    'canceled': PaymentStatus.Canceled,
-
-    // Истекшие статусы
-    'expired': PaymentStatus.Expired,
-    'timeout': PaymentStatus.Expired
-};
-
-/**
- * Преобразует статус платежа из формата криптопровайдера в формат приложения
- * @param cryptoStatus Статус платежа от криптопровайдера
- * @returns Статус платежа в формате приложения
- */
-export const mapCryptoStatus = (cryptoStatus: string): PaymentStatus => {
-    // Нормализуем статус (приводим к нижнему регистру и удаляем пробелы)
-    const normalizedStatus = cryptoStatus.toLowerCase().trim();
-
-    // Логируем преобразование статуса
-    logger.info('Mapping crypto payment status', {
-        originalStatus: cryptoStatus,
-        normalizedStatus
-    });
-
-    // Проверяем наличие статуса в маппинге
-    if (normalizedStatus in CRYPTO_STATUS_MAPPING) {
-        const mappedStatus = CRYPTO_STATUS_MAPPING[normalizedStatus];
-        logger.info('Mapped crypto payment status', {
-            from: normalizedStatus,
-            to: mappedStatus
-        });
-        return mappedStatus;
-    }
-
-    // Пытаемся определить статус по частичному совпадению
-    for (const [key, value] of Object.entries(CRYPTO_STATUS_MAPPING)) {
-        if (normalizedStatus.includes(key)) {
-            logger.info('Mapped crypto payment status by partial match', {
-                from: normalizedStatus,
-                partialMatch: key,
-                to: value
-            });
-            return value;
-        }
-    }
-
-    // Если статус не найден, возвращаем Pending по умолчанию
-    logger.warn('Unknown crypto payment status, defaulting to Pending', {
-        unknownStatus: cryptoStatus
-    });
-    return PaymentStatus.Pending;
-};

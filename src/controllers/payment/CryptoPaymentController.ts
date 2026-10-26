@@ -38,18 +38,19 @@ export class CryptoPaymentController {
      * Создание нового криптоплатежа
      */
     async createCryptoPayment(req: AuthenticatedRequest, res: Response) {
-        const { subscription_id, amount, currency, payment_id, network } = req.body;
+        const { amount, currency, payment_id, network, crypto_address } = req.body;
 
-        if (!subscription_id) {
-            return handleErrors(res, new Error('Missing required fields'), 'Subscription ID and amount are required');
+        if (!payment_id) {
+            return handleErrors(res, new Error('Missing required fields'), 'Payment ID and amount are required');
         }
 
         const result = await cryptoService.createPayment({
-            subscription_id,
+
             amount,
             currency,
             payment_id,
-            network
+            network,
+            crypto_address,
         });
 
         if (result.success) {

@@ -23,6 +23,7 @@ export enum PaymentStatus {
 export enum PaymentMethod {
     WebPay = 'webpay',
     Crypto = 'crypto',
+    ERIP = 'erip',
     Card = 'card',
     Other = 'other'
 }

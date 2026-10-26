@@ -144,32 +144,138 @@ export const validateWebpaySignature = (
     }
 };
 
+/**
+ * Функции для валидации подписей в платежных системах
+ */
 
 /**
- * Общие функции для работы с криптоплатежами
+ * Проверяет подпись вебхука от NOWPayments
+ * @param data Данные вебхука
+ * @param signature Подпись вебхука
+ * @returns true если подпись верна, иначе false
  */
+export const validateNowPaymentsSignature = (data: any, signature: string): boolean => {
+    const ipnSecret = nowPaymentsConfig.ipnSecret;
+
+    if (!ipnSecret) {
+        logger.error('NOWPayments IPN secret is not configured');
+        return false;
+    }
+
+    try {
+        // Сортируем ключи объекта data в алфавитном порядке
+        const sortedData = Object.keys(data)
+            .sort()
+            .reduce((result: Record<string, any>, key) => {
+                result[key] = data[key];
+                return result;
+            }, {});
+
+        // Преобразуем объект в JSON строку
+        const jsonData = JSON.stringify(sortedData);
+
+        // Создаем HMAC с использованием SHA-512 и IPN Secret
+        const hmac = crypto.createHmac('sha512', ipnSecret);
+        hmac.update(jsonData);
+        const calculatedSignature = hmac.digest('hex');
+
+        // Сравниваем вычисленную подпись с полученной
+        return calculatedSignature === signature;
+    } catch (error) {
+        logger.error('Error validating NOWPayments webhook signature', { error });
+        return false;
+    }
+};
 
 /**
  * Проверяет подпись вебхука от криптопровайдера
  * @param data Данные вебхука
  * @param signature Подпись вебхука
- * @returns true если подпись валидна, иначе false
+ * @returns true если подпись верна, иначе false
  */
 export const validateCryptoWebhookSignature = (data: any, signature: string): boolean => {
-    // В режиме разработки всегда считаем подпись валидной
-    if (USE_MOCK_PROVIDER) {
-        logger.info('Using mock signature validation in development mode');
-        return true;
-    }
-
-    if (!nowPaymentsConfig.ipnSecret) {
-        throw new Error('IPN secret is not configured');
-    }
-
-    const hmac = crypto.createHmac('sha512', nowPaymentsConfig.ipnSecret);
-    const expectedSignature = hmac.update(JSON.stringify(data)).digest('hex');
-    return expectedSignature === signature;
+    // Используем функцию для проверки подписи NOWPayments, так как это текущий провайдер
+    return validateNowPaymentsSignature(data, signature);
 };
+
+/**
+ * Создает хеш данных с использованием указанного алгоритма
+ * @param data Данные для хеширования
+ * @param algorithm Алгоритм хеширования (по умолчанию sha256)
+ * @param secret Секретный ключ для HMAC (опционально)
+ * @returns Хеш данных
+ */
+export const createDataHash = (
+    data: string | Record<string, any>,
+    algorithm: string = 'sha256',
+    secret?: string
+): string => {
+    // Преобразуем объект в строку, если необходимо
+    const dataString = typeof data === 'string' ? data : JSON.stringify(data);
+
+    // Если указан секретный ключ, используем HMAC
+    if (secret) {
+        return crypto
+            .createHmac(algorithm, secret)
+            .update(dataString)
+            .digest('hex');
+    }
+
+    // Иначе используем обычное хеширование
+    return crypto
+        .createHash(algorithm)
+        .update(dataString)
+        .digest('hex');
+};
+
+/**
+ * Нормализует данные для создания подписи
+ * @param data Данные для нормализации
+ * @param options Опции нормализации
+ * @returns Нормализованные данные
+ */
+export const normalizeDataForSignature = (
+    data: Record<string, any>,
+    options: {
+        sortKeys?: boolean;
+        excludeEmpty?: boolean;
+        excludeKeys?: string[];
+    } = {}
+): Record<string, any> => {
+    const { sortKeys = true, excludeEmpty = true, excludeKeys = [] } = options;
+
+    // Фильтруем ключи
+    const filteredData = Object.entries(data).reduce((result: Record<string, any>, [key, value]) => {
+        // Пропускаем исключенные ключи
+        if (excludeKeys.includes(key)) {
+            return result;
+        }
+
+        // Пропускаем пустые значения, если указано
+        if (excludeEmpty && (value === undefined || value === null || value === '')) {
+            return result;
+        }
+
+        result[key] = value;
+        return result;
+    }, {});
+
+    // Если нужно сортировать ключи
+    if (sortKeys) {
+        return Object.keys(filteredData)
+            .sort()
+            .reduce((result: Record<string, any>, key) => {
+                result[key] = filteredData[key];
+                return result;
+            }, {});
+    }
+
+    return filteredData;
+};
+
+/**
+ * Общие функции для работы с криптоплатежами
+ */
 
 /**
  * Универсальная функция для генерации подписей
@@ -242,56 +348,4 @@ export const verifyHmacSignature = (
     }
 
     return isValid;
-};
-
-/**
- * Создает хеш данных с использованием указанного алгоритма
- * @param data Данные для хеширования
- * @param algorithm Алгоритм хеширования (по умолчанию sha256)
- * @returns Хеш данных
- */
-export const createDataHash = (
-    data: string,
-    algorithm: string = 'sha256'
-): string => {
-    return createHash(algorithm)
-        .update(data)
-        .digest('hex');
-};
-
-/**
- * Нормализует данные для подписи (сортирует ключи, удаляет пустые значения)
- * @param data Объект с данными
- * @param options Опции нормализации
- * @returns Строка для подписи
- */
-export const normalizeDataForSignature = (
-    data: Record<string, any>,
-    options: {
-        sortKeys?: boolean;
-        excludeEmpty?: boolean;
-        excludeKeys?: string[];
-    } = {}
-): string => {
-    const {
-        sortKeys = true,
-        excludeEmpty = true,
-        excludeKeys = []
-    } = options;
-
-    // Фильтруем и преобразуем данные
-    let entries = Object.entries(data)
-        .filter(([key, value]) => {
-            if (excludeKeys.includes(key)) return false;
-            if (excludeEmpty && (value === null || value === undefined || value === '')) return false;
-            return true;
-        });
-
-    // Сортируем ключи, если нужно
-    if (sortKeys) {
-        entries = entries.sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
-    }
-
-    // Соединяем в строку
-    return entries.map(([key, value]) => `${key}=${value}`).join('&');
 }; 

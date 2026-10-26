@@ -5,15 +5,13 @@
 import { FRONTEND_URL, WEBPAY_SECRET_KEY } from '@config';
 import {
     cleanupPendingCryptoPayment,
-    createPaymentErrorHandler,
     formatAmount,
     generatePaymentId,
     initWebpayFiatPayment,
     normalizeDataForSignature,
     updatePaymentStatus,
     validateWebpaySignature,
-    verifyHmacSignature,
-    withPaymentErrorHandling
+    verifyHmacSignature
 } from '@integrations';
 import {
     InitWebPayPaymentParams,
@@ -29,8 +27,6 @@ import { logger } from '@utils';
  * Реализует интерфейс PaymentStrategy
  */
 export const createWebPayStrategy = (): WebPayStrategy => {
-    // Создаем обработчик ошибок для WebPay
-    const handleError = createPaymentErrorHandler('WebPay');
 
     /**
      * Инициализирует платеж через WebPay
@@ -38,8 +34,6 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns Результат инициализации платежа
      */
     const initPayment = async (params: InitWebPayPaymentParams): Promise<PaymentResult<WebpayInitResult>> => {
-        logger.info('Initializing WebPay payment', { params });
-
         try {
             // Проверяем, если есть незавершенные криптоплатежи, удаляем их
             await cleanupPendingCryptoPayment(params.paymentId);
@@ -47,7 +41,10 @@ export const createWebPayStrategy = (): WebPayStrategy => {
             // Инициализация платежа через WebPay
             return await initWebpayStrategyPayment(params);
         } catch (error) {
-            return handleError(error, 'initPayment');
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            };
         }
     };
 
@@ -105,7 +102,10 @@ export const createWebPayStrategy = (): WebPayStrategy => {
                 }
             };
         } catch (error) {
-            return handleError(error, 'initWebpayStrategyPayment');
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            };
         }
     };
 
@@ -127,7 +127,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         });
 
         // Проверяем подпись с использованием HMAC
-        return verifyHmacSignature(normalizedData, signature, WEBPAY_SECRET_KEY, 'sha1');
+        return verifyHmacSignature(JSON.stringify(normalizedData), signature, WEBPAY_SECRET_KEY, 'sha1');
     };
 
     /**
@@ -136,13 +136,11 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns URL для редиректа пользователя
      */
     const handlePaymentCallback = async (params: { orderNum: string, transactionId: string }): Promise<PaymentResult<string>> => {
-        return withPaymentErrorHandling(
-            async () => {
-                return (await handleWebpayReturn(params.orderNum, params.transactionId)).data || '';
-            },
-            handleError,
-            'handlePaymentCallback'
-        );
+
+        return {
+            success: true,
+            data: (await handleWebpayReturn(params.orderNum, params.transactionId)).data || ''
+        };
     };
 
     /**
@@ -152,18 +150,13 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns URL для редиректа пользователя
      */
     const handleWebpayReturn = async (orderNum: string, transactionId: string): Promise<PaymentResult<string>> => {
-        return withPaymentErrorHandling(
-            async () => {
-                logger.info('Handling WebPay return', { orderNum, transactionId });
+        await updatePaymentStatus(orderNum, PaymentStatus.Completed);
 
-                // Обновляем статус платежа
-                await updatePaymentStatus(orderNum, PaymentStatus.Completed);
+        return {
+            success: true,
+            data: `${FRONTEND_URL}/payment/success`
+        };
 
-                return `${FRONTEND_URL}/payment/success`;
-            },
-            handleError,
-            'handleWebpayReturn'
-        );
     };
 
     /**
@@ -172,18 +165,12 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns URL для редиректа пользователя
      */
     const handleWebpayCancel = async (orderNum: string): Promise<PaymentResult<string>> => {
-        return withPaymentErrorHandling(
-            async () => {
-                logger.info('Handling WebPay cancel', { orderNum });
+        await updatePaymentStatus(orderNum, PaymentStatus.Canceled);
 
-                // Обновляем статус платежа
-                await updatePaymentStatus(orderNum, PaymentStatus.Canceled);
-
-                return `${FRONTEND_URL}/payment/cancel`;
-            },
-            handleError,
-            'handleWebpayCancel'
-        );
+        return {
+            success: true,
+            data: `${FRONTEND_URL}/payment/cancel`
+        };
     };
 
     /**
@@ -193,27 +180,23 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns Результат обработки вебхука
      */
     const processPaymentWebhook = async (data: any, signature: string): Promise<PaymentResult<boolean>> => {
-        return withPaymentErrorHandling(
-            async () => {
-                logger.info('Processing WebPay webhook', { data });
 
-                // Проверяем подпись вебхука
-                if (!validatePaymentSignature(data, signature)) {
-                    logger.error('Invalid WebPay webhook signature', { data, signature });
-                    throw new Error('Invalid WebPay webhook signature');
-                }
+        // Проверяем подпись вебхука
+        if (!validatePaymentSignature(data, signature)) {
+            logger.error('Invalid WebPay webhook signature', { data, signature });
+            throw new Error('Invalid WebPay webhook signature');
+        }
 
-                // Обновляем статус платежа на основе данных вебхука
-                const orderNum = data.wsb_order_num;
-                const status = data.payment_status || PaymentStatus.Completed;
+        // Обновляем статус платежа на основе данных вебхука
+        const orderNum = data.wsb_order_num;
+        const status = data.payment_status || PaymentStatus.Completed;
 
-                await updatePaymentStatus(orderNum, status);
+        await updatePaymentStatus(orderNum, status);
 
-                return true;
-            },
-            handleError,
-            'processPaymentWebhook'
-        );
+        return {
+            success: true,
+            data: true
+        };
     };
 
     /**
@@ -222,17 +205,14 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns Статус платежа
      */
     const checkPaymentStatus = async (paymentId: string): Promise<PaymentResult<PaymentStatus>> => {
-        return withPaymentErrorHandling(
-            async () => {
-                logger.info('Checking WebPay payment status', { paymentId });
-                // Здесь должна быть логика получения статуса платежа из БД или от WebPay
-                // Для примера вернем успешный статус
-                return PaymentStatus.Completed;
-            },
-            handleError,
-            'checkPaymentStatus'
-        );
+        // Здесь должна быть логика получения статуса платежа из БД или от WebPay
+        // Для примера вернем успешный статус
+        return {
+            success: true,
+            data: PaymentStatus.Completed
+        };
     };
+
 
     /**
      * Очищает платеж
@@ -240,15 +220,12 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns Результат очистки
      */
     const cleanupPayment = async (paymentId: string): Promise<PaymentResult<boolean>> => {
-        return withPaymentErrorHandling(
-            async () => {
-                logger.info('Cleaning up WebPay payment', { paymentId });
-                const result = await cleanupPendingCryptoPayment(paymentId);
-                return result.data || false;
-            },
-            handleError,
-            'deletePendingCryptoPayment'
-        );
+        logger.info('Cleaning up WebPay payment', { paymentId });
+        const result = await cleanupPendingCryptoPayment(paymentId);
+        return {
+            success: true,
+            data: result.data || false
+        };
     };
 
     /**
@@ -257,15 +234,12 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns Результат операции возврата
      */
     const refundPayment = async (params: any): Promise<PaymentResult<any>> => {
-        return withPaymentErrorHandling(
-            async () => {
-                logger.info('Processing WebPay refund', { params });
-                // Здесь будет логика возврата средств
-                return { success: true };
-            },
-            handleError,
-            'refundPayment'
-        );
+        // Здесь будет логика возврата средств
+
+        return {
+            success: true,
+            data: { success: true }
+        };
     };
 
     /**
@@ -274,15 +248,12 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns Детальная информация о платеже
      */
     const getPaymentDetails = async (paymentId: string): Promise<PaymentResult<any>> => {
-        return withPaymentErrorHandling(
-            async () => {
-                logger.info('Getting WebPay payment details', { paymentId });
-                // Здесь будет логика получения информации о платеже
-                return { id: paymentId, status: PaymentStatus.Completed };
-            },
-            handleError,
-            'getPaymentDetails'
-        );
+        // Здесь будет логика получения информации о платеже
+
+        return {
+            success: true,
+            data: { id: paymentId, status: PaymentStatus.Completed }
+        };
     };
 
     return {
@@ -298,4 +269,4 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         refundPayment,
         getPaymentDetails
     };
-}; 
+}

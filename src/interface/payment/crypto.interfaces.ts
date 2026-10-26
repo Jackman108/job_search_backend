@@ -60,6 +60,7 @@ export interface CreateCryptoPaymentParams extends CreatePaymentParams {
     payment_id: string;
     network: string;
     crypto_address?: string;
+    transaction_hash?: string | null;
 }
 
 /**

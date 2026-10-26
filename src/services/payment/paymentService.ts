@@ -127,6 +127,20 @@ export const deletePayment = async (
     paymentId: string
 ): Promise<void> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
+
+    // Сначала удаляем связанные записи в crypto_payments и webpay_payments
+    // Эти таблицы имеют внешний ключ на payments(id)
+    await executeQuery(
+        `DELETE FROM crypto_payments WHERE payment_id = $1;`,
+        [paymentId]
+    );
+
+    await executeQuery(
+        `DELETE FROM webpay_payments WHERE payment_id = $1;`,
+        [paymentId]
+    );
+
+    // Затем удаляем запись в основной таблице payments
     const query = `DELETE FROM payments WHERE subscription_id = $1 AND id = $2;`;
     await executeQuery(query, [subscriptionId, paymentId]);
 };

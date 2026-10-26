@@ -9,5 +9,7 @@ export * from './skill.interfaces.js';
 
 // Экспорт платежных интерфейсов
 export * from './payment/base.interfaces';
-export * from './payment/webpay.interfaces';
 export * from './payment/crypto.interfaces';
+export * from './payment/webpay.interfaces';
+export * from './payment/strategy.interfaces';
+export * from './payment/nowpayments.interfaces';

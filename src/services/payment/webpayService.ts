@@ -222,19 +222,6 @@ export const deleteWebpayPayment = async (
     await executeQuery(query, [paymentId, webpayPaymentId]);
 };
 
-/**
- * Проверяет и удаляет существующий WebPay платеж при переключении на криптоплатеж
- * @param paymentId ID платежа
- */
-export const deletePendingWebPayPayment = async (paymentId: string): Promise<void> => {
-    const query = `
-        DELETE FROM webpay_payments 
-        WHERE payment_id = $1 AND payment_status = $2
-    `;
-    await executeQuery(query, [paymentId, PaymentStatus.Pending]);
-    console.log(`Deleted pending WebPay payments for payment: ${paymentId}`);
-};
-
 
 
 /**

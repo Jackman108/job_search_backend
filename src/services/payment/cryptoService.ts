@@ -121,7 +121,7 @@ export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promis
         PaymentStatus.Pending,
         new Date(),
         expiresAt,
-        null,
+        cryptoData.transaction_hash,
         cryptoData.wallet_provider || 'NOWCRYPTO'
     ];
 
@@ -196,18 +196,6 @@ export const deleteCryptoPayment = async (
     await executeQuery(query, [paymentId, cryptoPaymentId]);
 };
 
-/**
- * Проверяет и удаляет существующий криптоплатеж при переключении на WebPay
- * @param paymentId ID платежа
- */
-export const deletePendingCryptoPayment = async (paymentId: string): Promise<void> => {
-    const query = `
-        DELETE FROM crypto_payments 
-        WHERE payment_id = $1 AND payment_status = $2
-    `;
-    await executeQuery(query, [paymentId, PaymentStatus.Pending]);
-    console.log(`Deleted pending crypto payments for payment: ${paymentId}`);
-};
 /* Реализация интерфейса ICryptoPaymentService 
  * Содержит только LCRUD операции для работы с криптоплатежами
  */
@@ -223,6 +211,7 @@ export const cryptoService: ICryptoPaymentService = {
                 currency: params.currency,
                 network: params.network,
                 crypto_address: params.crypto_address,
+                transaction_hash: params.transaction_hash,
             });
 
             return cryptoPayment;
