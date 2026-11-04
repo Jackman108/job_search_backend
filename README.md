@@ -1,65 +1,72 @@
-# Puppeteer Parser
+# job_search_backend
 
-Проект Puppeteer Parser предназначен для автоматизации процесса отклика на вакансии на
-сайте [HeadHunter](https://hh.ru).
+Backend сервиса поиска/откликов на вакансии (TypeScript, Express, PostgreSQL).
 
-## Установка
+Часть набора: `job_search_client` (UI) · `job_search_auth` (auth) · этот репозиторий (API + автоматизация).
 
-Для начала убедитесь, что у вас установлены [Node.js](https://nodejs.org/) и [npm](https://www.npmjs.com/). Затем
-выполните следующие шаги:
+> Не путать с отдельным репо [`puppeteer-parser`](https://github.com/Jackman108/puppeteer-parser) — там узкий Puppeteer-скрипт под HH. Здесь полноценный backend.
 
-1. Клонируйте репозиторий:
-   git clone https://github.com/Jackman108/puppeteer-parser.git
+## Стек
 
-2. Перейдите в директорию проекта:
-   cd backend
+- Node.js, TypeScript, Express
+- PostgreSQL (`pg`)
+- JWT
+- WebSocket (`ws`)
+- Swagger UI
+- Puppeteer (автоматизация откликов, где нужно)
+- Docker Compose для Postgres
 
-3. Установите и обновите зависимости:
-   npm install
-
-npm update
-
-## Конфигурация
-
-Создайте файл `.env` в корневой директории проекта со следующим содержимым:
-
-MY_EMAIL=ваш_email@example.com
-
-Создайте файл `secrets.js` в корневой директории проекта со следующим содержимым:
+## Быстрый старт
 
 ```bash
+git clone https://github.com/Jackman108/job_search_backend.git
+cd job_search_backend
+yarn install   # или npm install
 
-export const personalData = {
-    vacanciesUrl: 'копируем url вакансий сайта с настроенными фильтрами',
+# Postgres
+yarn docker:up
 
-    vacancySearch: 'искомая должность',
-
-    coverLetter: 'сопроводительное письмо',
-
-    totalPages: количество страниц которые обработать(цифрой),
-};
-
+# .env в корне (см. пример ниже)
+yarn dev
 ```
 
-## Запуск скрипта
+Сборка/прод:
 
-Выполните скрипт командой:
+```bash
+yarn build
+yarn start
+```
 
-npm start
+## Переменные окружения
 
-## Описание работы скрипта
+Создай `.env` в корне (значения свои):
 
-Скрипт выполняет следующие действия:
+```env
+PORT=3001
+DATABASE_URL=postgres://user:pass@localhost:5432/job_search
+JWT_SECRET=change-me
+# при необходимости — пути/флаги Puppeteer и URL фронта для CORS
+```
 
-- Запускает браузер Puppeteer.
-- Открывает сайт HeadHunter и автоматически проходит процесс авторизации.
-- Перебирает вакансии и автоматически отправляет отклики на них.
+Не коммить `.env` и файлы с паролями HH.
 
-## Важные замечания
+## Scripts
 
-- Убедитесь, что у вас настроен правильный путь к исполняемому файлу браузера в `index.js`.
-- Проверьте актуальность селекторов на сайте, так как они могут меняться.
+| Script | Назначение |
+| --- | --- |
+| `yarn dev` | nodemon / dev-сервер |
+| `yarn build` | `tsc` → `dist/` |
+| `yarn start` | `node dist/server.js` |
+| `yarn docker:up` | поднять Postgres |
+| `yarn docker:down` | остановить Postgres |
+| `yarn test` | jest |
+
+## Связанные репозитории
+
+- [job_search_client](https://github.com/Jackman108/job_search_client)
+- [job_search_auth](https://github.com/Jackman108/job_search_auth)
+- [puppeteer-parser](https://github.com/Jackman108/puppeteer-parser) — отдельный HH apply-скрипт
 
 ## Лицензия
 
-[ISC](LICENSE)
+ISC
