@@ -13,6 +13,10 @@ export const startHttpServer = async ({
 
         const app = express();
         initializeMiddleware(app);
+        // Lightweight liveness probe (no auth, no DB) — safe for compose/k8s.
+        app.get('/health', (_req, res) => {
+            res.status(200).json({ status: 'ok', service: 'backend', ts: new Date().toISOString() });
+        });
         initializeRoutes(app);
 
         app.listen(port, () => {

@@ -11,11 +11,21 @@ dist/
 .env.*
 !.env.example
 !.env*.example
+.env.development
+.env.production
+.env.test
 secrets.js
+secrets.ts
+src/secrets.ts
+src/secrets.js
+**/secrets.ts
+**/secrets.js
 legacy.js
+.dockerignore
 
 # Puppeteer / caches (large)
 .puppeteer/
+.puppeteer
 .cache/
 **/.cache/
 

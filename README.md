@@ -1,64 +1,42 @@
-# Puppeteer Parser
+# Market Hunter — Backend (Puppeteer + Express)
 
-Проект Puppeteer Parser предназначен для автоматизации процесса отклика на вакансии на
-сайте [HeadHunter](https://hh.ru).
+> Не путать с `Documents/job-hunt` — там канон найма/CV; этот репозиторий — API и автоотклики на [HeadHunter](https://hh.ru).
+
+Express + TypeScript + Puppeteer + Postgres + WebSocket + Swagger.
 
 ## Установка
 
-Для начала убедитесь, что у вас установлены [Node.js](https://nodejs.org/) и [npm](https://www.npmjs.com/). Затем
-выполните следующие шаги:
+1. Node.js + npm
+2. `git clone` → `cd backend`
+3. `npm install`
+4. Скопировать `.env.example` → `.env` и `src/secrets.example.ts` → `src/secrets.ts`
 
-1. Клонируйте репозиторий:
-   git clone https://github.com/Jackman108/puppeteer-parser.git
+## Порты (dev)
 
-2. Перейдите в директорию проекта:
-   cd backend
+| Сервис | Порт |
+|--------|------|
+| HTTP API | **8000** (`API_PORT`) |
+| WebSocket | **8080** (`WS_PORT`) |
+| Health | `GET /health` |
+| Swagger | `/api-docs` |
+| Postgres / pgAdmin | 5432 / 5050 (`npm run docker:up`) |
 
-3. Установите и обновите зависимости:
-   npm install
+Полный стек (client + auth): [`../docs/DEV_SETUP.md`](../docs/DEV_SETUP.md).
 
-npm update
-
-## Конфигурация
-
-Создайте файл `.env` в корневой директории проекта со следующим содержимым:
-
-MY_EMAIL=ваш_email@example.com
-
-Создайте файл `secrets.js` в корневой директории проекта со следующим содержимым:
+## Запуск
 
 ```bash
-
-export const personalData = {
-    vacanciesUrl: 'копируем url вакансий сайта с настроенными фильтрами',
-
-    vacancySearch: 'искомая должность',
-
-    coverLetter: 'сопроводительное письмо',
-
-    totalPages: количество страниц которые обработать(цифрой),
-};
-
+npm run docker:up
+npm run dev
 ```
 
-## Запуск скрипта
+## Puppeteer / HH
 
-Выполните скрипт командой:
+Сценарии в `src/run/`: login HH, поиск, отклик, cover letter, feedback/chats.
 
-npm start
+Селекторы централизованы в `src/config/constants.config.ts` (`data-qa` атрибуты HH). При поломке UI HH правьте только этот файл.
 
-## Описание работы скрипта
-
-Скрипт выполняет следующие действия:
-
-- Запускает браузер Puppeteer.
-- Открывает сайт HeadHunter и автоматически проходит процесс авторизации.
-- Перебирает вакансии и автоматически отправляет отклики на них.
-
-## Важные замечания
-
-- Убедитесь, что у вас настроен правильный путь к исполняемому файлу браузера в `index.js`.
-- Проверьте актуальность селекторов на сайте, так как они могут меняться.
+`src/secrets.ts` **не коммитить** (пароль HH).
 
 ## Лицензия
 
