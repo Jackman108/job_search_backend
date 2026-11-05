@@ -7,25 +7,36 @@ import { incrementSpinCount, updateSuccessfulResponsesCount } from '@services';
 import { stop } from '@utils';
 import { AuthenticatedRequest } from '@interface';
 import { personalData } from 'src/secrets';
+import { queueGetFeedback, queueSendFeedback, useQueuedWorker } from '../../worker/enqueue.js';
 
 export class ScriptController {
     async startScript(req: AuthenticatedRequest, res: Response) {
         try {
             const { email, password, position, message, vacancyUrl } = req.body;
-
-            await sendFeedback({
+            const payload = {
                 userId: req.userId!,
                 email: email || personalData.vacancyEmail,
                 password: password || personalData.vacancyPassword,
                 position: position || personalData.vacancySearch,
                 message: message || personalData.coverLetter,
                 vacancyUrl: vacancyUrl || personalData.vacanciesUrl,
-            });
+            };
 
+            if (useQueuedWorker()) {
+                const { jobId } = queueSendFeedback(payload);
+                // Counters update when the detached worker finishes successfully — tracked in job store for now.
+                res.status(202).json({
+                    message: 'HH apply job queued (detached worker).',
+                    jobId,
+                    mode: 'queue',
+                });
+                return;
+            }
+
+            await sendFeedback(payload);
             await incrementSpinCount(req.userId!);
             await updateSuccessfulResponsesCount(req.userId!);
-
-            res.status(200).json({ message: 'The script was executed successfully!' });
+            res.status(200).json({ message: 'The script was executed successfully!', mode: 'sync' });
         } catch (error) {
             handleErrors(res, error, 'Script execution error.');
         }
@@ -43,14 +54,24 @@ export class ScriptController {
     async refreshData(req: AuthenticatedRequest, res: Response) {
         try {
             const { email, password } = req.body;
-
-            await getFeedback({
+            const payload = {
                 userId: req.userId!,
                 email: email || personalData.vacancyEmail,
                 password: password || personalData.vacancyPassword,
-            });
+            };
 
-            res.status(200).json({ message: 'The update is up and running!' });
+            if (useQueuedWorker()) {
+                const { jobId } = queueGetFeedback(payload);
+                res.status(202).json({
+                    message: 'HH feedback refresh queued (detached worker).',
+                    jobId,
+                    mode: 'queue',
+                });
+                return;
+            }
+
+            await getFeedback(payload);
+            res.status(200).json({ message: 'The update is up and running!', mode: 'sync' });
         } catch (error) {
             handleErrors(res, error, 'Error Update!');
         }

@@ -28,6 +28,7 @@ legacy.js
 .puppeteer
 .cache/
 **/.cache/
+.hh-jobs/
 
 # Uploads & screenshots
 uploads/

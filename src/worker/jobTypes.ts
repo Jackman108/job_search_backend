@@ -1,0 +1,28 @@
+import type { GetFeedbackParams, SendFeedbackParams } from '@interface';
+
+export type HhJobKind = 'sendFeedback' | 'getFeedback';
+
+export type HhJobStatus = 'queued' | 'running' | 'done' | 'error';
+
+export interface HhJobBase {
+  id: string;
+  kind: HhJobKind;
+  status: HhJobStatus;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+  error?: string;
+  userId: string;
+}
+
+export interface SendFeedbackJob extends HhJobBase {
+  kind: 'sendFeedback';
+  payload: SendFeedbackParams;
+}
+
+export interface GetFeedbackJob extends HhJobBase {
+  kind: 'getFeedback';
+  payload: GetFeedbackParams;
+}
+
+export type HhJob = SendFeedbackJob | GetFeedbackJob;
