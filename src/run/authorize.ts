@@ -84,11 +84,13 @@ export async function authorize(
             SELECTORS.EMAIL_INPUT,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (emailHandle) {
+            await emailHandle.click({ clickCount: 3 }).catch(() => undefined);
             await emailHandle.type(email);
         } else {
             console.error('INPUT EMAIL not found');
         }
 
+        // Magritte: "Войти с паролем" swaps email field for password input.
         const passwordToggleHandle = await page.waitForSelector(
             SELECTORS.PASSWORD_BUTTON,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
@@ -98,9 +100,12 @@ export async function authorize(
             console.error('PASSWORD button not found');
         }
 
-        const passwordHandle = await page.waitForSelector(
-            SELECTORS.PASSWORD_INPUT,
-            { timeout: TIMEOUTS.SEARCH }).catch(() => null);
+        const passwordHandle = await page
+            .waitForSelector(SELECTORS.PASSWORD_INPUT, {
+                timeout: TIMEOUTS.MODAL,
+                visible: true,
+            })
+            .catch(() => null);
         if (passwordHandle) {
             await passwordHandle.type(password);
         } else {
