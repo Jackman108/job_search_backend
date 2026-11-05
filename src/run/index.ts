@@ -7,3 +7,4 @@ export * from './modules/feedback/navigateAndProcessChats.js';
 export * from './modules/response/searchForVacancy.js';
 export * from './modules/response/processVacancy.js';
 export * from './helpers/scrollToElementIfNotFound.js';
+export * from './helpers/waitForFirstSelector.js';
