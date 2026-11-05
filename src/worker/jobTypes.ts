@@ -13,6 +13,8 @@ export interface HhJobBase {
   finishedAt?: string;
   error?: string;
   userId: string;
+  /** Set after spin/success counters are written (sendFeedback only). */
+  countersUpdated?: boolean;
 }
 
 export interface SendFeedbackJob extends HhJobBase {

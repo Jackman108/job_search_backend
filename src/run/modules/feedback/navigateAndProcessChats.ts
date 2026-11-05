@@ -1,10 +1,9 @@
-import { TIMEOUTS } from '@config';
+import { HH_SCRAPE, TIMEOUTS } from '@config';
 import { FeedbackWithResponse, navigateAndProcessChats } from '@interface';
 import { getChatFeedback } from '@services';
 import { isStopped, stop } from '@utils';
 import { getChats } from './getChats.js';
 import { processChat } from './processChat.js';
-import { personalData } from 'src/secrets.js';
 
 export async function navigateAndProcessChats({
     userId,
@@ -14,7 +13,7 @@ export async function navigateAndProcessChats({
 
     let currentPage = 0;
     let existingChatsIds: Set<number>;
-    const { totalPages } = personalData;
+    const totalPages = HH_SCRAPE.TOTAL_PAGES;
 
     try {
         const ChatsFromDb = await getChatFeedback(userId);

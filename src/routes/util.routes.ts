@@ -50,4 +50,26 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *         description: Не авторизован
      */
     registerRoute(app, 'post', '/refresh', ScriptController, 'refreshData');
+
+    /**
+     * @swagger
+     * /jobs/{jobId}:
+     *   get:
+     *     summary: Статус HH worker job
+     *     tags: [Утилиты]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: jobId
+     *         required: true
+     *         schema:
+     *           type: string
+     *     responses:
+     *       200:
+     *         description: Статус задачи
+     *       404:
+     *         description: Не найдено
+     */
+    registerRoute(app, 'get', '/jobs/:jobId', ScriptController, 'getJobStatus');
 }; 

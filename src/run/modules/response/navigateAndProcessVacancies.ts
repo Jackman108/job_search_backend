@@ -1,7 +1,6 @@
 // src/navigateAndProcessVacancies.ts
-import { SELECTORS } from '@config';
+import { HH_SCRAPE, SELECTORS } from '@config';
 import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '@interface';
-import { personalData } from 'src/secrets.js';
 import { getVacanciesUser } from '@services';
 import { delayBeforeApply, delayBetweenPages, isStopped, stop } from '@utils';
 import { getVacancies } from './getVacancies.js';
@@ -17,7 +16,7 @@ export async function navigateAndProcessVacancies({
     let currentPage = 0;
     let existingVacanciesIds: Set<number>;
     let consecutiveApplyFailures = 0;
-    const { totalPages } = personalData;
+    const totalPages = HH_SCRAPE.TOTAL_PAGES;
 
     try {
         const vacanciesFromDb = await getVacanciesUser(userId);

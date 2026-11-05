@@ -13,7 +13,7 @@ Express + TypeScript + Puppeteer + Postgres + WebSocket + Swagger.
 1. Node.js + npm/yarn
 2. `git clone` → `cd backend`
 3. `npm install` / `yarn install`
-4. Скопировать `.env.example` → `.env` и `src/secrets.example.ts` → `src/secrets.ts`
+4. Скопировать `.env.example` → `.env` (HH login/пароль/письмо — из формы UI, не из secrets.ts)
 
 ## Порты (dev)
 
@@ -47,7 +47,7 @@ npm start
 
 Селекторы централизованы в `src/config/constants.config.ts` (`data-qa` атрибуты HH). При поломке UI HH правьте только этот файл.
 
-`src/secrets.ts` **не коммитить** (пароль HH).
+Локальный `src/secrets.ts` больше не нужен (исторически мог содержать пароль HH — удалить, пароль на HH сменить). Worker: `HH_WORKER_MODE=queue|sync`, статус `GET /jobs/:jobId`.
 
 ## Связанные репозитории
 
