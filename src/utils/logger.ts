@@ -1,3 +1,5 @@
+import { USE_MOCK_PROVIDER } from '@config';
+
 type LogLevel = 'info' | 'warn' | 'error';
 
 class Logger {
@@ -8,15 +10,21 @@ class Logger {
     }
 
     static info(message: string, meta?: any): void {
-        console.log(this.formatMessage('info', message, meta));
+        if (USE_MOCK_PROVIDER) {
+            console.log(this.formatMessage('info', message, meta));
+        }
     }
 
     static warn(message: string, meta?: any): void {
-        console.warn(this.formatMessage('warn', message, meta));
+        if (USE_MOCK_PROVIDER) {
+            console.warn(this.formatMessage('warn', message, meta));
+        }
     }
 
     static error(message: string, meta?: any): void {
-        console.error(this.formatMessage('error', message, meta));
+        if (USE_MOCK_PROVIDER) {
+            console.error(this.formatMessage('error', message, meta));
+        }
     }
 }
 

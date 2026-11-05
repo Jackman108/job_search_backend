@@ -1,9 +1,9 @@
 // src/navigateAndProcessVacancies.ts
-import { SELECTORS, TIMEOUTS } from '@config';
+import { SELECTORS } from '@config';
 import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '@interface';
 import { personalData } from 'src/secrets.js';
 import { getVacanciesUser } from '@services';
-import { isStopped, stop } from '@utils';
+import { delayBeforeApply, delayBetweenPages, isStopped, stop } from '@utils';
 import { getVacancies } from './getVacancies.js';
 import { processVacancy } from './processVacancy.js';
 
@@ -16,6 +16,7 @@ export async function navigateAndProcessVacancies({
 }: NavigateAndProcessVacanciesParams): Promise<void> {
     let currentPage = 0;
     let existingVacanciesIds: Set<number>;
+    let consecutiveApplyFailures = 0;
     const { totalPages } = personalData;
 
     try {
@@ -52,16 +53,20 @@ export async function navigateAndProcessVacancies({
                 console.log('Vacancies found', vacancies.length);
                 console.log('Sent feedback:', counters.successfullySubmittedCount, 'UnSent feedback:', counters.unsuccessfullySubmittedCount);
 
-                await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
+                // HH pacing: base + jitter (+ stepped backoff after outer failures)
+                const waitedMs = await delayBeforeApply(consecutiveApplyFailures);
+                console.log(`HH rate-limit: waited ${waitedMs}ms before apply (failures=${consecutiveApplyFailures})`);
                 try {
                     existingVacanciesIds.add(data.id);
                     if (vacancyResponse) {
                         await processVacancy({ page, vacancyResponse, data, counters, message, userId });
+                        consecutiveApplyFailures = 0;
                         vacancies = (await getVacancies(page)).filter(({ data }) => data.id && !existingVacanciesIds.has(data.id));
                     } else {
                         console.error(`Vacancy response for ID ${data.id} is null.`);
                     }
                 } catch (err) {
+                    consecutiveApplyFailures += 1;
                     console.error(`Error processing vacancy with ID ${data.id}:`, err);
                 }
             }
@@ -72,7 +77,8 @@ export async function navigateAndProcessVacancies({
                 await page.screenshot({ path: 'next_ page.png' });
 
                 await nextPageButtonHandle.click();
-                await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
+                const pageWaitMs = await delayBetweenPages();
+                console.log(`HH rate-limit: waited ${pageWaitMs}ms after pager-next`);
                 currentPage++;
             } else {
                 break;

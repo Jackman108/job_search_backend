@@ -1,60 +1,87 @@
-import { checkCryptoPaymentStatus, createCryptoPayment, getActiveSubscription, processWebhook, getExistingPendingPayment } from '@services';
-import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '@interface';
 import { handleErrors, handleSuccess } from '@middlewares';
+import { cryptoService } from '@services';
+import { Response } from 'express';
 
+/**
+ * Контроллер для работы с криптоплатежами
+ * Использует функциональный подход и обработку ошибок
+ */
 export class CryptoPaymentController {
+    /**
+     * Получение списка криптоплатежей пользователя
+     */
+    async listCryptoPayments(req: AuthenticatedRequest, res: Response) {
+        const result = await cryptoService.listPayments();
+
+        if (result.success) {
+            res.status(200).json(result.data);
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Error listing crypto payments');
+        }
+    }
+
+    /**
+     * Получение информации о конкретном криптоплатеже
+     */
+    async getCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        const result = await cryptoService.getPayment(req.userId!, req.params.paymentId);
+
+        if (result.success) {
+            handleSuccess(res, 'Crypto payment retrieved successfully', result.data);
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to fetch crypto payment');
+        }
+    }
+
+    /**
+     * Создание нового криптоплатежа
+     */
     async createCryptoPayment(req: AuthenticatedRequest, res: Response) {
-        try {
-            const { id, subscription_id, amount, currency, network } = req.body;
+        const { amount, currency, payment_id, network, crypto_address } = req.body;
 
-            if (!id || !subscription_id || !amount) {
-                return res.status(400).json({ error: 'Missing required fields' });
-            }
+        if (!payment_id) {
+            return handleErrors(res, new Error('Missing required fields'), 'Payment ID and amount are required');
+        }
 
-            const existingPayment = await getExistingPendingPayment(id);
-            if (existingPayment) {
-                return handleSuccess(res, 'Existing pending payment found', existingPayment);
-            }
+        const result = await cryptoService.createPayment({
 
-            const cryptoPayment = await createCryptoPayment({
-                id,
-                subscription_id,
-                amount,
-                currency: currency || 'BTC',
-                network: network || 'BTC'
-            });
+            amount,
+            currency,
+            payment_id,
+            network,
+            crypto_address,
+        });
 
-            handleSuccess(res, 'Crypto payment created successfully', cryptoPayment);
-        } catch (error) {
-            handleErrors(res, error, 'Failed to create crypto payment');
+        if (result.success) {
+            handleSuccess(res, 'Crypto payment created successfully', result.data);
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to create crypto payment');
         }
     }
 
-    async checkCryptoPaymentStatus(req: AuthenticatedRequest, res: Response) {
-        try {
-            const paymentId = req.params.paymentId;
-            if (!paymentId || paymentId === ':paymentId') {
-                throw new Error('Payment ID is required');
-            }
-            const status = await checkCryptoPaymentStatus(paymentId);
-            handleSuccess(res, 'Payment status retrieved', { status });
-        } catch (error) {
-            handleErrors(res, error, 'Failed to check payment status');
+    /**
+    * Обновление криптоплатежа
+    */
+    async updateCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        const result = await cryptoService.updatePayment(req.params.paymentId, req.body);
+        if (result.success) {
+            handleSuccess(res, 'Crypto payment updated successfully', result.data);
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to update crypto payment');
         }
     }
 
-    async handleWebhook(req: Request, res: Response): Promise<void> {
-        try {
-            const signature = req.headers['x-nowpayments-sig'] as string;
-            if (!signature) {
-                throw new Error('Missing signature');
-            }
+    /**
+     * Удаление криптоплатежа
+     */
+    async deleteCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        const result = await cryptoService.deletePayment(req.userId!, req.params.paymentId);
 
-            await processWebhook(req.body, signature);
-            handleSuccess(res, 'Webhook processed successfully');
-        } catch (error) {
-            handleErrors(res, error, 'Failed to process webhook');
+        if (result.success) {
+            handleSuccess(res, 'Crypto payment deleted successfully');
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to delete crypto payment');
         }
     }
 } 

@@ -1,4 +1,4 @@
-import { VacancyAuthController, VacancySubmitController, VacancyController } from '@controllers';
+import { VacancyAuthController, VacancySubmitController } from '@controllers';
 import express from 'express';
 import { registerRoute } from '@middlewares';
 

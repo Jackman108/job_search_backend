@@ -10,12 +10,18 @@ export * from './job/feedbackService.js';
 export * from './job/vacancyService.js';
 
 // User services
-export * from './user/resume/resumeService.js';
 export * from './user/resume/contactService.js';
+export * from './user/resume/resumeService.js';
 export * from './user/resume/skillService.js';
 export * from './user/resume/workExperienceService.js';
 
-// Payment services
-export * from './payment/subscriptionsService.js';
+// Базовые платежные сервисы
+export * from './payment/infoPaymentService.js';
 export * from './payment/paymentService.js';
-export * from './payment/cryptoPaymentService.js';
+export * from './payment/subscriptionsService.js';
+
+// WebPay платежные сервисы
+export * from './payment/webpayService.js';
+
+// Crypto платежные сервисы
+export * from './payment/cryptoService.js';

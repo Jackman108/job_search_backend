@@ -7,9 +7,9 @@ const { Pool } = pkg;
 export const DB_CONFIG = {
     port: parseInt(process.env.DB_PORT as string, 10) || 5432,
     host: process.env.DB_HOST || 'localhost',
-    user: process.env.POSTGRES_USER || 'postgres',
-    password: process.env.POSTGRES_PASSWORD || 'password',
-    database: process.env.POSTGRES_DB || 'db_vacancy',
+    user: process.env.DB_USER || process.env.POSTGRES_USER || 'postgres',
+    password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'password',
+    database: process.env.DB_NAME || process.env.POSTGRES_DB || 'db_vacancy',
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,

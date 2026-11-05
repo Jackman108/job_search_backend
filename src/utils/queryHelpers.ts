@@ -110,4 +110,3 @@ export async function deleteTable(userId: string, tableName: string): Promise<vo
     const query = `DROP TABLE IF EXISTS ${fullTableName}`;
     await executeQuery(query);
 }
-

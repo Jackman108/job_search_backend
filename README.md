@@ -1,65 +1,53 @@
-# job_search_backend
+# Market Hunter — Backend (Puppeteer + Express)
 
-Backend сервиса поиска/откликов на вакансии (TypeScript, Express, PostgreSQL).
+> Не путать с `Documents/job-hunt` — там канон найма/CV; этот репозиторий — API и автоотклики на [HeadHunter](https://hh.ru).
 
-Часть набора: `job_search_client` (UI) · `job_search_auth` (auth) · этот репозиторий (API + автоматизация).
+Express + TypeScript + Puppeteer + Postgres + WebSocket + Swagger.
+
+Часть набора: [`job_search_client`](https://github.com/Jackman108/job_search_client) (UI) · [`job_search_auth`](https://github.com/Jackman108/job_search_auth) (auth) · этот репозиторий (API + автоматизация).
 
 > Не путать с отдельным репо [`puppeteer-parser`](https://github.com/Jackman108/puppeteer-parser) — там узкий Puppeteer-скрипт под HH. Здесь полноценный backend.
 
-## Стек
+## Установка
 
-- Node.js, TypeScript, Express
-- PostgreSQL (`pg`)
-- JWT
-- WebSocket (`ws`)
-- Swagger UI
-- Puppeteer (автоматизация откликов, где нужно)
-- Docker Compose для Postgres
+1. Node.js + npm/yarn
+2. `git clone` → `cd backend`
+3. `npm install` / `yarn install`
+4. Скопировать `.env.example` → `.env` и `src/secrets.example.ts` → `src/secrets.ts`
 
-## Быстрый старт
+## Порты (dev)
+
+| Сервис | Порт |
+|--------|------|
+| HTTP API | **8000** (`API_PORT`) |
+| WebSocket | **8080** (`WS_PORT`) |
+| Health | `GET /health` |
+| Swagger | `/api-docs` |
+| Postgres / pgAdmin | 5432 / 5050 (`npm run docker:up`) |
+
+Полный стек (client + auth): [`../docs/DEV_SETUP.md`](../docs/DEV_SETUP.md).
+
+## Запуск
 
 ```bash
-git clone https://github.com/Jackman108/job_search_backend.git
-cd job_search_backend
-yarn install   # или npm install
-
-# Postgres
-yarn docker:up
-
-# .env в корне (см. пример ниже)
-yarn dev
+npm run docker:up
+npm run dev
 ```
 
 Сборка/прод:
 
 ```bash
-yarn build
-yarn start
+npm run build
+npm start
 ```
 
-## Переменные окружения
+## Puppeteer / HH
 
-Создай `.env` в корне (значения свои):
+Сценарии в `src/run/`: login HH, поиск, отклик, cover letter, feedback/chats.
 
-```env
-PORT=3001
-DATABASE_URL=postgres://user:pass@localhost:5432/job_search
-JWT_SECRET=change-me
-# при необходимости — пути/флаги Puppeteer и URL фронта для CORS
-```
+Селекторы централизованы в `src/config/constants.config.ts` (`data-qa` атрибуты HH). При поломке UI HH правьте только этот файл.
 
-Не коммить `.env` и файлы с паролями HH.
-
-## Scripts
-
-| Script | Назначение |
-| --- | --- |
-| `yarn dev` | nodemon / dev-сервер |
-| `yarn build` | `tsc` → `dist/` |
-| `yarn start` | `node dist/server.js` |
-| `yarn docker:up` | поднять Postgres |
-| `yarn docker:down` | остановить Postgres |
-| `yarn test` | jest |
+`src/secrets.ts` **не коммитить** (пароль HH).
 
 ## Связанные репозитории
 
@@ -69,4 +57,4 @@ JWT_SECRET=change-me
 
 ## Лицензия
 
-ISC
+[ISC](LICENSE)

@@ -1,4 +1,4 @@
-import { VacancyAuthController, ProfileController } from '@controllers';
+import { ProfileController } from '@controllers';
 import express from 'express';
 import { registerRoute } from '@middlewares';
 

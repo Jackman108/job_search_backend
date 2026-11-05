@@ -2,15 +2,18 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
+    "rootDir": "./src",
     "outDir": "./dist",
     "allowJs": true,
     "sourceMap": true,
     "resolveJsonModule": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@config": ["src/config/index.ts"],
@@ -20,8 +23,10 @@
       "@utils": ["src/utils/index.ts"],
       "@interface": ["src/interface/index.ts"],
       "@services": ["src/services/index.ts"],
+      "@integrations": ["src/services/integrations/index.ts"],
       "@run": ["src/run/index.ts"],
-      "@controllers": ["src/controllers/index.ts"]
+      "@controllers": ["src/controllers/index.ts"],
+      "@repositories/*": ["src/repositories/*"]
     }
   },
   "include": ["src/**/*"],

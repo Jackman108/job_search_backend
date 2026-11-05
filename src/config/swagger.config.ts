@@ -1,6 +1,5 @@
-import { SwaggerOptions } from 'swagger-ui-express';
-import { PROTOCOL, URLS } from './server.config';
 import { Options } from 'swagger-jsdoc';
+import { PROTOCOL } from '@config';
 
 export const swaggerOptions: Options = {
     definition: {
@@ -16,7 +15,7 @@ export const swaggerOptions: Options = {
         },
         servers: [
             {
-                url: 'http://localhost:3000',
+                url: 'http://localhost:8000',
                 description: 'Development server'
             }
         ],
