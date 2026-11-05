@@ -5,6 +5,11 @@ export const TIMEOUTS = {
     SEARCH: 10000
 };
 
+/** HH scrape pagination — was hardcoded in secrets.ts; not a credential. */
+export const HH_SCRAPE = {
+    TOTAL_PAGES: Number(process.env.HH_TOTAL_PAGES) || 3,
+};
+
 export const SELECTORS = {
     COOKIE_ACCEPT: '[data-qa="cookies-policy-informer-accept"]',
     LOGIN: '[data-qa="login"]',
