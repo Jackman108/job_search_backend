@@ -4,11 +4,15 @@
 
 Express + TypeScript + Puppeteer + Postgres + WebSocket + Swagger.
 
+Часть набора: [`job_search_client`](https://github.com/Jackman108/job_search_client) (UI) · [`job_search_auth`](https://github.com/Jackman108/job_search_auth) (auth) · этот репозиторий (API + автоматизация).
+
+> Не путать с отдельным репо [`puppeteer-parser`](https://github.com/Jackman108/puppeteer-parser) — там узкий Puppeteer-скрипт под HH. Здесь полноценный backend.
+
 ## Установка
 
-1. Node.js + npm
+1. Node.js + npm/yarn
 2. `git clone` → `cd backend`
-3. `npm install`
+3. `npm install` / `yarn install`
 4. Скопировать `.env.example` → `.env` и `src/secrets.example.ts` → `src/secrets.ts`
 
 ## Порты (dev)
@@ -30,6 +34,13 @@ npm run docker:up
 npm run dev
 ```
 
+Сборка/прод:
+
+```bash
+npm run build
+npm start
+```
+
 ## Puppeteer / HH
 
 Сценарии в `src/run/`: login HH, поиск, отклик, cover letter, feedback/chats.
@@ -37,6 +48,12 @@ npm run dev
 Селекторы централизованы в `src/config/constants.config.ts` (`data-qa` атрибуты HH). При поломке UI HH правьте только этот файл.
 
 `src/secrets.ts` **не коммитить** (пароль HH).
+
+## Связанные репозитории
+
+- [job_search_client](https://github.com/Jackman108/job_search_client)
+- [job_search_auth](https://github.com/Jackman108/job_search_auth)
+- [puppeteer-parser](https://github.com/Jackman108/puppeteer-parser) — отдельный HH apply-скрипт
 
 ## Лицензия
 
