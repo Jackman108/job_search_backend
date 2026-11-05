@@ -3,6 +3,27 @@ import { stop } from '@utils';
 import { Browser, Page } from 'puppeteer';
 import { broadcast } from '@server';
 
+async function passAccountTypeGate(page: Page): Promise<void> {
+    const form = await page.$(SELECTORS.ACCOUNT_LOGIN_FORM);
+    const applicantCard = await page.$(SELECTORS.ACCOUNT_TYPE_APPLICANT);
+    if (!form || !applicantCard) return;
+
+    // Already on Magritte account-type screen (applicant vs employer).
+    const emailReady = await page.$(SELECTORS.EMAIL_INPUT);
+    if (emailReady) return;
+
+    await applicantCard.click();
+    const submit = await page
+        .waitForSelector(SELECTORS.LOGIN_SUBMIT, { timeout: TIMEOUTS.SEARCH })
+        .catch(() => null);
+    if (submit) {
+        await submit.click();
+    } else {
+        console.error('Account-type SUBMIT not found');
+    }
+    await new Promise((resolve) => setTimeout(resolve, TIMEOUTS.SHORT));
+}
+
 export async function authorize(
     page: Page,
     email: string,
@@ -29,15 +50,26 @@ export async function authorize(
 
         await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
 
-        // LOGIN_SUBMIT includes submit-button + account-login-submit fallbacks.
-        const submitButtonHandle = await page.waitForSelector(
-            SELECTORS.LOGIN_SUBMIT,
-            { timeout: TIMEOUTS.SEARCH }).catch(() => null);
-        if (submitButtonHandle) {
-            await submitButtonHandle.click();
-        } else {
-            console.error('SUBMIT button not found');
+        // 2026: first screen may be applicant/employer — advance before credentials.
+        await passAccountTypeGate(page);
+
+        // Legacy path: some layouts still show submit before email credential type.
+        const emailAlready = await page.$(SELECTORS.EMAIL_INPUT);
+        if (!emailAlready) {
+            const submitButtonHandle = await page.waitForSelector(
+                SELECTORS.LOGIN_SUBMIT,
+                { timeout: TIMEOUTS.SEARCH }).catch(() => null);
+            if (submitButtonHandle) {
+                // Only click if account-type gate did not already leave us mid-flow
+                // without email fields yet (gate handles its own submit).
+                const stillOnType = await page.$(SELECTORS.ACCOUNT_TYPE_APPLICANT);
+                if (!stillOnType) {
+                    await submitButtonHandle.click();
+                }
+            }
         }
+
+        await passAccountTypeGate(page);
 
         const emailButtonHandle = await page.waitForSelector(
             SELECTORS.EMAIL_BUTTON,
@@ -47,7 +79,6 @@ export async function authorize(
         } else {
             console.error('EMAIL button not found');
         }
-
 
         const emailHandle = await page.waitForSelector(
             SELECTORS.EMAIL_INPUT,
@@ -67,8 +98,6 @@ export async function authorize(
             console.error('PASSWORD button not found');
         }
 
-
-        // PASSWORD_INPUT includes applicant-login-input-password + login-input-password.
         const passwordHandle = await page.waitForSelector(
             SELECTORS.PASSWORD_INPUT,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);

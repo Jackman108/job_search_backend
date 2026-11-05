@@ -14,12 +14,18 @@ export const SELECTORS = {
     COOKIE_ACCEPT: '[data-qa="cookies-policy-informer-accept"]',
     LOGIN: '[data-qa="login"]',
     REGION_BUTTON: '.supernova-overlay-closer',
-    EMAIL_BUTTON: '[data-qa="credential-type-EMAIL"]',
+    // 2026 HH: /account/login first asks applicant vs employer, then credentials.
+    ACCOUNT_TYPE_APPLICANT: '[data-qa="account-type-card-APPLICANT"]',
+    ACCOUNT_TYPE_APPLICANT_RADIO: '[data-qa="account-type-card-APPLICANT-radio"], [data-qa="account-type-card-APPLICANT-radio checked"]',
+    ACCOUNT_LOGIN_FORM: '[data-qa="account-login-form"]',
+    // Magritte may append " checked" into data-qa value — match with ^= .
+    EMAIL_BUTTON:
+        '[data-qa^="credential-type-email"], [data-qa="credential-type-EMAIL"]',
     EMAIL_INPUT: '[data-qa="applicant-login-input-email"]',
     PASSWORD_BUTTON: '[data-qa="expand-login-by-password"]',
-    // Primary + Magritte/legacy alts (comma = first match). Live guest verify blocked when already logged in.
+    // Primary + Magritte/legacy alts (comma = first match).
     PASSWORD_INPUT:
-        '[data-qa="applicant-login-input-password"], [data-qa="login-input-password"]',
+        '[data-qa="applicant-login-input-password"], [data-qa="login-input-password"], input[type="password"]',
     LOGIN_SUBMIT:
         '[data-qa="submit-button"], [data-qa="account-login-submit"]',
     OTP_CODE_INPUT: 'input[data-qa="otp-code-input"]',
