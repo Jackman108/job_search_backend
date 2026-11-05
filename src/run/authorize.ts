@@ -29,11 +29,12 @@ export async function authorize(
 
         await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
 
+        // LOGIN_SUBMIT includes submit-button + account-login-submit fallbacks.
         const submitButtonHandle = await page.waitForSelector(
             SELECTORS.LOGIN_SUBMIT,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (submitButtonHandle) {
-            await page.click(SELECTORS.LOGIN_SUBMIT);
+            await submitButtonHandle.click();
         } else {
             console.error('SUBMIT button not found');
         }
@@ -42,7 +43,7 @@ export async function authorize(
             SELECTORS.EMAIL_BUTTON,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (emailButtonHandle) {
-            await page.click(SELECTORS.EMAIL_BUTTON);
+            await emailButtonHandle.click();
         } else {
             console.error('EMAIL button not found');
         }
@@ -52,7 +53,7 @@ export async function authorize(
             SELECTORS.EMAIL_INPUT,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (emailHandle) {
-            await page.type(SELECTORS.EMAIL_INPUT, email);
+            await emailHandle.type(email);
         } else {
             console.error('INPUT EMAIL not found');
         }
@@ -61,17 +62,18 @@ export async function authorize(
             SELECTORS.PASSWORD_BUTTON,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (passwordToggleHandle) {
-            await page.click(SELECTORS.PASSWORD_BUTTON);
+            await passwordToggleHandle.click();
         } else {
             console.error('PASSWORD button not found');
         }
 
 
+        // PASSWORD_INPUT includes applicant-login-input-password + login-input-password.
         const passwordHandle = await page.waitForSelector(
             SELECTORS.PASSWORD_INPUT,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (passwordHandle) {
-            await page.type(SELECTORS.PASSWORD_INPUT, password);
+            await passwordHandle.type(password);
         } else {
             console.error('INPUT PASSWORD not found');
         }
@@ -80,7 +82,7 @@ export async function authorize(
             SELECTORS.LOGIN_SUBMIT,
             { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (submitHandle) {
-            await page.click(SELECTORS.LOGIN_SUBMIT);
+            await submitHandle.click();
             await page.screenshot({ path: 'screenshot-authorize1.png' });
         } else {
             console.error('SUBMIT button not found');

@@ -12,8 +12,11 @@ export const SELECTORS = {
     EMAIL_BUTTON: '[data-qa="credential-type-EMAIL"]',
     EMAIL_INPUT: '[data-qa="applicant-login-input-email"]',
     PASSWORD_BUTTON: '[data-qa="expand-login-by-password"]',
-    PASSWORD_INPUT: '[data-qa="applicant-login-input-password"]',
-    LOGIN_SUBMIT: '[data-qa="submit-button"]',
+    // Primary + Magritte/legacy alts (comma = first match). Live guest verify blocked when already logged in.
+    PASSWORD_INPUT:
+        '[data-qa="applicant-login-input-password"], [data-qa="login-input-password"]',
+    LOGIN_SUBMIT:
+        '[data-qa="submit-button"], [data-qa="account-login-submit"]',
     OTP_CODE_INPUT: 'input[data-qa="otp-code-input"]',
     OTP_SUBMIT: '[data-qa="otp-code-submit"]',
     // Prefer stable data-qa; class*=vacancy-card still matches Magritte CSS-module wrappers but is fragile.
@@ -25,10 +28,13 @@ export const SELECTORS = {
     PAGER_NEXT: '[data-qa="pager-next"]',
     RELOCATION_MODAL_TITLE: '[data-qa="relocation-warning-title"]',
     RELOCATION_CONFIRM: '[data-qa="relocation-warning-confirm"]',
-    // Popup flow (InjectJS / public scripts still use these). Alternate on vacancy page: vacancy-response-letter-toggle-text / vacancy-response-letter-submit.
-    COVER_LETTER_TOGGLE: '[data-qa="add-cover-letter"]',
-    RESPONSE_SUBMIT: '[data-qa="vacancy-response-submit-popup"]',
-    COVER_LETTER_INPUT: '[data-qa="vacancy-response-popup-form-letter-input"]',
+    // Popup (`add-cover-letter` / *-popup-*) + vacancy-page Magritte letter toggle/submit/input.
+    COVER_LETTER_TOGGLE:
+        '[data-qa="add-cover-letter"], [data-qa="vacancy-response-letter-toggle"], [data-qa="vacancy-response-letter-toggle-text"]',
+    RESPONSE_SUBMIT:
+        '[data-qa="vacancy-response-submit-popup"], [data-qa="vacancy-response-letter-submit"], [data-qa="vacancy-response-submit"]',
+    COVER_LETTER_INPUT:
+        '[data-qa="vacancy-response-popup-form-letter-input"], [data-qa="vacancy-response-letter"]',
     BLOK_TEXTAREA: 'textarea',
     TEXTAREA_INVALID: 'bloko-textarea_invalid',
     BLOK_RADIO: 'label.bloko-radio',

@@ -28,12 +28,13 @@ export async function processVacancy({
             }
         }
 
+        // COVER_* / RESPONSE_SUBMIT: popup qa + Magritte vacancy-page letter toggle/input/submit.
         const coverLetterButton = await scrollToElementIfNotFound(page, SELECTORS.COVER_LETTER_TOGGLE);
         if (coverLetterButton) await coverLetterButton.click();
 
         const coverLetterInput = await scrollToElementIfNotFound(page, SELECTORS.COVER_LETTER_INPUT);
         if (coverLetterInput) {
-            await page.type(SELECTORS.COVER_LETTER_INPUT, message);
+            await coverLetterInput.type(message);
         }
         const responseSubmitButton = await scrollToElementIfNotFound(page, SELECTORS.RESPONSE_SUBMIT);
         if (responseSubmitButton) await responseSubmitButton.click();
