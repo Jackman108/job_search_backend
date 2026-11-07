@@ -1,22 +1,22 @@
-// server.ts
-
 import { PORTS } from '@config';
 import { startHttpServer, startWebSocketServer } from '@server';
-
+import { logger } from '@utils';
 
 process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
-    if (error.stack) {
-        console.error('Stack trace:', error.stack);
-    }
+    logger.error('Uncaught Exception', {
+        message: error.message,
+        stack: error.stack,
+    });
     process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', (reason) => {
+    logger.error('Unhandled Rejection', {
+        reason: reason instanceof Error ? reason.message : String(reason),
+        stack: reason instanceof Error ? reason.stack : undefined,
+    });
     process.exit(1);
 });
-
 
 (async () => {
     try {
@@ -24,12 +24,11 @@ process.on('unhandledRejection', (reason, promise) => {
         await startWebSocketServer({ app: httpServer, wsPort: PORTS.ws });
     } catch (error) {
         if (error instanceof Error) {
-            console.error(`Error starting servers: ${error.message}`);
-            if (error.stack) {
-                console.error('Stack trace:', error.stack);
-            }
+            logger.error(`Error starting servers: ${error.message}`, {
+                stack: error.stack,
+            });
         } else {
-            console.error(`Unexpected error: ${error}`);
+            logger.error(`Unexpected error: ${String(error)}`);
         }
         process.exit(1);
     }

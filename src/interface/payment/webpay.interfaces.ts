@@ -23,7 +23,7 @@ export interface WebPayPayment {
 }
 
 /**
- * Данные для создания WebPay платежа    
+ * Данные для создания WebPay платежа  
  */
 export interface WebPayPaymentData {
     id?: string;
@@ -46,7 +46,7 @@ export interface WebPayPaymentData {
 export interface InitWebPayPaymentParams {
     userId: string;
     paymentId: string;
-    currency: "BYN" | "USD" | "EUR" | "RUB";
+    currency: 'BYN' | 'USD' | 'EUR' | 'RUB';
     amount: number;
 }
 
@@ -66,7 +66,7 @@ export interface WebpayInitParams {
     wsb_storeid: number;
     wsb_order_num: string;
     wsb_test: number;
-    wsb_currency_id: "BYN" | "USD" | "EUR" | "RUB";
+    wsb_currency_id: 'BYN' | 'USD' | 'EUR' | 'RUB';
     wsb_total: number;
     wsb_version: number;
     wsb_return_url: string;
@@ -102,9 +102,7 @@ export interface SimpleWebpayParams {
 /**
  * Интерфейс для WebPay сервиса, реализующий общий интерфейс платежного сервиса
  */
-export interface IWebPayService extends IPaymentService<WebPayPayment, CreateWebPayPaymentParams> {
-    // Дополнительные методы для WebPayService, если нужны
-}
+export type IWebPayService = IPaymentService<WebPayPayment, CreateWebPayPaymentParams>;
 
 /**
  * Интерфейс для стратегии WebPay платежей
@@ -124,4 +122,4 @@ export interface CreateWebPayPaymentParams extends CreatePaymentParams {
     payment_id: string;
     success_url?: string;
     cancel_url?: string;
-} 
+}
