@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import type { GetFeedbackParams, SendFeedbackParams } from '@interface';
 import { enqueueGetFeedback, enqueueSendFeedback } from './jobStore.js';
+import { killProcessTree } from './killProcessTree.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,20 +29,15 @@ function spawnWorker(jobId: string): void {
     child.unref();
 }
 
-/** Best-effort kill of a tracked detached worker (no-op if already exited). */
+/** Best-effort tree-kill of a tracked detached worker (no-op if already exited). */
 export function killWorker(jobId: string): boolean {
     const pid = workerPids.get(jobId);
     if (!pid) {
         return false;
     }
-    try {
-        process.kill(pid);
-        workerPids.delete(jobId);
-        return true;
-    } catch {
-        workerPids.delete(jobId);
-        return false;
-    }
+    const killed = killProcessTree(pid);
+    workerPids.delete(jobId);
+    return killed;
 }
 
 /** Queue HH Puppeteer work in a detached process so the API process stays up if Chrome dies. */

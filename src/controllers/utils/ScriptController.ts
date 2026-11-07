@@ -6,7 +6,7 @@ import { handleErrors } from '@middlewares';
 import { incrementSpinCount, updateSuccessfulResponsesCount } from '@services';
 import { stop } from '@utils';
 import { AuthenticatedRequest } from '@interface';
-import { cancelQueuedJobsForUser } from '../../worker/cancelQueued.js';
+import { cancelJobsForUser } from '../../worker/cancelJobs.js';
 import { queueGetFeedback, queueSendFeedback, useQueuedWorker } from '../../worker/enqueue.js';
 import { readJob } from '../../worker/jobStore.js';
 
@@ -51,12 +51,14 @@ export class ScriptController {
 
     async stopScript(req: AuthenticatedRequest, res: Response) {
         try {
-            const { cancelledJobIds } = cancelQueuedJobsForUser(req.userId!);
+            const { cancelledJobIds, abortedJobIds } = cancelJobsForUser(req.userId!);
             await stop(req.body?.browser);
             res.status(200).json({
                 message: 'Script stopped successfully!',
                 cancelledJobIds,
                 cancelledCount: cancelledJobIds.length,
+                abortedJobIds,
+                abortedCount: abortedJobIds.length,
             });
         } catch (error) {
             handleErrors(res, error, 'Script stop error.');
