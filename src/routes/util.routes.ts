@@ -23,13 +23,13 @@ export const initializeUtilRoutes = (app: express.Application) => {
      * @swagger
      * /stop:
      *   post:
-     *     summary: Остановить скрипт
+     *     summary: Остановить скрипт и отменить queued HH jobs текущего пользователя
      *     tags: [Утилиты]
      *     security:
      *       - bearerAuth: []
      *     responses:
      *       200:
-     *         description: Скрипт успешно остановлен
+     *         description: Скрипт остановлен; queued jobs помечены cancelled
      *       401:
      *         description: Не авторизован
      */
@@ -72,4 +72,4 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *         description: Не найдено
      */
     registerRoute(app, 'get', '/jobs/:jobId', ScriptController, 'getJobStatus');
-}; 
+};
