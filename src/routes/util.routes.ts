@@ -23,13 +23,13 @@ export const initializeUtilRoutes = (app: express.Application) => {
      * @swagger
      * /stop:
      *   post:
-     *     summary: Остановить скрипт и отменить queued HH jobs текущего пользователя
+     *     summary: Остановить скрипт; отменить queued и abort running HH jobs текущего пользователя
      *     tags: [Утилиты]
      *     security:
      *       - bearerAuth: []
      *     responses:
      *       200:
-     *         description: Скрипт остановлен; queued jobs помечены cancelled
+     *         description: Скрипт остановлен; queued/running jobs помечены cancelled, worker PID tree-killed
      *       401:
      *         description: Не авторизован
      */
