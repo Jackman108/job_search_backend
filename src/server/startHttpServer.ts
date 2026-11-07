@@ -1,13 +1,10 @@
 import express from 'express';
-import { initializeMiddleware } from '@middlewares';
+import { initializeMiddleware, errorMiddleware } from '@middlewares';
 import { initializeRoutes } from '@routes';
 import { StartHttpServerParams } from '@interface';
-import { checkPort } from '@utils';
+import { buildHealthPayload, checkPort, logger } from '@utils';
 
-
-export const startHttpServer = async ({
-    port
-}: StartHttpServerParams): Promise<express.Express> => {
+export const startHttpServer = async ({ port }: StartHttpServerParams): Promise<express.Express> => {
     try {
         await checkPort(port);
 
@@ -15,17 +12,18 @@ export const startHttpServer = async ({
         initializeMiddleware(app);
         // Lightweight liveness probe (no auth, no DB) — safe for compose/k8s.
         app.get('/health', (_req, res) => {
-            res.status(200).json({ status: 'ok', service: 'backend', ts: new Date().toISOString() });
+            res.status(200).json(buildHealthPayload('backend'));
         });
         initializeRoutes(app);
+        app.use(errorMiddleware);
 
         app.listen(port, () => {
-            console.log(`Server is running on port ${port}`);
+            logger.info(`Server is running on port ${port}`);
         });
 
         return app;
     } catch (err) {
-        console.error(`Error starting HTTP server: ${(err as Error).message}`);
+        logger.error(`Error starting HTTP server: ${(err as Error).message}`);
         throw err;
     }
 };

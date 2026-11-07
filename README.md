@@ -21,7 +21,7 @@ Express + TypeScript + Puppeteer + Postgres + WebSocket + Swagger.
 |--------|------|
 | HTTP API | **8000** (`API_PORT`) |
 | WebSocket | **8080** (`WS_PORT`) |
-| Health | `GET /health` |
+| Health | `GET /health` (HTTP) · `ws://…/health` (WS, no token) |
 | Swagger | `/api-docs` |
 | Postgres / pgAdmin | 5432 / 5050 (`npm run docker:up`) |
 

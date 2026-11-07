@@ -6,10 +6,11 @@ export const handleSuccess = (res: Response, message: string = 'Success', data?:
 };
 
 export const handleErrors = (res: Response, error: unknown, defaultMessage: string) => {
-    console.error(error);
+    logger.error(defaultMessage, {
+        error: error instanceof Error ? error.message : String(error),
+    });
     res.status(500).json({ success: false, message: defaultMessage });
 };
-
 
 /**
  * Общая функция для обработки ошибок в контроллере
@@ -21,6 +22,6 @@ export const handleControllerError = (res: Response, error: unknown, message: st
     logger.error(`Payment integration controller error: ${message}`, { error });
     res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : message
+        error: error instanceof Error ? error.message : message,
     });
 };

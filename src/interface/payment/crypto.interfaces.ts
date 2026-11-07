@@ -66,9 +66,7 @@ export interface CreateCryptoPaymentParams extends CreatePaymentParams {
 /**
  * Интерфейс для сервиса криптоплатежей
  */
-export interface ICryptoPaymentService extends IPaymentService<CryptoPaymentDetails, CreateCryptoPaymentParams> {
-    // Дополнительные методы специфичные для криптоплатежей могут быть добавлены здесь
-}
+export type ICryptoPaymentService = IPaymentService<CryptoPaymentDetails, CreateCryptoPaymentParams>;
 
 /**
  * Интерфейс для стратегии криптоплатежей
@@ -76,4 +74,4 @@ export interface ICryptoPaymentService extends IPaymentService<CryptoPaymentDeta
 export interface CryptoPaymentStrategy extends PaymentStrategy {
     initCryptoPayment: (params: InitCryptoPaymentParams) => Promise<PaymentResult<CryptoPaymentDetails>>;
     validateCryptoWebhookSignature: (data: any, signature: string) => boolean;
-} 
+}
