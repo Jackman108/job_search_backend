@@ -10,7 +10,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node -r tsconfig-paths/register dist/src/server.js",
-    "dev": "tsx watch src/server.ts",
+    "dev": "nodemon",
+    "dev:tsx": "tsx watch --clear-screen=false --include ./src --include ./packages/hh-worker/src --include ./packages/hh-worker/bin --exclude .hh-jobs --exclude \"**/*.test.ts\" src/server.ts",
+
     "worker": "node packages/hh-worker/bin/run.mjs",
     "lint": "eslint \"src/**/*.ts\" \"packages/hh-worker/src/**/*.ts\" --max-warnings 50",
     "lint:fix": "eslint \"src/**/*.ts\" \"packages/hh-worker/src/**/*.ts\" --fix",
