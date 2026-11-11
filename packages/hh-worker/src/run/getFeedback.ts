@@ -39,6 +39,8 @@ export async function getFeedback(
         });
     } catch (err) {
         console.error('Error during script execution:', err);
+        // Rethrow so processJob can mark the job file as error (poll SoT).
+        throw err;
     } finally {
         if (browser && page && !page.isClosed()) {
             await stop(browser);

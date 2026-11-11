@@ -116,6 +116,15 @@
  *         countersUpdated:
  *           type: boolean
  *           description: True after spin/success counters written (sendFeedback only)
+ *         lastEvent:
+ *           type: string
+ *           description: Latest worker progress line (CAPTCHA / errors) for poll SoT
+ *         lastEventAt:
+ *           type: string
+ *           format: date-time
+ *         captchaSrc:
+ *           type: string
+ *           description: CAPTCHA image URL when detected (login or mid-apply)
  *
  *     ErrorMessage:
  *       type: object

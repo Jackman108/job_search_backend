@@ -22,14 +22,15 @@ import { mapNowPaymentsStatus, validateNowPaymentsSignature } from '@integration
  */
 const createNowPaymentsApi = (): INowPaymentsApi => {
     const apiKey = nowPaymentsConfig.apiKey;
-    const ipnSecret = nowPaymentsConfig.ipnSecret;
+    const configured = Boolean(apiKey);
 
-    if (!apiKey) {
-        // Local/dev often omits payments — warn, don't paint startup as a hard failure.
-        logger.warn('NOWPayments API key is not configured; crypto payment calls will fail until set');
+    if (!configured) {
+        // Optional integration — warn once at load; do not paint startup as ERROR.
+        logger.warn(
+            'NOWPayments API key is not configured; crypto payment calls will fail until set (optional in local dev)',
+        );
     }
 
-    // Создаем HTTP клиент с базовыми настройками
     const api = axios.create({
         baseURL: nowPaymentsConfig.baseUrl,
         headers: {
@@ -39,32 +40,37 @@ const createNowPaymentsApi = (): INowPaymentsApi => {
         timeout: 10000,
     });
 
-    // Добавляем перехватчики для логирования
     api.interceptors.request.use(
         (config) => {
-            logger.info('NOWPayments API request', {
-                method: config.method,
-                url: config.url,
-                data: config.data,
-            });
+            if (configured) {
+                logger.info('NOWPayments API request', {
+                    method: config.method,
+                    url: config.url,
+                });
+            }
             return config;
         },
         (error) => {
-            logger.error('NOWPayments API request error', { error });
+            logger.warn('NOWPayments API request setup failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
             return Promise.reject(error);
         },
     );
 
     api.interceptors.response.use(
         (response) => {
-            logger.info('NOWPayments API response', {
-                status: response.status,
-                data: response.data,
-            });
+            if (configured) {
+                logger.info('NOWPayments API response', {
+                    status: response.status,
+                });
+            }
             return response;
         },
         (error) => {
-            logger.error('NOWPayments API response error', {
+            // Missing key / unused crypto path — warn, don't spam ERROR on every call.
+            const level = configured ? 'error' : 'warn';
+            logger[level]('NOWPayments API response error', {
                 error: error.message,
                 response: error.response?.data,
             });
@@ -72,91 +78,64 @@ const createNowPaymentsApi = (): INowPaymentsApi => {
         },
     );
 
-    /**
-     * Обрабатывает ошибки API NOWPayments
-     * @param error Объект ошибки
-     * @returns Обработанная ошибка
-     */
     const handleApiError = (error: any): Error => {
         if (error.response) {
-            // Ошибка с ответом от сервера
             const { status, data } = error.response;
             const message = data?.message || 'Unknown NOWPayments API error';
             return new Error(`NOWPayments API error (${status}): ${message}`);
-        } else if (error.request) {
-            // Запрос был сделан, но ответ не получен
-            return new Error(`NOWPayments API no response: ${error.message}`);
-        } else {
-            // Ошибка при настройке запроса
-            return new Error(`NOWPayments API request error: ${error.message}`);
         }
+        if (error.request) {
+            return new Error(`NOWPayments API no response: ${error.message}`);
+        }
+        return new Error(`NOWPayments API request error: ${error.message}`);
     };
 
-    /**
-     * Создает платеж через API NOWPayments
-     * @param params Параметры платежа
-     * @returns Данные созданного платежа
-     */
+    const logCallFailure = (op: string, error: unknown, extra?: Record<string, unknown>) => {
+        const level = configured ? 'error' : 'warn';
+        logger[level](`NOWPayments ${op} failed`, {
+            error: error instanceof Error ? error.message : String(error),
+            ...extra,
+        });
+    };
+
     const createPayment = async (params: CreateNowPaymentParams): Promise<NowPaymentsCreatePaymentResponse> => {
         try {
             const response = await api.post<NowPaymentsCreatePaymentResponse>('/payment', params);
             return response.data;
         } catch (error) {
-            logger.error('Error creating NOWPayments payment', { error, params });
+            logCallFailure('createPayment', error);
             throw handleApiError(error);
         }
     };
 
-    /**
-     * Создает счет через API NOWPayments
-     * @param params Параметры счета
-     * @returns Данные созданного счета
-     */
     const createInvoice = async (params: CreateNowInvoiceParams): Promise<NowPaymentsCreateInvoiceResponse> => {
         try {
             const response = await api.post<NowPaymentsCreateInvoiceResponse>('/invoice', params);
             return response.data;
         } catch (error) {
-            logger.error('Error creating NOWPayments invoice', { error, params });
+            logCallFailure('createInvoice', error);
             throw handleApiError(error);
         }
     };
 
-    /**
-     * Получает информацию о платеже по его ID
-     * @param paymentId ID платежа
-     * @returns Информация о платеже
-     */
     const getPaymentStatus = async (paymentId: string): Promise<NowPaymentsPaymentStatusResponse> => {
         try {
             const response = await api.get<NowPaymentsPaymentStatusResponse>(`/payment/${paymentId}`);
             return response.data;
         } catch (error) {
-            logger.error('Error getting NOWPayments payment status', { error, paymentId });
+            logCallFailure('getPaymentStatus', error, { paymentId });
             throw handleApiError(error);
         }
     };
 
-    /**
-     * Проверяет подпись вебхука от NOWPayments
-     * @param data Данные вебхука
-     * @param signature Подпись вебхука
-     * @returns true если подпись верна, иначе false
-     */
     const validateWebhookSignature = (data: any, signature: string): boolean => {
         return validateNowPaymentsSignature(data, signature);
     };
 
-    /**
-     * Преобразует статус платежа из NOWPayments в стандартный статус системы
-     * @param nowpaymentStatus Статус платежа NOWPayments
-     * @returns Стандартный статус платежа
-     */
     const mapPaymentStatus = (nowpaymentStatus: string): PaymentStatus => {
         return mapNowPaymentsStatus(nowpaymentStatus);
     };
 
-    // Возвращаем публичный интерфейс API клиента
     return {
         createPayment,
         createInvoice,
@@ -166,5 +145,4 @@ const createNowPaymentsApi = (): INowPaymentsApi => {
     };
 };
 
-// Создаем и экспортируем экземпляр API клиента
 export const nowpaymentsApi = createNowPaymentsApi();

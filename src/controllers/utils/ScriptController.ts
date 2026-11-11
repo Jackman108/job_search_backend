@@ -108,6 +108,9 @@ export class ScriptController {
                 finishedAt: job.finishedAt,
                 error: job.error,
                 countersUpdated: job.countersUpdated === true,
+                lastEvent: job.lastEvent,
+                lastEventAt: job.lastEventAt,
+                captchaSrc: job.captchaSrc,
             };
             res.status(200).json(body);
         } catch (error) {

@@ -15,6 +15,11 @@ export interface HhJobBase {
     userId: string;
     /** Set after spin/success counters are written (sendFeedback only). */
     countersUpdated?: boolean;
+    /** Latest worker progress line (CAPTCHA / errors / milestones) for poll SoT. */
+    lastEvent?: string;
+    lastEventAt?: string;
+    /** CAPTCHA image URL when detected (login or mid-apply). */
+    captchaSrc?: string;
 }
 
 export interface SendFeedbackJob extends HhJobBase {

@@ -17,9 +17,8 @@ export class VacancyController {
     async getVacancies(req: AuthenticatedRequest, res: Response) {
         try {
             const vacancies = await getVacanciesUser(req.userId!);
-            res.status(vacancies.length ? 200 : 404).json(
-                vacancies.length ? vacancies : { message: 'No vacancies found.' },
-            );
+            // Empty list is a valid resource state — REST 200 + [].
+            res.status(200).json(vacancies);
         } catch (error) {
             handleErrors(res, error, 'Error retrieving vacancies.');
         }

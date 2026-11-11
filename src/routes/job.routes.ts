@@ -13,7 +13,13 @@ export const initializeJobRoutes = (app: express.Application) => {
      *       - bearerAuth: []
      *     responses:
      *       200:
-     *         description: Список вакансий успешно получен
+     *         description: Список вакансий (может быть пустым массивом)
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
      *       401:
      *         description: Не авторизован
      */
@@ -69,7 +75,13 @@ export const initializeJobRoutes = (app: express.Application) => {
      *       - bearerAuth: []
      *     responses:
      *       200:
-     *         description: Список отзывов успешно получен
+     *         description: Список отзывов (может быть пустым массивом)
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
      *       401:
      *         description: Не авторизован
      */

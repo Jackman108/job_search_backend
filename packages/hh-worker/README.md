@@ -40,7 +40,7 @@ await processJob(jobId, deps);
 | Port           | Methods                                                | API adapter                                            |
 | -------------- | ------------------------------------------------------ | ------------------------------------------------------ |
 | `JobCounters`  | `incrementSpinCount`, `updateSuccessfulResponsesCount` | `@services` profile                                    |
-| `JobBroadcast` | `broadcast`                                            | **noop for WS** (log-only); poll `GET /jobs/:jobId` is SoT |
+| `JobBroadcast` | `broadcast`                                            | log-only base; `processJob` wraps with job-store persist (`lastEvent` / `captchaSrc`) |
 | `VacancyRepo`  | `saveVacancy`, `getVacanciesUser`                      | `@services` vacancy                                    |
 | `FeedbackRepo` | `saveChatFeedback`, `getChatFeedback`                  | `@services` feedback                                   |
 
@@ -71,6 +71,6 @@ Override deps factory: `HH_WORKER_DEPS_FACTORY=/absolute/path/to/createProcessJo
 
 Selectors stay in API `src/config` (`constants.config.ts`). Credentials come from the job payload / form — never from package source.
 
-**Broadcast / live updates:** detached worker cannot reach the API WebSocket. `JobBroadcast` logs in-process; clients treat **`GET /jobs/:jobId` (+ refetch after settle)** as source of truth. No cross-process WS broker unless product needs live CAPTCHA/progress push later.
+**Broadcast / live updates:** detached worker cannot reach the API WebSocket. `processJob` wraps `JobBroadcast` with `createJobStoreBroadcast` so CAPTCHA/errors land on the job file (`lastEvent`, `captchaSrc`, `error`). Clients treat **`GET /jobs/:jobId` (+ refetch after settle)** as source of truth. Optional Redis pub/sub only if product later needs live WS push without poll.
 
 See root `docs/ARCHITECTURE.md` and `OPEN-WORK.md`.
