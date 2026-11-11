@@ -208,6 +208,16 @@ async function submitAndDetectBlockers(
         // Headless: human solves via image + POST /jobs/:id/captcha (no headed Chrome).
         const solved = await waitAndSubmitCaptchaAnswer(jobId, page, captchaSrc || '');
         if (solved) {
+            // If still on login after captcha, click «Войти» once more.
+            if (await page.$(SELECTORS.PASSWORD_INPUT)) {
+                await clickLoginSubmit(page).catch(() => undefined);
+                await settle(TIMEOUTS.SHORT * 2);
+            }
+            await page
+                .waitForFunction(() => !location.pathname.includes('/account/login'), {
+                    timeout: TIMEOUTS.MODAL,
+                })
+                .catch(() => undefined);
             stage('login', 'continued after captcha answer');
             return;
         }
