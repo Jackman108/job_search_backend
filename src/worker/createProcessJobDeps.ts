@@ -1,5 +1,4 @@
 import type { ProcessJobDeps } from '@market-hunter/hh-worker/job';
-import { broadcast } from '@server';
 import {
     getChatFeedback,
     getVacanciesUser,
@@ -8,11 +7,15 @@ import {
     saveVacancy,
     updateSuccessfulResponsesCount,
 } from '@services';
+import { noopJobBroadcast } from './noopJobBroadcast.js';
 
 /**
- * API composition root: wire `@services` counters/persistence + `@server` broadcast
+ * API composition root: wire `@services` counters/persistence + poll-only JobBroadcast
  * into hh-worker ports. Loaded by package CLI (`HH_WORKER_DEPS_FACTORY` override).
  * Scenarios must not import `@services` / `@server` directly.
+ *
+ * JobBroadcast is intentionally a no-op for WS (logs only): detached worker has no
+ * shared WS with the API. Source of truth = file job-store + GET /jobs/:jobId.
  */
 export function createProcessJobDeps(): ProcessJobDeps {
     return {
@@ -20,9 +23,7 @@ export function createProcessJobDeps(): ProcessJobDeps {
             incrementSpinCount,
             updateSuccessfulResponsesCount,
         },
-        broadcast: {
-            broadcast,
-        },
+        broadcast: noopJobBroadcast,
         vacancyRepo: {
             saveVacancy,
             getVacanciesUser,
