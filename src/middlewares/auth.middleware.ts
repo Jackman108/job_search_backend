@@ -6,7 +6,8 @@ import { logger } from '@utils';
 
 export const validateUserIdMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.userId) {
-        return res.status(400).json({ message: 'userId is required.' });
+        // Auth-required routes: missing/invalid JWT must be 401, not 400/500.
+        return res.status(401).json({ message: 'Unauthorized request' });
     }
     next();
 };

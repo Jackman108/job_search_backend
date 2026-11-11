@@ -15,15 +15,19 @@ Express + TypeScript + Puppeteer + Postgres + WebSocket + Swagger.
 3. `npm install` / `yarn install`
 4. Скопировать `.env.example` → `.env` (HH login/пароль/письмо — из формы UI, не из secrets.ts)
 
+## Postgres tables
+
+Per-user vacancy/feedback tables are created on first read. Shared `vacancy_auth` and `vacancy_submit` (HH login + search fields for `/vacancy-auth` and `/vacancy-field`) are ensured the same way and listed in `postgres/postgres/init.sql` for fresh Docker volumes. Empty lists return **200 + `[]`**.
+
 ## Порты (dev)
 
-| Сервис | Порт |
-|--------|------|
-| HTTP API | **8000** (`API_PORT`) |
-| WebSocket | **8080** (`WS_PORT`) |
-| Health | `GET /health` (HTTP) · `ws://…/health` (WS, no token) |
-| Swagger | `/api-docs` |
-| Postgres / pgAdmin | 5432 / 5050 (`npm run docker:up`) |
+| Сервис             | Порт                                                  |
+| ------------------ | ----------------------------------------------------- |
+| HTTP API           | **8000** (`API_PORT`)                                 |
+| WebSocket          | **8080** (`WS_PORT`)                                  |
+| Health             | `GET /health` (HTTP) · `ws://…/health` (WS, no token) |
+| Swagger            | `/api-docs`                                           |
+| Postgres / pgAdmin | 5432 / 5050 (`npm run docker:up`)                     |
 
 Полный стек (client + auth): [`../docs/DEV_SETUP.md`](../docs/DEV_SETUP.md).
 
