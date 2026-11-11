@@ -3,6 +3,7 @@ import { PaymentBase, PaymentResult, PaymentStatus } from '@interface';
 import { handleErrors } from '@middlewares';
 import { executeQuery, logger } from '@utils';
 import { Response } from 'express';
+import { isPaymentsKeyedByUserId } from './paymentSchema.utils';
 
 /**
  * @module PaymentCommon
@@ -104,19 +105,28 @@ export const generateOrderNumber = (): string => {
  * @returns ID платежа или null, если не найден
  */
 export const getPaymentIdByUserId = async (userId: string): Promise<string> => {
-    const query = `
-        SELECT p.id
-        FROM payments p
-        JOIN subscriptions s ON p.subscription_id = s.id
-        WHERE s.user_id = $1
-        ORDER BY p.created_at DESC
-        LIMIT 1;
-    `;
-    const result = await executeQuery<{ id: string }>(query, [userId]);
-    if (!result.length) {
+    if (await isPaymentsKeyedByUserId()) {
+        const byUser = await executeQuery<{ id: string }>(
+            `SELECT id FROM payments WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1;`,
+            [userId],
+        );
+        if (!byUser.length) throw new Error(`Payment not found for user ${userId}`);
+        return byUser[0].id;
+    }
+
+    const bySubscription = await executeQuery<{ id: string }>(
+        `SELECT p.id
+         FROM payments p
+         JOIN subscriptions s ON p.subscription_id = s.id
+         WHERE s.user_id = $1
+         ORDER BY p.created_at DESC
+         LIMIT 1;`,
+        [userId],
+    );
+    if (!bySubscription.length) {
         throw new Error(`Payment not found for user ${userId}`);
     }
-    return result[0].id;
+    return bySubscription[0].id;
 };
 
 /**

@@ -1,6 +1,7 @@
 import { CreatePaymentParams, PaymentBase, PaymentStatus } from '@interface';
 import { getSubscriptionIdByUserId, withErrorHandling } from '@integrations';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
+import { isPaymentsKeyedByUserId } from '../integrations/common/paymentSchema.utils';
 
 /**
  * @module PaymentService
@@ -35,97 +36,99 @@ export const createTablePayments = async (): Promise<void> => {
  * @param userId ID пользователя из AuthenticatedRequest
  */
 export const listPayments = async (userId: string): Promise<PaymentBase[]> => {
-    // Shared DB: auth Prisma owns `payments` with user_id; backend historically used subscription_id.
-    try {
-        const subscriptionId = await getSubscriptionIdByUserId(userId);
-        return await executeQuery<PaymentBase>(`SELECT * FROM payments WHERE subscription_id = $1;`, [
-            subscriptionId,
-        ]);
-    } catch {
-        return await executeQuery<PaymentBase>(`SELECT * FROM payments WHERE user_id = $1;`, [userId]);
+    if (await isPaymentsKeyedByUserId()) {
+        return executeQuery<PaymentBase>(`SELECT * FROM payments WHERE user_id = $1;`, [userId]);
     }
+    const subscriptionId = await getSubscriptionIdByUserId(userId);
+    return executeQuery<PaymentBase>(`SELECT * FROM payments WHERE subscription_id = $1;`, [subscriptionId]);
 };
 
 /**
- * Получение одного платежа по subscription_id и id
- * @param userId ID пользователя
- * @param paymentId ID платежа
+ * Получение одного платежа по id (scoped to user)
  */
 export const getPayment = async (userId: string, paymentId: string): Promise<PaymentBase> => {
+    if (await isPaymentsKeyedByUserId()) {
+        const byUser = await executeQuery<PaymentBase>(`SELECT * FROM payments WHERE user_id = $1 AND id = $2;`, [
+            userId,
+            paymentId,
+        ]);
+        if (!byUser[0]) throw new Error(`Payment not found for id ${paymentId}`);
+        return byUser[0];
+    }
     const subscriptionId = await getSubscriptionIdByUserId(userId);
-    const query = `SELECT * FROM payments WHERE subscription_id = $1 AND id = $2;`;
-    const result = await executeQuery<PaymentBase>(query, [subscriptionId, paymentId]);
+    const result = await executeQuery<PaymentBase>(`SELECT * FROM payments WHERE subscription_id = $1 AND id = $2;`, [
+        subscriptionId,
+        paymentId,
+    ]);
     if (!result[0]) throw new Error(`Payment not found for id ${paymentId}`);
     return result[0];
 };
 
 /**
  * Создание нового платежа
- * @param params Параметры для создания платежа
  */
 export const createPayment = async (params: CreatePaymentParams): Promise<PaymentBase> => {
     const { userId, amount, payment_method, subscription_id } = params;
 
-    // Проверяем, что хотя бы один из userId или subscription_id определен
     if (!userId && !subscription_id) {
         throw new Error('Either userId or subscription_id must be provided');
     }
 
-    // Получаем subscription_id из userId, если subscription_id не указан
-    const actualSubscriptionId = subscription_id || (userId ? await getSubscriptionIdByUserId(userId) : '');
+    if (await isPaymentsKeyedByUserId()) {
+        if (!userId) throw new Error('userId is required for shared payments schema');
+        const [created] = await executeQuery<PaymentBase>(
+            `INSERT INTO payments (user_id, amount, payment_status, payment_method)
+             VALUES ($1, $2, $3, $4) RETURNING *;`,
+            [userId, amount, PaymentStatus.Pending, payment_method || 'webpay'],
+        );
+        return created;
+    }
 
-    const query = `
-        INSERT INTO payments (subscription_id, amount, payment_status, payment_method)
-        VALUES ($1, $2, $3, $4)
-        RETURNING *;
-    `;
-    const values = [actualSubscriptionId, amount, PaymentStatus.Pending, payment_method || 'webpay'];
-    const [created] = await executeQuery<PaymentBase>(query, values);
+    const actualSubscriptionId = subscription_id || (userId ? await getSubscriptionIdByUserId(userId) : '');
+    const [created] = await executeQuery<PaymentBase>(
+        `INSERT INTO payments (subscription_id, amount, payment_status, payment_method)
+         VALUES ($1, $2, $3, $4) RETURNING *;`,
+        [actualSubscriptionId, amount, PaymentStatus.Pending, payment_method || 'webpay'],
+    );
     return created;
 };
 
 /**
  * Обновление полей платежа по id
- * @param userId ID пользователя
- * @param paymentId ID платежа
- * @param updates Поля для обновления
  */
 export const updatePayment = async (
     userId: string,
     paymentId: string,
     updates: Partial<PaymentBase>,
 ): Promise<PaymentBase> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
+    const scope = (await isPaymentsKeyedByUserId())
+        ? { user_id: userId, id: paymentId }
+        : { subscription_id: await getSubscriptionIdByUserId(userId), id: paymentId };
 
     const { query, values } = generateUpdateQueryWithConditions(
         'payments',
         { ...updates, updated_at: new Date() },
-        { subscription_id: subscriptionId, id: paymentId },
+        scope,
     );
     await executeQuery(query, values);
 
-    // Возвращаем обновлённую запись
     const [updated] = await executeQuery<PaymentBase>(`SELECT * FROM payments WHERE id = $1;`, [paymentId]);
     return updated;
 };
 
 /**
- * Удаление платежа по subscription_id и id
- * @param userId ID пользователя
- * @param paymentId ID платежа
+ * Удаление платежа по id (scoped to user)
  */
 export const deletePayment = async (userId: string, paymentId: string): Promise<void> => {
+    await executeQuery(`DELETE FROM crypto_payments WHERE payment_id = $1;`, [paymentId]).catch(() => undefined);
+    await executeQuery(`DELETE FROM webpay_payments WHERE payment_id = $1;`, [paymentId]).catch(() => undefined);
+
+    if (await isPaymentsKeyedByUserId()) {
+        await executeQuery(`DELETE FROM payments WHERE user_id = $1 AND id = $2;`, [userId, paymentId]);
+        return;
+    }
     const subscriptionId = await getSubscriptionIdByUserId(userId);
-
-    // Сначала удаляем связанные записи в crypto_payments и webpay_payments
-    // Эти таблицы имеют внешний ключ на payments(id)
-    await executeQuery(`DELETE FROM crypto_payments WHERE payment_id = $1;`, [paymentId]);
-
-    await executeQuery(`DELETE FROM webpay_payments WHERE payment_id = $1;`, [paymentId]);
-
-    // Затем удаляем запись в основной таблице payments
-    const query = `DELETE FROM payments WHERE subscription_id = $1 AND id = $2;`;
-    await executeQuery(query, [subscriptionId, paymentId]);
+    await executeQuery(`DELETE FROM payments WHERE subscription_id = $1 AND id = $2;`, [subscriptionId, paymentId]);
 };
 
 /**
