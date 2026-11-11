@@ -20,7 +20,10 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
 
     try {
         if (job.kind === 'sendFeedback') {
-            await sendFeedback(job.payload, { vacancyRepo: deps.vacancyRepo });
+            await sendFeedback(job.payload, {
+                vacancyRepo: deps.vacancyRepo,
+                broadcast: deps.broadcast,
+            });
             await counters.incrementSpinCount(job.userId);
             await counters.updateSuccessfulResponsesCount(job.userId);
             // Don't overwrite a late cancel mark (rare; kill may race).
@@ -34,7 +37,10 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             });
             broadcast.broadcast(`HH job ${id} done (sendFeedback)`);
         } else {
-            await getFeedback(job.payload, { feedbackRepo: deps.feedbackRepo });
+            await getFeedback(job.payload, {
+                feedbackRepo: deps.feedbackRepo,
+                broadcast: deps.broadcast,
+            });
             if (readJob(id)?.status === 'cancelled') {
                 return;
             }

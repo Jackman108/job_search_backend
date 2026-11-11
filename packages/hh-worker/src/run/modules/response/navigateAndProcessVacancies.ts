@@ -1,7 +1,6 @@
 // src/navigateAndProcessVacancies.ts
 import { HH_SCRAPE, SELECTORS } from '@config';
 import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '@interface';
-import { broadcast } from '@server';
 import { delayBeforeApply, delayBetweenPages, isStopped, stop } from '@utils';
 import { getVacancies } from './getVacancies.js';
 import { processVacancy } from './processVacancy.js';
@@ -13,6 +12,7 @@ export async function navigateAndProcessVacancies({
     message,
     browser,
     vacancyRepo,
+    broadcast,
 }: NavigateAndProcessVacanciesParams): Promise<void> {
     let currentPage = 0;
     let existingVacanciesIds: Set<number>;
@@ -72,9 +72,10 @@ export async function navigateAndProcessVacancies({
                             message,
                             userId,
                             vacancyRepo,
+                            broadcast,
                         });
                         if (result === 'captcha') {
-                            broadcast('CAPTCHA mid-apply — stopping browser');
+                            broadcast.broadcast('CAPTCHA mid-apply — stopping browser');
                             await stop(browser);
                             return;
                         }

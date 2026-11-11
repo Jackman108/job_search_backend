@@ -1,9 +1,9 @@
 import { Browser, Page } from 'puppeteer';
 import { SELECTORS, TIMEOUTS } from '@config';
-import { broadcast } from '@server';
 import { reset, stop } from '@utils';
+import type { JobBroadcast } from '../job/broadcast.types.js';
 
-export async function initializeBrowser(vacancyUrl: string, browser: Browser, page: Page) {
+export async function initializeBrowser(vacancyUrl: string, browser: Browser, page: Page, broadcast: JobBroadcast) {
     try {
         reset();
         await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
@@ -17,7 +17,7 @@ export async function initializeBrowser(vacancyUrl: string, browser: Browser, pa
             .catch(() => null);
 
         if (!cookieHandle) {
-            broadcast('hh closed');
+            broadcast.broadcast('hh closed');
             await page.screenshot({ path: 'screenshot-closed.png' });
             await stop(browser);
             return false;

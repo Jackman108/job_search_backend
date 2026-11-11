@@ -10,13 +10,13 @@ Poll status: `GET /jobs/:jobId`. Stop: `POST /stop` cancels queued + tree-kills 
 
 ## Layout
 
-| Path | Role |
-|------|------|
-| `bin/run.mjs` | Stable public entry (spawn target) |
-| `src/index.ts` | **Public API** — scenarios + job store + `processJob` |
-| `src/job/` | File-backed `.hh-jobs` store, job types, claim/`processJob` + ports |
-| `src/run/` | Puppeteer scenarios (internal; `@run` only inside this tree) |
-| `src/worker/` (API package) | Enqueue/spawn/cancel + thin `createProcessJobDeps` binder |
+| Path                        | Role                                                                |
+| --------------------------- | ------------------------------------------------------------------- |
+| `bin/run.mjs`               | Stable public entry (spawn target)                                  |
+| `src/index.ts`              | **Public API** — scenarios + job store + `processJob`               |
+| `src/job/`                  | File-backed `.hh-jobs` store, job types, claim/`processJob` + ports |
+| `src/run/`                  | Puppeteer scenarios (internal; `@run` only inside this tree)        |
+| `src/worker/` (API package) | Enqueue/spawn/cancel + thin `createProcessJobDeps` binder           |
 
 ## Ports (dependency inversion)
 
@@ -35,12 +35,12 @@ import type {
 await processJob(jobId, deps);
 ```
 
-| Port | Methods | API adapter |
-|------|---------|-------------|
-| `JobCounters` | `incrementSpinCount`, `updateSuccessfulResponsesCount` | `@services` profile |
-| `JobBroadcast` | `broadcast` | `@server` WebSocket (process-local in detached worker) |
-| `VacancyRepo` | `saveVacancy`, `getVacanciesUser` | `@services` vacancy |
-| `FeedbackRepo` | `saveChatFeedback`, `getChatFeedback` | `@services` feedback |
+| Port           | Methods                                                | API adapter                                            |
+| -------------- | ------------------------------------------------------ | ------------------------------------------------------ |
+| `JobCounters`  | `incrementSpinCount`, `updateSuccessfulResponsesCount` | `@services` profile                                    |
+| `JobBroadcast` | `broadcast`                                            | `@server` WebSocket (process-local in detached worker) |
+| `VacancyRepo`  | `saveVacancy`, `getVacanciesUser`                      | `@services` vacancy                                    |
+| `FeedbackRepo` | `saveChatFeedback`, `getChatFeedback`                  | `@services` feedback                                   |
 
 `ScenarioDeps` = `Pick<ProcessJobDeps, 'vacancyRepo' | 'feedbackRepo' | 'broadcast'>`.
 
@@ -68,6 +68,6 @@ Override spawn target: `HH_WORKER_ENTRY=/absolute/path/to/run.mjs`.
 
 Selectors stay in API `src/config` (`constants.config.ts`). Credentials come from the job payload / form — never from package source.
 
-**Leftover:** `authorize` / `initializeBrowser` / mid-apply CAPTCHA still import process-local `@server` `broadcast()` (inject via `ScenarioDeps.broadcast` next); real message broker when file-queue outgrows; CLI binder stays in API `src/worker` (needs `@services` adapters).
+**Leftover:** real message broker when file-queue outgrows (adapters still process-local WS); CLI binder stays in API `src/worker` (needs `@services` adapters).
 
 See root `docs/ARCHITECTURE.md` and `OPEN-WORK.md`.

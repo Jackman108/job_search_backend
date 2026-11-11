@@ -1,7 +1,7 @@
 import { SELECTORS, TIMEOUTS } from '@config';
 import { stop } from '@utils';
 import { Browser, Page } from 'puppeteer';
-import { broadcast } from '@server';
+import type { JobBroadcast } from '../job/broadcast.types.js';
 
 async function passAccountTypeGate(page: Page): Promise<void> {
     const form = await page.$(SELECTORS.ACCOUNT_LOGIN_FORM);
@@ -22,7 +22,13 @@ async function passAccountTypeGate(page: Page): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, TIMEOUTS.SHORT));
 }
 
-export async function authorize(page: Page, email: string, password: string, browser: Browser): Promise<void> {
+export async function authorize(
+    page: Page,
+    email: string,
+    password: string,
+    browser: Browser,
+    broadcast: JobBroadcast,
+): Promise<void> {
     try {
         const loginHandle = await page.waitForSelector(SELECTORS.LOGIN, { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         if (loginHandle) {
@@ -123,7 +129,7 @@ export async function authorize(page: Page, email: string, password: string, bro
 
         switch (true) {
             case !!errorHandle:
-                broadcast('ERROR detected restart');
+                broadcast.broadcast('ERROR detected restart');
                 await page.screenshot({ path: 'screenshot-ERROR.png' });
                 await stop(browser);
                 return;
@@ -133,7 +139,7 @@ export async function authorize(page: Page, email: string, password: string, bro
                     return imageElement.src;
                 }, captchaHandle as unknown);
 
-                broadcast(`CAPTCHA detected restart ${captchaSrc}`);
+                broadcast.broadcast(`CAPTCHA detected restart ${captchaSrc}`);
                 await page.screenshot({ path: 'screenshot-CAPTCHA.png' });
                 await stop(browser);
                 return;

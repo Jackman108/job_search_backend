@@ -1,7 +1,6 @@
 import { SELECTORS, TIMEOUTS, VACANCY_STATUS } from '@config';
 import { ProcessVacancyParams } from '@interface';
 import type { VacancyRepo } from '../../../job/vacancyRepo.types.js';
-import { broadcast } from '@server';
 import { scrollToElementIfNotFound } from '../../helpers/scrollToElementIfNotFound.js';
 import { detectApplyOutcome, detectEarlyPreflight, isSubmitDisabled } from './detectApplyState.js';
 import { dismissApplyExtras } from './dismissApplyExtras.js';
@@ -60,6 +59,7 @@ export async function processVacancy({
     message,
     userId,
     vacancyRepo,
+    broadcast,
 }: ProcessVacancyParams): Promise<ProcessVacancyResult> {
     try {
         await settle();
@@ -129,7 +129,7 @@ export async function processVacancy({
 
         const outcome = await detectApplyOutcome(page);
         if (outcome.captcha) {
-            broadcast('CAPTCHA detected mid-apply — aborting HH run');
+            broadcast.broadcast('CAPTCHA detected mid-apply — aborting HH run');
             await page.screenshot({ path: 'screenshot-CAPTCHA-apply.png' }).catch(() => null);
             await saveFail(data, userId, counters, vacancyRepo, 'captcha');
             return 'captcha';
