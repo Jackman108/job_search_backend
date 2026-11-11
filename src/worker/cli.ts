@@ -1,5 +1,6 @@
 /**
- * Detached HH Puppeteer worker runtime (claimed by packages/hh-worker bin).
+ * Detached HH worker claim loop (spawned by packages/hh-worker bin).
+ * Scenarios + job store: `@market-hunter/hh-worker`. Counters still `@services`.
  * Prefer: yarn worker -- <jobId>  |  node packages/hh-worker/bin/run.mjs <jobId>
  * Legacy: tsx src/worker/cli.ts <jobId>
  */
