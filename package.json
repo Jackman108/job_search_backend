@@ -23,7 +23,7 @@
     "e2e": "node scripts/e2e-cross.mjs",
 
     "docker:up": "docker compose -f ./postgres/docker-compose.yml up -d",
-    "docker:uprm": "docker compose -f ./postgres/docker-compose.yml up -d --build",
+    "docker:uprm": "docker compose -f ./postgres/docker-compose.yml up -d --build pgadmin",
     "docker:down": "docker compose -f ./postgres/docker-compose.yml down",
     "docker:rm": "docker compose -f ./postgres/docker-compose.yml down --volumes --rmi all"
   },
