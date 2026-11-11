@@ -8,33 +8,38 @@ import {
     asListResult,
 } from '@utils';
 import { UpdateVacancySubmitData, VacancySubmitData } from '@interface';
+import { deleteVacancyAuth } from './vacancyAuthService.js';
 
 const vacancySubmitCache = new Map<string, VacancySubmitData[]>();
 
 /** Ensure shared search-field / submit config table exists (fresh local DBs omit it). */
 export const ensureVacancySubmitTable = async (): Promise<void> => {
     const exists = await checkTableExists('vacancy_submit');
-    if (exists) {
-        return;
+    if (!exists) {
+        const query = `
+            CREATE TABLE IF NOT EXISTS vacancy_submit (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL,
+                position TEXT,
+                message TEXT,
+                vacancy_url TEXT,
+                schedule TEXT,
+                order_by TEXT,
+                search_field TEXT,
+                experience TEXT,
+                search_period TEXT,
+                vacancy_auth_id INTEGER,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `;
+        await executeQuery(query);
     }
 
-    const query = `
-        CREATE TABLE IF NOT EXISTS vacancy_submit (
-            id SERIAL PRIMARY KEY,
-            user_id VARCHAR(255) NOT NULL,
-            position TEXT,
-            message TEXT,
-            vacancy_url TEXT,
-            schedule TEXT,
-            order_by TEXT,
-            search_field TEXT,
-            experience TEXT,
-            search_period TEXT,
-            created_at TIMESTAMP DEFAULT NOW(),
-            updated_at TIMESTAMP DEFAULT NOW()
-        );
-    `;
-    await executeQuery(query);
+    await executeQuery(`
+        ALTER TABLE vacancy_submit
+        ADD COLUMN IF NOT EXISTS vacancy_auth_id INTEGER;
+    `);
 };
 
 export const createVacancySubmit = async (
@@ -45,9 +50,10 @@ export const createVacancySubmit = async (
 
     const query = `
         INSERT INTO vacancy_submit (
-            user_id, position, message, vacancy_url, schedule, order_by, search_field, experience, search_period
+            user_id, position, message, vacancy_url, schedule, order_by, search_field, experience, search_period,
+            vacancy_auth_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id;
     `;
     const values = [
         userId,
@@ -59,6 +65,7 @@ export const createVacancySubmit = async (
         submitData.search_field,
         submitData.experience,
         submitData.search_period,
+        submitData.vacancy_auth_id ?? null,
     ];
 
     const result = await executeQuery(query, values);
@@ -105,8 +112,18 @@ export const updateVacancySubmit = async (userId: string, updates: UpdateVacancy
 export const deleteVacancySubmit = async (userId: string, fieldId: string): Promise<void> => {
     await ensureVacancySubmitTable();
 
+    const linkResult = await executeQuery<{ vacancy_auth_id: number | null }>(
+        `SELECT vacancy_auth_id FROM vacancy_submit WHERE user_id = $1 AND id = $2;`,
+        [userId, fieldId],
+    );
+    const linkedAuthId = linkResult[0]?.vacancy_auth_id;
+
     const query = `DELETE FROM vacancy_submit  WHERE user_id = $1 AND id = $2;`;
     await executeQuery(query, [userId, fieldId]);
+
+    if (linkedAuthId != null) {
+        await deleteVacancyAuth(userId, String(linkedAuthId));
+    }
 
     deleteFromCache(vacancySubmitCache, userId);
 };

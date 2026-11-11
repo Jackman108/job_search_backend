@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS vacancy_submit (
     search_field TEXT,
     experience TEXT,
     search_period TEXT,
+    vacancy_auth_id INTEGER,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
