@@ -1,22 +1,30 @@
-# Use postgres/example user/password credentials
-version: '3.5'
+# Shared Postgres for Market Hunter (dev).
+# Prefer the root helper: ..\..\dev-docker.ps1 (reuses postgres_container if already up).
+# Do NOT run `docker compose up --build` against this file while an alpine
+# postgres_container is already healthy — compose may create a Created orphan.
+#
+# Host port :5432 — never also bind auth_postgres here (auth uses :5433).
 
 services:
   postgres:
     container_name: postgres_container
-    build: postgres
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: ${POSTGRES_DB:-db_vacancy}
-      PGDATA: ${PGDATA:-/data/postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-job_search}
     volumes:
-      - postgres:${PGDATA:-/data/postgres}
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "${DB_PORT:-5432}:5432"
     networks:
       - container-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-job_search}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   pgadmin:
     container_name: pgadmin_container
@@ -37,5 +45,5 @@ networks:
     driver: bridge
 
 volumes:
-  postgres:
+  postgres_data:
   pgadmin:
