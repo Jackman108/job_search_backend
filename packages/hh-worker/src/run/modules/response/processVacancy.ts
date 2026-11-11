@@ -6,6 +6,7 @@ import { detectApplyOutcome, detectEarlyPreflight, isSubmitDisabled } from './de
 import { dismissApplyExtras } from './dismissApplyExtras.js';
 import { fillNativeValue } from './fillNativeValue.js';
 import { submitApplyResponse } from './submitApplyResponse.js';
+import { stage } from '../../helpers/stageLog.js';
 
 export type ProcessVacancyResult = 'success' | 'fail' | 'skip' | 'captcha';
 
@@ -62,6 +63,7 @@ export async function processVacancy({
     broadcast,
 }: ProcessVacancyParams): Promise<ProcessVacancyResult> {
     try {
+        stage('vacancy', `${data.id} ${data.title_vacancy ?? ''}`.trim());
         await settle();
         await vacancyResponse.click();
 
@@ -99,13 +101,14 @@ export async function processVacancy({
             return 'skip';
         }
 
+        stage('cover letter', String(data.id));
         const coverToggle = await scrollToElementIfNotFound(page, SELECTORS.COVER_LETTER_TOGGLE);
         if (coverToggle) await coverToggle.click();
 
         await page.waitForSelector(SELECTORS.COVER_LETTER_INPUT, { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         const coverFilled = await fillNativeValue(page, SELECTORS.COVER_LETTER_INPUT, message);
         if (!coverFilled) {
-            console.warn(`Cover letter input not filled for vacancy ${data.id}`);
+            stage('cover letter skip', `no input · ${data.id}`);
         }
 
         if (await isSubmitDisabled(page)) {
@@ -115,6 +118,7 @@ export async function processVacancy({
             return 'skip';
         }
 
+        stage('submit', String(data.id));
         const submitted = await submitApplyResponse(page);
         if (!submitted) {
             await dismissApplyExtras(page);
