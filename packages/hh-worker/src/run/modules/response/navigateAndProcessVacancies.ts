@@ -1,7 +1,6 @@
 // src/navigateAndProcessVacancies.ts
 import { HH_SCRAPE, SELECTORS } from '@config';
 import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '@interface';
-import { getVacanciesUser } from '@services';
 import { broadcast } from '@server';
 import { delayBeforeApply, delayBetweenPages, isStopped, stop } from '@utils';
 import { getVacancies } from './getVacancies.js';
@@ -13,6 +12,7 @@ export async function navigateAndProcessVacancies({
     counters,
     message,
     browser,
+    vacancyRepo,
 }: NavigateAndProcessVacanciesParams): Promise<void> {
     let currentPage = 0;
     let existingVacanciesIds: Set<number>;
@@ -20,7 +20,7 @@ export async function navigateAndProcessVacancies({
     const totalPages = HH_SCRAPE.TOTAL_PAGES;
 
     try {
-        const vacanciesFromDb = await getVacanciesUser(userId);
+        const vacanciesFromDb = await vacancyRepo.getVacanciesUser(userId);
         existingVacanciesIds = new Set(vacanciesFromDb.map((vacancy) => vacancy.id));
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
@@ -35,22 +35,22 @@ export async function navigateAndProcessVacancies({
         try {
             console.log(`Processing page ${currentPage + 1} из ${totalPages}`);
 
-            let vacancies: VacancyWithResponse[] = await getVacancies(page);
-            vacancies = vacancies.filter(({ data }) => data.id && !existingVacanciesIds.has(data.id));
-            if (vacancies.length === 0) {
-                console.log('vacancies.length', vacancies.length);
+            let pageVacancies: VacancyWithResponse[] = await getVacancies(page);
+            pageVacancies = pageVacancies.filter(({ data }) => data.id && !existingVacanciesIds.has(data.id));
+            if (pageVacancies.length === 0) {
+                console.log('vacancies.length', pageVacancies.length);
                 break;
             }
 
-            for (let i = 0; i < vacancies.length; i++) {
-                const { data, vacancyResponse } = vacancies[i];
+            for (let i = 0; i < pageVacancies.length; i++) {
+                const { data, vacancyResponse } = pageVacancies[i];
                 await page.screenshot({ path: 'vacancies_length.png' });
                 if (isStopped()) {
                     await stop(browser);
                     return;
                 }
 
-                console.log('Vacancies found', vacancies.length);
+                console.log('Vacancies found', pageVacancies.length);
                 console.log(
                     'Sent feedback:',
                     counters.successfullySubmittedCount,
@@ -71,6 +71,7 @@ export async function navigateAndProcessVacancies({
                             counters,
                             message,
                             userId,
+                            vacancyRepo,
                         });
                         if (result === 'captcha') {
                             broadcast('CAPTCHA mid-apply — stopping browser');
@@ -78,7 +79,7 @@ export async function navigateAndProcessVacancies({
                             return;
                         }
                         consecutiveApplyFailures = result === 'fail' ? consecutiveApplyFailures + 1 : 0;
-                        vacancies = (await getVacancies(page)).filter(
+                        pageVacancies = (await getVacancies(page)).filter(
                             ({ data }) => data.id && !existingVacanciesIds.has(data.id),
                         );
                     } else {

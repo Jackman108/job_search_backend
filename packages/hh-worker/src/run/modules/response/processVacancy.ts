@@ -1,6 +1,6 @@
 import { SELECTORS, TIMEOUTS, VACANCY_STATUS } from '@config';
 import { ProcessVacancyParams } from '@interface';
-import { saveVacancy } from '@services';
+import type { VacancyRepo } from '../../../job/vacancyRepo.types.js';
 import { broadcast } from '@server';
 import { scrollToElementIfNotFound } from '../../helpers/scrollToElementIfNotFound.js';
 import { detectApplyOutcome, detectEarlyPreflight, isSubmitDisabled } from './detectApplyState.js';
@@ -18,11 +18,12 @@ async function saveSkip(
     data: ProcessVacancyParams['data'],
     userId: string,
     counters: ProcessVacancyParams['counters'],
+    vacancyRepo: VacancyRepo,
     reason: string,
 ): Promise<void> {
     counters.unsuccessfullySubmittedCount++;
     data.vacancy_status = VACANCY_STATUS.SKIP;
-    await saveVacancy(data, userId);
+    await vacancyRepo.saveVacancy(data, userId);
     console.log(`Vacancy ${data.id} skipped (${reason}) → status ${VACANCY_STATUS.SKIP} · ${data.title_vacancy}`);
 }
 
@@ -30,11 +31,12 @@ async function saveFail(
     data: ProcessVacancyParams['data'],
     userId: string,
     counters: ProcessVacancyParams['counters'],
+    vacancyRepo: VacancyRepo,
     reason: string,
 ): Promise<void> {
     counters.unsuccessfullySubmittedCount++;
     data.vacancy_status = VACANCY_STATUS.SKIP;
-    await saveVacancy(data, userId);
+    await vacancyRepo.saveVacancy(data, userId);
     console.log(`Vacancy ${data.id} failed (${reason}) → status ${VACANCY_STATUS.SKIP} · ${data.title_vacancy}`);
 }
 
@@ -42,10 +44,11 @@ async function saveSuccess(
     data: ProcessVacancyParams['data'],
     userId: string,
     counters: ProcessVacancyParams['counters'],
+    vacancyRepo: VacancyRepo,
 ): Promise<void> {
     counters.successfullySubmittedCount++;
     data.vacancy_status = VACANCY_STATUS.SUCCESS;
-    await saveVacancy(data, userId);
+    await vacancyRepo.saveVacancy(data, userId);
     console.log(`Vacancy ${data.id} saved as success · ${data.title_vacancy}`);
 }
 
@@ -56,6 +59,7 @@ export async function processVacancy({
     counters,
     message,
     userId,
+    vacancyRepo,
 }: ProcessVacancyParams): Promise<ProcessVacancyResult> {
     try {
         await settle();
@@ -84,14 +88,14 @@ export async function processVacancy({
 
         const early = await detectEarlyPreflight(page);
         if (early === 'already') {
-            await saveSuccess(data, userId, counters);
+            await saveSuccess(data, userId, counters, vacancyRepo);
             await dismissApplyExtras(page);
             return 'success';
         }
         if (early === 'hidden_resume' || early === 'employer_questions') {
             await dismissApplyExtras(page);
             await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
-            await saveSkip(data, userId, counters, early);
+            await saveSkip(data, userId, counters, vacancyRepo, early);
             return 'skip';
         }
 
@@ -107,7 +111,7 @@ export async function processVacancy({
         if (await isSubmitDisabled(page)) {
             await dismissApplyExtras(page);
             await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
-            await saveSkip(data, userId, counters, 'disabled_submit');
+            await saveSkip(data, userId, counters, vacancyRepo, 'disabled_submit');
             return 'skip';
         }
 
@@ -115,7 +119,7 @@ export async function processVacancy({
         if (!submitted) {
             await dismissApplyExtras(page);
             await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
-            await saveFail(data, userId, counters, 'no_submit_control');
+            await saveFail(data, userId, counters, vacancyRepo, 'no_submit_control');
             return 'fail';
         }
 
@@ -127,18 +131,18 @@ export async function processVacancy({
         if (outcome.captcha) {
             broadcast('CAPTCHA detected mid-apply — aborting HH run');
             await page.screenshot({ path: 'screenshot-CAPTCHA-apply.png' }).catch(() => null);
-            await saveFail(data, userId, counters, 'captcha');
+            await saveFail(data, userId, counters, vacancyRepo, 'captcha');
             return 'captcha';
         }
 
         if (outcome.success) {
-            await saveSuccess(data, userId, counters);
+            await saveSuccess(data, userId, counters, vacancyRepo);
             return 'success';
         }
 
         // Secondary: invalid Bloko/Magritte field CSS — never mark true without body success.
         await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
-        await saveFail(data, userId, counters, outcome.formInvalid ? 'form_invalid' : 'no_success_marker');
+        await saveFail(data, userId, counters, vacancyRepo, outcome.formInvalid ? 'form_invalid' : 'no_success_marker');
         return 'fail';
     } catch (error) {
         await page.screenshot({ path: 'screenshot-during.png' }).catch(() => null);

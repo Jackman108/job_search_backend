@@ -1,3 +1,4 @@
+import type { FeedbackRepo, VacancyRepo } from '@market-hunter/hh-worker/job';
 import { Browser, ElementHandle, Page } from 'puppeteer';
 import { Counters } from './common.interfaces';
 import { VacancyData } from './vacancy.interfaces';
@@ -9,6 +10,7 @@ export interface ProcessVacancyParams {
     counters: Counters;
     message: string;
     userId: string;
+    vacancyRepo: VacancyRepo;
 }
 
 export interface ProcessChatParams {
@@ -17,6 +19,7 @@ export interface ProcessChatParams {
     chatId: number;
     chatUrl?: string;
     userId: string;
+    feedbackRepo: FeedbackRepo;
 }
 
 export interface NavigateAndProcessVacanciesParams {
@@ -25,12 +28,14 @@ export interface NavigateAndProcessVacanciesParams {
     counters: Counters;
     message: string;
     browser: Browser;
+    vacancyRepo: VacancyRepo;
 }
 
 export interface navigateAndProcessChats {
     userId: string;
     page: Page;
     browser: Browser;
+    feedbackRepo: FeedbackRepo;
 }
 
 export interface ExtractChatDataParams {

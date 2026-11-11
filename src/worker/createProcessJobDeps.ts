@@ -1,8 +1,18 @@
 import type { ProcessJobDeps } from '@market-hunter/hh-worker/job';
 import { broadcast } from '@server';
-import { incrementSpinCount, updateSuccessfulResponsesCount } from '@services';
+import {
+    getChatFeedback,
+    getVacanciesUser,
+    incrementSpinCount,
+    saveChatFeedback,
+    saveVacancy,
+    updateSuccessfulResponsesCount,
+} from '@services';
 
-/** API composition root: wire `@services` counters + `@server` broadcast into hh-worker ports. */
+/**
+ * API composition root: wire `@services` counters/persistence + `@server` broadcast
+ * into hh-worker ports (scenarios must not import `@services` directly).
+ */
 export function createProcessJobDeps(): ProcessJobDeps {
     return {
         counters: {
@@ -11,6 +21,14 @@ export function createProcessJobDeps(): ProcessJobDeps {
         },
         broadcast: {
             broadcast,
+        },
+        vacancyRepo: {
+            saveVacancy,
+            getVacanciesUser,
+        },
+        feedbackRepo: {
+            saveChatFeedback,
+            getChatFeedback,
         },
     };
 }

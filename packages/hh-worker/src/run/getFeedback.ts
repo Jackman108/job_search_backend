@@ -3,12 +3,16 @@ import * as dotenv from 'dotenv';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { ENV, ENV_BROWSER_CONFIG, SELECTORS_CHAT } from '@config';
 import { GetFeedbackParams } from '@interface';
+import type { FeedbackRepo } from '../job/feedbackRepo.types.js';
 import { isStopped, stop } from '@utils';
 import { authorize, navigateAndProcessChats, initializeBrowser } from '@run';
 
 dotenv.config();
 
-export async function getFeedback({ userId, email, password }: GetFeedbackParams): Promise<void> {
+export async function getFeedback(
+    { userId, email, password }: GetFeedbackParams,
+    deps: { feedbackRepo: FeedbackRepo },
+): Promise<void> {
     let browser: Browser | null = null;
     let page: Page | null = null;
 
@@ -27,7 +31,12 @@ export async function getFeedback({ userId, email, password }: GetFeedbackParams
             return;
         }
 
-        await navigateAndProcessChats({ userId, page, browser });
+        await navigateAndProcessChats({
+            userId,
+            page,
+            browser,
+            feedbackRepo: deps.feedbackRepo,
+        });
     } catch (err) {
         console.error('Error during script execution:', err);
     } finally {
