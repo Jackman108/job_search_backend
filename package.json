@@ -1,13 +1,18 @@
 {
   "name": "job_search_backend",
   "version": "1.0.0",
+  "private": true,
   "description": "A Puppeteer-based web scraping project for processing vacancies.",
   "main": "dist/server.js",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node -r tsconfig-paths/register dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "worker": "tsx src/worker/cli.ts",
+    "worker": "node packages/hh-worker/bin/run.mjs",
+    "worker:legacy": "tsx src/worker/cli.ts",
     "lint": "eslint \"src/**/*.ts\" --max-warnings 50",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\"",

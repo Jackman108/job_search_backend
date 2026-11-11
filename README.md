@@ -47,7 +47,9 @@ npm start
 
 Селекторы централизованы в `src/config/constants.config.ts` (`data-qa` атрибуты HH). При поломке UI HH правьте только этот файл.
 
-Локальный `src/secrets.ts` больше не нужен (исторически мог содержать пароль HH — удалить, пароль на HH сменить). Worker: `HH_WORKER_MODE=queue|sync`, статус `GET /jobs/:jobId`.
+Локальный `src/secrets.ts` больше не нужен (исторически мог содержать пароль HH — удалить, пароль на HH сменить).
+
+Worker (crash isolation): default `HH_WORKER_MODE=queue` spawns workspace package `@market-hunter/hh-worker` (`packages/hh-worker/bin/run.mjs`) detached; poll `GET /jobs/:jobId`. Override entry with `HH_WORKER_ENTRY`. Legacy in-process: `HH_WORKER_MODE=sync`. Manual: `yarn worker -- <jobId>`.
 
 ## Связанные репозитории
 

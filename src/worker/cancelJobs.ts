@@ -1,5 +1,5 @@
-import { killWorker } from './enqueue.js';
 import { listJobs, updateJob } from './jobStore.js';
+import { killWorker } from './spawnWorker.js';
 import type { HhJob, HhJobStatus } from './jobTypes.js';
 
 const STOPPABLE: ReadonlySet<HhJobStatus> = new Set(['queued', 'running']);
