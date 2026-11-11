@@ -4,7 +4,9 @@ import { Browser, Page } from 'puppeteer';
 import type { JobBroadcast } from '../job/broadcast.types.js';
 import { clickByExactText } from './helpers/clickByExactText.js';
 import { dismissPreLoginOverlays } from './helpers/dismissPreLoginOverlays.js';
+import { waitAndSubmitCaptchaAnswer } from './helpers/waitForCaptchaAnswer.js';
 import { clickFirstSelector } from './helpers/waitForFirstSelector.js';
+import { stage } from './helpers/stageLog.js';
 
 const HH_LOGIN_URL = 'https://hh.ru/account/login';
 
@@ -150,7 +152,12 @@ async function clickLoginSubmit(page: Page): Promise<void> {
     }
 }
 
-async function submitAndDetectBlockers(page: Page, browser: Browser, broadcast: JobBroadcast): Promise<void> {
+async function submitAndDetectBlockers(
+    page: Page,
+    browser: Browser,
+    broadcast: JobBroadcast,
+    jobId: string,
+): Promise<void> {
     await clickLoginSubmit(page);
     await settle(TIMEOUTS.SHORT * 2);
     await page.screenshot({ path: 'screenshot-authorize1.png' }).catch(() => null);
@@ -197,6 +204,14 @@ async function submitAndDetectBlockers(page: Page, browser: Browser, broadcast: 
             : '';
         broadcast.broadcast(`CAPTCHA detected restart ${captchaSrc}`);
         await page.screenshot({ path: 'screenshot-CAPTCHA.png' }).catch(() => null);
+
+        // Headless: human solves via image + POST /jobs/:id/captcha (no headed Chrome).
+        const solved = await waitAndSubmitCaptchaAnswer(jobId, page, captchaSrc || '');
+        if (solved) {
+            stage('login', 'continued after captcha answer');
+            return;
+        }
+
         await stop(browser);
         throw new Error(`CAPTCHA detected restart ${captchaSrc || ''}`.trim());
     }
@@ -217,13 +232,14 @@ export async function authorize(
     password: string,
     browser: Browser,
     broadcast: JobBroadcast,
+    jobId: string,
 ): Promise<void> {
     try {
         await ensureLoginForm(page);
         await passAccountTypeGate(page);
         await chooseEmailCredential(page);
         await fillEmailAndPassword(page, email, password);
-        await submitAndDetectBlockers(page, browser, broadcast);
+        await submitAndDetectBlockers(page, browser, broadcast, jobId);
     } catch (error) {
         console.error('Error during authorization:', error);
         throw error;

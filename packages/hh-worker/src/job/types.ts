@@ -20,6 +20,12 @@ export interface HhJobBase {
     lastEventAt?: string;
     /** CAPTCHA image URL when detected (login or mid-apply). */
     captchaSrc?: string;
+    /** Local PNG under `.hh-jobs/` for headless human solve. */
+    captchaImagePath?: string;
+    /** Worker is blocked on CAPTCHA — POST /jobs/:id/captcha. */
+    awaitingCaptcha?: boolean;
+    /** One-shot answer written by API; cleared when worker consumes it. */
+    captchaAnswer?: string;
 }
 
 export interface SendFeedbackJob extends HhJobBase {

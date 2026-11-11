@@ -27,6 +27,7 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             await sendFeedback(job.payload, {
                 vacancyRepo: deps.vacancyRepo,
                 broadcast,
+                jobId: id,
             });
             await counters.incrementSpinCount(job.userId);
             await counters.updateSuccessfulResponsesCount(job.userId);
@@ -44,6 +45,7 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             await getFeedback(job.payload, {
                 feedbackRepo: deps.feedbackRepo,
                 broadcast,
+                jobId: id,
             });
             if (readJob(id)?.status === 'cancelled') {
                 return;

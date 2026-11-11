@@ -3,6 +3,7 @@ import { handleErrors } from '@middlewares';
 import { stop } from '@utils';
 import {
     AuthenticatedRequest,
+    CaptchaAnswerBody,
     HhJobQueuedResponse,
     HhJobStatusResponse,
     RefreshScriptBody,
@@ -11,7 +12,7 @@ import {
 } from '@interface';
 import { cancelJobsForUser } from '../../worker/cancelJobs.js';
 import { queueGetFeedback, queueSendFeedback } from '../../worker/enqueue.js';
-import { readJob } from '../../worker/jobStore.js';
+import { readJob, updateJob } from '../../worker/jobStore.js';
 
 export class ScriptController {
     async startScript(req: AuthenticatedRequest, res: Response) {
@@ -111,10 +112,51 @@ export class ScriptController {
                 lastEvent: job.lastEvent,
                 lastEventAt: job.lastEventAt,
                 captchaSrc: job.captchaSrc,
+                awaitingCaptcha: job.awaitingCaptcha === true,
             };
             res.status(200).json(body);
         } catch (error) {
             handleErrors(res, error, 'Job status error.');
+        }
+    }
+
+    /** Headless CAPTCHA solve: write answer for the waiting worker to type. */
+    async submitCaptchaAnswer(req: AuthenticatedRequest, res: Response) {
+        try {
+            const jobId = req.params.jobId;
+            const { answer } = req.body as Partial<CaptchaAnswerBody>;
+            const trimmed = typeof answer === 'string' ? answer.trim() : '';
+            if (!trimmed) {
+                res.status(400).json({ message: 'Required: answer (captcha text).' });
+                return;
+            }
+
+            const job = readJob(jobId);
+            if (!job) {
+                res.status(404).json({ message: 'Job not found.' });
+                return;
+            }
+            if (job.userId !== req.userId) {
+                res.status(403).json({ message: 'Forbidden.' });
+                return;
+            }
+            if (job.status !== 'running') {
+                res.status(409).json({ message: `Job is not running (status=${job.status}).` });
+                return;
+            }
+            if (!job.awaitingCaptcha) {
+                res.status(409).json({ message: 'Job is not awaiting a CAPTCHA answer.' });
+                return;
+            }
+
+            updateJob(jobId, {
+                captchaAnswer: trimmed,
+                lastEvent: 'CAPTCHA answer submitted',
+                lastEventAt: new Date().toISOString(),
+            });
+            res.status(200).json({ message: 'CAPTCHA answer accepted.', jobId });
+        } catch (error) {
+            handleErrors(res, error, 'CAPTCHA answer error.');
         }
     }
 }
