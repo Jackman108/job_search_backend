@@ -1,8 +1,8 @@
 # `@market-hunter/hh-worker`
 
-Dedicated **entrypoint package** for the HeadHunter Puppeteer worker.
+Dedicated package for the HeadHunter Puppeteer worker: public bin + Puppeteer scenarios.
 
-## Crash isolation (today)
+## Crash isolation
 
 | Mode | Env | Behavior |
 |------|-----|----------|
@@ -10,6 +10,14 @@ Dedicated **entrypoint package** for the HeadHunter Puppeteer worker.
 | **sync** | `HH_WORKER_MODE=sync` | Legacy in-process run inside the API (not isolated). |
 
 Poll status: `GET /jobs/:jobId`. Stop: `POST /stop` cancels queued + tree-kills running PIDs.
+
+## Layout
+
+| Path | Role |
+|------|------|
+| `bin/run.mjs` | Stable public entry (spawn target) |
+| `src/run/` | Puppeteer scenarios (authorize, apply, chats) — imported as `@run` |
+| `src/worker/` (API package) | Job store, enqueue/spawn, `processJob` claim loop |
 
 ## Run
 
@@ -25,10 +33,6 @@ yarn workspace @market-hunter/hh-worker start <jobId>
 
 Override spawn target: `HH_WORKER_ENTRY=/absolute/path/to/run.mjs`.
 
-## Boundaries
-
-- **This package** — public bin + packaging docs; no Puppeteer imports here.
-- **`src/worker/`** — job store, enqueue/spawn (API side), `cli` + `processJob` (runtime side).
-- **`src/run/`** — Puppeteer scenarios (still in the API package; full extract is a later A2 leftover).
+Selectors stay in API `src/config` (`constants.config.ts`). Credentials come from the job payload / form — never from package source.
 
 See root `docs/ARCHITECTURE.md` and `OPEN-WORK.md`.

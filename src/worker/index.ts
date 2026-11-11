@@ -8,5 +8,5 @@ export * from './enqueue.js';
 export * from './spawnWorker.js';
 export * from './cancelJobs.js';
 
-/** Runtime side (detached process): claim job → Puppeteer via `@run`. */
+/** Runtime side (detached process): claim job → Puppeteer via `@run` (`packages/hh-worker/src/run`). */
 export * from './processJob.js';
