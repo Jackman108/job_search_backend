@@ -14,8 +14,8 @@ import { noopJobBroadcast } from './noopJobBroadcast.js';
  * into hh-worker ports. Loaded by package CLI (`HH_WORKER_DEPS_FACTORY` override).
  * Scenarios must not import `@services` / `@server` directly.
  *
- * JobBroadcast is intentionally a no-op for WS (logs only): detached worker has no
- * shared WS with the API. Source of truth = file job-store + GET /jobs/:jobId.
+ * JobBroadcast logs locally (no cross-process WS). `processJob` wraps it with
+ * `createJobStoreBroadcast` so CAPTCHA/errors persist on the job file for poll SoT.
  */
 export function createProcessJobDeps(): ProcessJobDeps {
     return {

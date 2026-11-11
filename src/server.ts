@@ -1,6 +1,6 @@
-import { PORTS } from '@config';
+import { JWT_CONFIG, PORTS } from '@config';
 import { startHttpServer, startWebSocketServer } from '@server';
-import { logger } from '@utils';
+import { assertJwtSecret, logger } from '@utils';
 
 process.on('uncaughtException', (error) => {
     logger.error('Uncaught Exception', {
@@ -20,6 +20,7 @@ process.on('unhandledRejection', (reason) => {
 
 (async () => {
     try {
+        JWT_CONFIG.secret = assertJwtSecret(JWT_CONFIG.secret || process.env.JWT_SECRET);
         const httpServer = await startHttpServer({ port: PORTS.api });
         await startWebSocketServer({ app: httpServer, wsPort: PORTS.ws });
     } catch (error) {

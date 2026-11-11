@@ -17,9 +17,8 @@ export class FeedbackController {
     async getFeedback(req: AuthenticatedRequest, res: Response) {
         try {
             const feedbacks = await getChatFeedback(req.userId!);
-            res.status(feedbacks.length ? 200 : 404).json(
-                feedbacks.length ? feedbacks : { message: 'No feedback found.' },
-            );
+            // Empty list is a valid resource state — REST 200 + [].
+            res.status(200).json(feedbacks);
         } catch (error) {
             handleErrors(res, error, 'Error retrieving feedback.');
         }

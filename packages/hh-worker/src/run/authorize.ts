@@ -132,8 +132,8 @@ export async function authorize(
                 broadcast.broadcast('ERROR detected restart');
                 await page.screenshot({ path: 'screenshot-ERROR.png' });
                 await stop(browser);
-                return;
-            case !!captchaHandle:
+                throw new Error('HH login ERROR detected');
+            case !!captchaHandle: {
                 const captchaSrc = await page.evaluate((img: unknown) => {
                     const imageElement = img as HTMLImageElement;
                     return imageElement.src;
@@ -142,11 +142,13 @@ export async function authorize(
                 broadcast.broadcast(`CAPTCHA detected restart ${captchaSrc}`);
                 await page.screenshot({ path: 'screenshot-CAPTCHA.png' });
                 await stop(browser);
-                return;
+                throw new Error(`CAPTCHA detected restart ${captchaSrc || ''}`.trim());
+            }
             default:
                 console.log('No CAPTCHA or ERROR detected');
         }
     } catch (error) {
         console.error('Error during authorization:', error);
+        throw error;
     }
 }

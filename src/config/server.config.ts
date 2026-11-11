@@ -1,5 +1,3 @@
-import { ENV } from '@config';
-
 // Настройки хоста и протоколов
 export const HOST = process.env.HOST || 'localhost';
 export const PROTOCOL = process.env.PROTOCOL || 'http';
@@ -27,9 +25,9 @@ export const CORS_CONFIG = {
     allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// Настройки JWT
+// Настройки JWT — secret asserted at boot (see assertJwtSecret); no silent default.
 export const JWT_CONFIG = {
-    secret: process.env.JWT_SECRET || 'your-secret-key',
+    secret: process.env.JWT_SECRET || '',
     expiresIn: process.env.JWT_EXPIRES_IN || '24h',
 };
 

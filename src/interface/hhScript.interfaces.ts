@@ -52,4 +52,9 @@ export interface HhJobStatusResponse {
     finishedAt?: string;
     error?: string;
     countersUpdated: boolean;
+    /** Latest worker progress line for poll SoT (CAPTCHA / errors). */
+    lastEvent?: string;
+    lastEventAt?: string;
+    /** CAPTCHA image URL when detected. */
+    captchaSrc?: string;
 }

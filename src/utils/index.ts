@@ -6,6 +6,7 @@ export * from './feedbackUtils.js';
 export * from './getResumeByUserId.js';
 export * from './healthPayload.js';
 export * from './hhRateLimit.js';
+export * from './jwtSecret.utils.js';
 export * from './logger.js';
 export * from './queryHelpers.js';
 export * from './resumeCacheQuery.js';

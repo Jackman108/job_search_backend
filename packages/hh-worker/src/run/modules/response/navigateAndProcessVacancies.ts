@@ -77,7 +77,7 @@ export async function navigateAndProcessVacancies({
                         if (result === 'captcha') {
                             broadcast.broadcast('CAPTCHA mid-apply — stopping browser');
                             await stop(browser);
-                            return;
+                            throw new Error('CAPTCHA mid-apply — stopping browser');
                         }
                         consecutiveApplyFailures = result === 'fail' ? consecutiveApplyFailures + 1 : 0;
                         pageVacancies = (await getVacancies(page)).filter(
@@ -89,6 +89,10 @@ export async function navigateAndProcessVacancies({
                 } catch (err) {
                     consecutiveApplyFailures += 1;
                     console.error(`Error processing vacancy with ID ${data.id}:`, err);
+                    // CAPTCHA / hard abort must surface to processJob for poll SoT.
+                    if (err instanceof Error && /CAPTCHA/i.test(err.message)) {
+                        throw err;
+                    }
                 }
             }
 
