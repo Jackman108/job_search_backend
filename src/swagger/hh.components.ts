@@ -10,8 +10,8 @@
  *     description: |
  *       HeadHunter apply / refresh / stop / job status.
  *       Auth: `Authorization: Bearer <JWT>` → `req.userId`.
- *       Queue mode (default `HH_WORKER_MODE=queue`): POST /start and /refresh return **202** + `jobId`;
- *       poll GET /jobs/{jobId}. Sync mode (`HH_WORKER_MODE=sync`): **200** after Puppeteer finishes in-process.
+ *       Queue mode only: POST /start and /refresh return **202** + `jobId`;
+ *       poll GET /jobs/{jobId}. Puppeteer runs in the detached `@market-hunter/hh-worker` process.
  *
  * components:
  *   schemas:
@@ -53,7 +53,7 @@
  *       type: object
  *       properties:
  *         browser:
- *           description: Optional legacy sync-path browser hint
+ *           description: Optional legacy browser hint (ignored)
  *
  *     HhJobQueuedResponse:
  *       type: object
@@ -68,16 +68,6 @@
  *         mode:
  *           type: string
  *           enum: [queue]
- *
- *     HhJobSyncResponse:
- *       type: object
- *       required: [message, mode]
- *       properties:
- *         message:
- *           type: string
- *         mode:
- *           type: string
- *           enum: [sync]
  *
  *     StopScriptResponse:
  *       type: object

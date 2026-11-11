@@ -1,8 +1,7 @@
 /**
  * Detached HH worker claim loop (spawned by packages/hh-worker bin).
- * Scenarios + job store: `@market-hunter/hh-worker`. Counters still `@services`.
+ * Package owns processJob; this process injects API counters + broadcast ports.
  * Prefer: yarn worker -- <jobId>  |  node packages/hh-worker/bin/run.mjs <jobId>
- * Legacy: tsx src/worker/cli.ts <jobId>
  */
 import { processJob } from './processJob.js';
 

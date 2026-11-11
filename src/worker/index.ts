@@ -8,5 +8,6 @@ export * from './enqueue.js';
 export * from './spawnWorker.js';
 export * from './cancelJobs.js';
 
-/** Runtime side (detached): claim via package job store → scenarios; counters still API `@services`. */
+/** Detached runtime: bound processJob (package + API port adapters). */
+export * from './createProcessJobDeps.js';
 export * from './processJob.js';

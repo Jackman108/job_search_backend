@@ -7,11 +7,11 @@ export const initializeUtilRoutes = (app: express.Application) => {
      * @swagger
      * /start:
      *   post:
-     *     summary: Queue or run HH apply (sendFeedback)
+     *     summary: Queue HH apply (sendFeedback)
      *     description: |
      *       Requires JWT. Body credentials come from the client SearchForm.
-     *       Default `HH_WORKER_MODE=queue` → **202** `{ jobId, mode: queue }` (poll `GET /jobs/{jobId}`).
-     *       `HH_WORKER_MODE=sync` → **200** after in-process Puppeteer finishes.
+     *       Always **202** `{ jobId, mode: queue }` — poll `GET /jobs/{jobId}`.
+     *       Puppeteer runs in detached `@market-hunter/hh-worker`.
      *     tags: [HH]
      *     security:
      *       - bearerAuth: []
@@ -28,12 +28,6 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *           application/json:
      *             schema:
      *               $ref: '#/components/schemas/HhJobQueuedResponse'
-     *       200:
-     *         description: Sync mode — apply finished in API process
-     *         content:
-     *           application/json:
-     *             schema:
-     *               $ref: '#/components/schemas/HhJobSyncResponse'
      *       400:
      *         description: Missing body fields, or missing userId (no usable Bearer)
      *         content:
@@ -52,7 +46,7 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *     summary: Stop HH automation for the caller
      *     description: |
      *       Cancels **queued** jobs and aborts **running** workers for `req.userId`
-     *       (tree-kill detached PID). Also signals legacy sync stop.
+     *       (tree-kill detached PID).
      *     tags: [HH]
      *     security:
      *       - bearerAuth: []
@@ -80,10 +74,10 @@ export const initializeUtilRoutes = (app: express.Application) => {
      * @swagger
      * /refresh:
      *   post:
-     *     summary: Queue or run HH feedback refresh (getFeedback)
+     *     summary: Queue HH feedback refresh (getFeedback)
      *     description: |
      *       Requires JWT + HH email/password from SearchForm.
-     *       Queue mode → **202** + `jobId`; sync → **200**.
+     *       Always **202** + `jobId` (detached worker).
      *     tags: [HH]
      *     security:
      *       - bearerAuth: []
@@ -100,12 +94,6 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *           application/json:
      *             schema:
      *               $ref: '#/components/schemas/HhJobQueuedResponse'
-     *       200:
-     *         description: Sync mode — refresh finished in API process
-     *         content:
-     *           application/json:
-     *             schema:
-     *               $ref: '#/components/schemas/HhJobSyncResponse'
      *       400:
      *         description: Missing email/password, or missing userId
      *         content:

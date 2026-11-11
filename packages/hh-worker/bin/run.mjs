@@ -4,8 +4,8 @@
  * API queue mode spawns this file (or HH_WORKER_ENTRY) so Chrome crashes
  * stay out of the Express process.
  *
- * Owns: src/run/ (scenarios), src/job/ (file store).
- * Claim loop remains src/worker/processJob.ts (API `@services` counters).
+ * Owns: src/run/ (scenarios), src/job/ (store + processJob + ports).
+ * Detached CLI (src/worker/cli.ts) injects API counters + broadcast ports.
  *
  * Usage: node packages/hh-worker/bin/run.mjs <jobId>
  *    or: yarn workspace @market-hunter/hh-worker start <jobId>
