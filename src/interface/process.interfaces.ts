@@ -1,4 +1,4 @@
-import type { FeedbackRepo, VacancyRepo } from '@market-hunter/hh-worker/job';
+import type { FeedbackRepo, JobBroadcast, VacancyRepo } from '@market-hunter/hh-worker/job';
 import { Browser, ElementHandle, Page } from 'puppeteer';
 import { Counters } from './common.interfaces';
 import { VacancyData } from './vacancy.interfaces';
@@ -11,6 +11,7 @@ export interface ProcessVacancyParams {
     message: string;
     userId: string;
     vacancyRepo: VacancyRepo;
+    broadcast: JobBroadcast;
 }
 
 export interface ProcessChatParams {
@@ -29,6 +30,7 @@ export interface NavigateAndProcessVacanciesParams {
     message: string;
     browser: Browser;
     vacancyRepo: VacancyRepo;
+    broadcast: JobBroadcast;
 }
 
 export interface navigateAndProcessChats {

@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { ENV, ENV_BROWSER_CONFIG, SELECTORS_CHAT } from '@config';
 import { GetFeedbackParams } from '@interface';
-import type { FeedbackRepo } from '../job/feedbackRepo.types.js';
+import type { ScenarioDeps } from '../job/processJob.deps.js';
 import { isStopped, stop } from '@utils';
 import { authorize, navigateAndProcessChats, initializeBrowser } from '@run';
 
@@ -11,7 +11,7 @@ dotenv.config();
 
 export async function getFeedback(
     { userId, email, password }: GetFeedbackParams,
-    deps: { feedbackRepo: FeedbackRepo },
+    deps: Pick<ScenarioDeps, 'feedbackRepo' | 'broadcast'>,
 ): Promise<void> {
     let browser: Browser | null = null;
     let page: Page | null = null;
@@ -20,10 +20,10 @@ export async function getFeedback(
         browser = await puppeteer.launch(ENV_BROWSER_CONFIG[ENV.NODE_ENV]);
         page = await browser.newPage();
 
-        const isInitialized = await initializeBrowser(SELECTORS_CHAT.CHAT_URL, browser, page);
+        const isInitialized = await initializeBrowser(SELECTORS_CHAT.CHAT_URL, browser, page, deps.broadcast);
         if (!isInitialized) return;
 
-        await authorize(page, email, password, browser);
+        await authorize(page, email, password, browser, deps.broadcast);
         await page.screenshot({ path: 'screenshot-authorize.png' });
         if (isStopped()) {
             console.log('🛑 Script stopped before authorization.');
