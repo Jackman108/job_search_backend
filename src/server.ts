@@ -21,6 +21,9 @@ process.on('unhandledRejection', (reason) => {
 (async () => {
     try {
         JWT_CONFIG.secret = assertJwtSecret(JWT_CONFIG.secret || process.env.JWT_SECRET);
+        if (process.env.NODE_ENV !== 'production') {
+            logger.info('Dev mode: nodemon watches src + packages/hh-worker (restart on change)');
+        }
         const httpServer = await startHttpServer({ port: PORTS.api });
         await startWebSocketServer({ app: httpServer, wsPort: PORTS.ws });
     } catch (error) {
