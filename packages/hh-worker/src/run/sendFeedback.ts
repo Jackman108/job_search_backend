@@ -6,6 +6,7 @@ import { Counters, SendFeedbackParams } from '@interface';
 import type { ScenarioDeps } from '../job/processJob.deps.js';
 import { isStopped, stop } from '@utils';
 import { authorize, initializeBrowser, navigateAndProcessVacancies, searchForVacancy } from '@run';
+import { stage } from './helpers/stageLog.js';
 
 dotenv.config();
 
@@ -22,26 +23,31 @@ export async function sendFeedback(
     };
 
     try {
+        stage('start', `user=${userId}`);
         browser = await puppeteer.launch(ENV_BROWSER_CONFIG[ENV.NODE_ENV]);
         page = await browser.newPage();
 
+        stage('browser open');
         const isInitialized = await initializeBrowser(vacancyUrl, browser, page, deps.broadcast);
         if (!isInitialized) return;
 
+        stage('login');
         await authorize(page, email, password, browser, deps.broadcast);
         if (isStopped()) {
-            console.log('🛑 Script stopped before authorization.');
+            stage('stopped', 'before search');
             await stop(browser);
             return;
         }
 
+        stage('search', position);
         await searchForVacancy({ page, position });
         if (isStopped()) {
-            console.log('🛑 Script stopped before searching for a vacancy.');
+            stage('stopped', 'before apply loop');
             await stop(browser);
             return;
         }
 
+        stage('apply loop');
         await navigateAndProcessVacancies({
             userId,
             page,
@@ -52,7 +58,7 @@ export async function sendFeedback(
             broadcast: deps.broadcast,
         });
         await page.screenshot({ path: 'screenshot-navigate.png' });
-        console.log(`Total number of forms successfully submitted: ${counters.successfullySubmittedCount}`);
+        stage('done', `ok=${counters.successfullySubmittedCount} fail=${counters.unsuccessfullySubmittedCount}`);
     } catch (err) {
         console.error('Error during script execution:', err);
         // Rethrow so processJob can mark the job file as error (poll SoT).

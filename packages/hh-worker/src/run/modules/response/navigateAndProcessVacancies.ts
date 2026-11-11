@@ -2,6 +2,7 @@
 import { HH_SCRAPE, SELECTORS } from '@config';
 import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '@interface';
 import { delayBeforeApply, delayBetweenPages, isStopped, stop } from '@utils';
+import { stage } from '../../helpers/stageLog.js';
 import { getVacancies } from './getVacancies.js';
 import { processVacancy } from './processVacancy.js';
 
@@ -33,12 +34,12 @@ export async function navigateAndProcessVacancies({
             return;
         }
         try {
-            console.log(`Processing page ${currentPage + 1} из ${totalPages}`);
+            stage('page', `${currentPage + 1}/${totalPages}`);
 
             let pageVacancies: VacancyWithResponse[] = await getVacancies(page);
             pageVacancies = pageVacancies.filter(({ data }) => data.id && !existingVacanciesIds.has(data.id));
             if (pageVacancies.length === 0) {
-                console.log('vacancies.length', pageVacancies.length);
+                stage('page empty');
                 break;
             }
 
@@ -50,17 +51,14 @@ export async function navigateAndProcessVacancies({
                     return;
                 }
 
-                console.log('Vacancies found', pageVacancies.length);
-                console.log(
-                    'Sent feedback:',
-                    counters.successfullySubmittedCount,
-                    'UnSent feedback:',
-                    counters.unsuccessfullySubmittedCount,
+                stage(
+                    'queue',
+                    `${i + 1}/${pageVacancies.length} · ok=${counters.successfullySubmittedCount} fail=${counters.unsuccessfullySubmittedCount}`,
                 );
 
                 // HH pacing: base + jitter (+ stepped backoff after outer failures)
                 const waitedMs = await delayBeforeApply(consecutiveApplyFailures);
-                console.log(`HH rate-limit: waited ${waitedMs}ms before apply (failures=${consecutiveApplyFailures})`);
+                stage('pace', `${waitedMs}ms (failures=${consecutiveApplyFailures})`);
                 try {
                     existingVacanciesIds.add(data.id);
                     if (vacancyResponse) {
@@ -98,12 +96,12 @@ export async function navigateAndProcessVacancies({
 
             const nextPageButtonHandle = await page.$(SELECTORS.PAGER_NEXT);
             if (nextPageButtonHandle) {
-                console.log('Go to the next page.');
+                stage('next page');
                 await page.screenshot({ path: 'next_ page.png' });
 
                 await nextPageButtonHandle.click();
                 const pageWaitMs = await delayBetweenPages();
-                console.log(`HH rate-limit: waited ${pageWaitMs}ms after pager-next`);
+                stage('pace', `${pageWaitMs}ms after pager`);
                 currentPage++;
             } else {
                 break;
