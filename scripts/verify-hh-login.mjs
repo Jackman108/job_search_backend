@@ -1,15 +1,23 @@
 /**
  * Guest HH Magritte login dump (no credentials submitted).
  * Usage: node scripts/verify-hh-login.mjs
+ * Headed debug: HH_HEADED=1 node scripts/verify-hh-login.mjs
+ *            or PUPPETEER_HEADLESS=false node scripts/verify-hh-login.mjs
  */
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
+const headed =
+    process.env.HH_HEADED === '1' ||
+    process.env.HH_HEADED?.toLowerCase() === 'true' ||
+    process.env.PUPPETEER_HEADLESS === '0' ||
+    process.env.PUPPETEER_HEADLESS?.toLowerCase() === 'false';
+
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hh-verify-'));
 const browser = await puppeteer.launch({
-    headless: true,
+    headless: headed ? false : true,
     args: ['--no-sandbox', `--user-data-dir=${dir}`],
 });
 const page = await browser.newPage();
