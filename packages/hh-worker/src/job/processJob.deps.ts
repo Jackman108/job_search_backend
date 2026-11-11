@@ -10,3 +10,6 @@ export interface ProcessJobDeps {
     vacancyRepo: VacancyRepo;
     feedbackRepo: FeedbackRepo;
 }
+
+/** Narrower slice for Puppeteer scenarios (broadcast still partly via `@server`). */
+export type ScenarioDeps = Pick<ProcessJobDeps, 'vacancyRepo' | 'feedbackRepo' | 'broadcast'>;
