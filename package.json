@@ -19,6 +19,7 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "test": "echo \"No unit tests yet — use typecheck/lint\" && exit 0",
+    "smoke:health": "node scripts/smoke-health.mjs",
     "docker:up": "docker compose -f ./postgres/docker-compose.yml up -d",
     "docker:uprm": "docker compose -f ./postgres/docker-compose.yml up -d --build",
     "docker:down": "docker compose -f ./postgres/docker-compose.yml down",
