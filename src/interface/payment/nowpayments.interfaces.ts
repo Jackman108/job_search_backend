@@ -112,4 +112,4 @@ export interface INowPaymentsApi {
     getPaymentStatus: (paymentId: string) => Promise<NowPaymentsPaymentStatusResponse>;
     validateWebhookSignature: (data: any, signature: string) => boolean;
     mapPaymentStatus: (nowpaymentStatus: string) => PaymentStatus;
-} 
+}

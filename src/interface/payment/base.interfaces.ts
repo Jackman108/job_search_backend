@@ -14,7 +14,7 @@ export enum PaymentStatus {
     Expired = 'expired',
     Canceled = 'canceled',
     Refunded = 'refunded',
-    PartiallyRefunded = 'partially_refunded'
+    PartiallyRefunded = 'partially_refunded',
 }
 
 /**
@@ -25,7 +25,7 @@ export enum PaymentMethod {
     Crypto = 'crypto',
     ERIP = 'erip',
     Card = 'card',
-    Other = 'other'
+    Other = 'other',
 }
 
 /**
@@ -37,7 +37,7 @@ export enum PaymentOperationType {
     Capture = 'capture',
     Preauthorization = 'preauth',
     Recurring = 'recurring',
-    Chargeback = 'chargeback'
+    Chargeback = 'chargeback',
 }
 
 /**
@@ -53,7 +53,7 @@ export enum PaymentErrorType {
     Timeout = 'TIMEOUT',
     Duplicate = 'DUPLICATE_PAYMENT',
     Declined = 'PAYMENT_DECLINED',
-    Unknown = 'UNKNOWN_ERROR'
+    Unknown = 'UNKNOWN_ERROR',
 }
 
 /**
@@ -200,4 +200,4 @@ export interface PaymentCache {
     invalidatePayment: (paymentId: string) => Promise<void>;
     getStatus: (paymentId: string) => Promise<PaymentStatus | null>;
     setStatus: (paymentId: string, status: PaymentStatus, ttl?: number) => Promise<void>;
-} 
+}

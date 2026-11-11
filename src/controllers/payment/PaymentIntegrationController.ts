@@ -10,20 +10,18 @@ import {
     processPaymentWebhook,
     refundPayment,
     validatePaymentMethod,
-    validatePaymentParams
+    validatePaymentParams,
 } from '@integrations';
 import { AuthenticatedRequest, RefundPaymentParams } from '@interface';
 import { handleControllerError, handleErrors, handleSuccess } from '@middlewares';
 import { logger } from '@utils';
 import { Request, Response } from 'express';
 
-
 export class PaymentIntegrationController {
-
     /**
      * Инициализирует платеж с использованием выбранного метода оплаты
- * @param req Запрос Express
- * @param res Ответ Express
+     * @param req Запрос Express
+     * @param res Ответ Express
      */
     async initializePayment(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
@@ -46,24 +44,24 @@ export class PaymentIntegrationController {
             const baseParams = {
                 paymentId: paymentData.payment_id,
                 amount: paymentData.amount,
-                userId: req.userId!
+                userId: req.userId!,
             };
 
             // Выполняем платеж в зависимости от метода оплаты
             const result = await (paymentMethod.toLowerCase() === 'webpay'
                 ? initializeWebpayPayment({
-                    ...baseParams,
-                    currency: paymentData.currency || 'BYN'
-                })
+                      ...baseParams,
+                      currency: paymentData.currency || 'BYN',
+                  })
                 : paymentMethod.toLowerCase() === 'crypto'
-                    ? initializeCryptoPayment({
+                  ? initializeCryptoPayment({
                         ...baseParams,
                         currency: paymentData.currency || 'BTC',
-                        network: paymentData.network || 'BTC'
+                        network: paymentData.network || 'BTC',
                     })
-                    : {
+                  : {
                         success: false,
-                        error: `Unsupported payment method: ${paymentMethod}`
+                        error: `Unsupported payment method: ${paymentMethod}`,
                     });
 
             if (result.success && 'data' in result) {
@@ -74,7 +72,7 @@ export class PaymentIntegrationController {
         } catch (error) {
             handleControllerError(res, error, 'Error in payment initialization');
         }
-    };
+    }
 
     /**
      * Обрабатывает вебхук от платежной системы
@@ -85,7 +83,7 @@ export class PaymentIntegrationController {
         try {
             const { paymentMethod } = req.params;
             const webhookData = req.body;
-            const signature = req.headers['x-webhook-signature'] as string || '';
+            const signature = (req.headers['x-webhook-signature'] as string) || '';
 
             logger.info('Processing payment webhook', { paymentMethod, webhookData });
 
@@ -107,7 +105,7 @@ export class PaymentIntegrationController {
         } catch (error) {
             handleControllerError(res, error, 'Error processing payment webhook');
         }
-    };
+    }
 
     /**
      * Проверяет статус платежа
@@ -138,7 +136,7 @@ export class PaymentIntegrationController {
         } catch (error) {
             handleControllerError(res, error, 'Error checking payment status');
         }
-    };
+    }
 
     /**
      * Обрабатывает запрос на возврат средств (рефанд)
@@ -172,7 +170,7 @@ export class PaymentIntegrationController {
         } catch (error) {
             handleControllerError(res, error, 'Error processing payment refund');
         }
-    };
+    }
 
     /**
      * Получает детальную информацию о платеже
@@ -203,5 +201,5 @@ export class PaymentIntegrationController {
         } catch (error) {
             handleControllerError(res, error, 'Error getting payment details');
         }
-    };
+    }
 }

@@ -1,8 +1,4 @@
-import {
-    generateOrderNumber,
-    getPaymentIdByUserId,
-    withErrorHandling
-} from '@integrations';
+import { generateOrderNumber, getPaymentIdByUserId, withErrorHandling } from '@integrations';
 import {
     CreateWebPayPaymentParams,
     IWebPayService,
@@ -10,13 +6,9 @@ import {
     PaymentStatus,
     RefundPaymentParams,
     WebPayPayment,
-    WebPayPaymentData
+    WebPayPaymentData,
 } from '@interface';
-import {
-    checkTableExists,
-    executeQuery,
-    generateUpdateQueryWithConditions,
-} from '@utils';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
 
 /**
  * @module WebpayService
@@ -73,7 +65,7 @@ export const listWebpayPayments = async (): Promise<WebPayPayment[]> => {
  */
 export const getActiveWebpayPayment = async (
     paymentId: string,
-    webpayPaymentId: string
+    webpayPaymentId: string,
 ): Promise<WebPayPayment | null> => {
     const query = `
         SELECT * FROM webpay_payments
@@ -83,7 +75,6 @@ export const getActiveWebpayPayment = async (
     const result = await executeQuery<WebPayPayment>(query, [paymentId, webpayPaymentId, PaymentStatus.Pending]);
     return result.length > 0 ? result[0] : null;
 };
-
 
 /**
  * Получение WebPay платежа по ID
@@ -122,9 +113,7 @@ export const getWebpayPaymentByPaymentId = async (paymentId: string): Promise<We
  * Создание нового WebPay платежа
  * @param webpayData Данные для создания WebPay платежа
  */
-export const createWebpayPayment = async (
-    webpayData: WebPayPaymentData
-): Promise<WebPayPayment> => {
+export const createWebpayPayment = async (webpayData: WebPayPaymentData): Promise<WebPayPayment> => {
     // Проверяем наличие активного платежа только если id определен
     let activeWebpayPayment = null;
     if (webpayData.id) {
@@ -152,9 +141,8 @@ export const createWebpayPayment = async (
         webpayData.success_url || '',
         webpayData.cancel_url || '',
         webpayData.created_at || new Date(),
-        webpayData.updated_at || new Date()
+        webpayData.updated_at || new Date(),
     ];
-
 
     const [result] = await executeQuery<WebPayPayment>(query, values);
     return result;
@@ -167,7 +155,7 @@ export const createWebpayPayment = async (
  */
 export const updateWebpayPayment = async (
     paymentId: string,
-    updates: Partial<WebPayPayment>
+    updates: Partial<WebPayPayment>,
 ): Promise<WebPayPayment> => {
     if (!updates.payment_id) {
         throw new Error('Payment ID is required for updating webpay payment');
@@ -176,7 +164,7 @@ export const updateWebpayPayment = async (
     const { query, values } = generateUpdateQueryWithConditions(
         'webpay_payments',
         { ...updates, updated_at: new Date() },
-        { id: paymentId }
+        { id: paymentId },
     );
 
     await executeQuery(query, values);
@@ -195,12 +183,12 @@ export const updateWebpayPayment = async (
  */
 export const updateWebpayPaymentByOrderNum = async (
     orderNum: string,
-    updates: Partial<WebPayPayment>
+    updates: Partial<WebPayPayment>,
 ): Promise<WebPayPayment | null> => {
     const { query, values } = generateUpdateQueryWithConditions(
         'webpay_payments',
         { ...updates, updated_at: new Date() },
-        { wsb_order_num: orderNum }
+        { wsb_order_num: orderNum },
     );
 
     await executeQuery(query, values);
@@ -214,15 +202,11 @@ export const updateWebpayPaymentByOrderNum = async (
  * @param userId ID пользователя
  * @param webpayPaymentId ID WebPay платежа
  */
-export const deleteWebpayPayment = async (
-    userId: string, webpayPaymentId: string
-): Promise<void> => {
+export const deleteWebpayPayment = async (userId: string, webpayPaymentId: string): Promise<void> => {
     const paymentId = await getPaymentIdByUserId(userId);
     const query = `DELETE FROM webpay_payments WHERE payment_id = $1 AND id = $2;`;
     await executeQuery(query, [paymentId, webpayPaymentId]);
 };
-
-
 
 /**
  * Реализация интерфейса IWebPayService
@@ -287,9 +271,9 @@ export const webpayService: IWebPayService = {
         return withErrorHandling(async () => {
             // Обновляем статус платежа на "refunded"
             const payment = await updateWebpayPayment(params.paymentId, {
-                payment_status: PaymentStatus.Refunded
+                payment_status: PaymentStatus.Refunded,
             });
             return payment;
         });
-    }
-}; 
+    },
+};

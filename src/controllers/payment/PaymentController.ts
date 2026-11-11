@@ -28,7 +28,6 @@ export class PaymentController {
         const result = await safePaymentOperations.getPayment(req.userId!, req.params.id);
 
         if (result.success) {
-
             handleSuccess(res, 'Payments retrieved successfully', result.data);
         } else {
             handleErrors(res, new Error(result.error), 'Failed to retrieve payments');
@@ -47,7 +46,7 @@ export class PaymentController {
                 subscription_id,
                 amount,
                 currency,
-                payment_method
+                payment_method,
             });
 
             if (result.success) {

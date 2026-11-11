@@ -37,4 +37,4 @@ export const JWT_CONFIG = {
 export const UPLOAD_CONFIG = {
     maxFileSize: '10mb',
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif'],
-}; 
+};

@@ -114,4 +114,4 @@ export const initializeJobRoutes = (app: express.Application) => {
      *         description: Не авторизован
      */
     registerRoute(app, 'delete', '/default/feedback', FeedbackController, 'deleteFeedbackTable');
-}; 
+};

@@ -3,11 +3,7 @@ import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest } from '@interface';
 import { JWT_CONFIG } from '@config';
 
-export const validateUserIdMiddleware = (
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-) => {
+export const validateUserIdMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.userId) {
         return res.status(400).json({ message: 'userId is required.' });
     }
@@ -49,9 +45,8 @@ export const extractUserId = (req: AuthenticatedRequest, res: Response, next: Ne
             console.error(err);
             return res.status(401).json({ message: 'Unauthorized request' });
         }
-
     } catch (err) {
         console.error(err);
         res.status(401).json({ message: 'Unauthorized request' });
     }
-}; 
+};

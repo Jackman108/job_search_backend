@@ -1,9 +1,4 @@
-import {
-    ResumeController,
-    ContactsController,
-    SkillsController,
-    WorkExperienceController,
-} from '@controllers';
+import { ResumeController, ContactsController, SkillsController, WorkExperienceController } from '@controllers';
 import express from 'express';
 import { registerRoute } from '@middlewares';
 
@@ -395,4 +390,4 @@ export const initializeUserRoutes = (app: express.Application) => {
      *         description: Запись не найдена
      */
     registerRoute(app, 'delete', '/work_experience/:experienceId', WorkExperienceController, 'deleteExperience');
-}; 
+};

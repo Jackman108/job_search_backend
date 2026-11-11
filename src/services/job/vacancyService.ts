@@ -20,11 +20,9 @@ export async function createTableVacanciesUser(userId: string): Promise<void> {
     await executeQuery(query);
 }
 
-
 export async function deleteVacancyTable(userId: string): Promise<void> {
     await deleteTable(userId, 'vacancy');
 }
-
 
 export async function saveVacancy(data: VacancyData, userId: string): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
@@ -50,7 +48,6 @@ export async function saveVacancy(data: VacancyData, userId: string): Promise<vo
     broadcast(`Vacancy has been successfully saved with ID ${data.id}`);
 }
 
-
 export async function getVacanciesUser(userId: string): Promise<any[]> {
     const tableName = `"${userId}_vacancy"`;
     const exists = await checkTableExists(tableName);
@@ -60,10 +57,7 @@ export async function getVacanciesUser(userId: string): Promise<any[]> {
     const query = `SELECT * FROM ${tableName}`;
     const result = await executeQuery(query);
     return result.length > 0 ? result : [];
-
-
 }
-
 
 export async function deleteVacancyUser(userId: string, vacancyId: string | number): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
@@ -71,4 +65,3 @@ export async function deleteVacancyUser(userId: string, vacancyId: string | numb
     await executeQuery(query, [vacancyId]);
     broadcast(`Vacancy with ID ${vacancyId} has been successfully deleted.`);
 }
-

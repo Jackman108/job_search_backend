@@ -14,12 +14,12 @@ import express from 'express';
  *       type: string
  *       enum: [webpay, crypto]
  *       description: Метод оплаты
- *     
+ *
  *     PaymentStatus:
  *       type: string
  *       enum: [pending, processing, completed, failed, canceled, refunded]
  *       description: Статус платежа
- *     
+ *
  *     PaymentInitRequest:
  *       type: object
  *       required:
@@ -47,7 +47,7 @@ import express from 'express';
  *         cancel_url:
  *           type: string
  *           description: URL для редиректа при отмене платежа
- *     
+ *
  *     PaymentRefundRequest:
  *       type: object
  *       required:
@@ -145,7 +145,6 @@ import express from 'express';
  */
 
 export const initializeIntegrationRoutes = (app: express.Application) => {
-
     /**
      * @swagger
      * /api/payments/integration/{paymentMethod}:
@@ -212,7 +211,7 @@ export const initializeIntegrationRoutes = (app: express.Application) => {
      *   post:
      *     summary: Обработка вебхука от платежной системы
      *     description: |
-     *       Обрабатывает входящие вебхуки от платежных систем. 
+     *       Обрабатывает входящие вебхуки от платежных систем.
      *       Для проверки подлинности вебхука используется подпись, переданная в заголовке 'x-webhook-signature'.
      *     tags: [Интеграция оплаты]
      *     parameters:
@@ -301,7 +300,13 @@ export const initializeIntegrationRoutes = (app: express.Application) => {
      *       500:
      *         description: Внутренняя ошибка сервера
      */
-    registerRoute(app, 'get', '/status/:paymentMethod/:paymentId', PaymentIntegrationController, 'checkPaymentStatusController');
+    registerRoute(
+        app,
+        'get',
+        '/status/:paymentMethod/:paymentId',
+        PaymentIntegrationController,
+        'checkPaymentStatusController',
+    );
 
     /**
      * @swagger
@@ -425,6 +430,11 @@ export const initializeIntegrationRoutes = (app: express.Application) => {
      *       500:
      *         description: Внутренняя ошибка сервера
      */
-    registerRoute(app, 'get', '/details/:paymentMethod/:paymentId', PaymentIntegrationController, 'getPaymentDetailsController');
-
+    registerRoute(
+        app,
+        'get',
+        '/details/:paymentMethod/:paymentId',
+        PaymentIntegrationController,
+        'getPaymentDetailsController',
+    );
 };

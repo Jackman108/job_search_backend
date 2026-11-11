@@ -52,4 +52,4 @@ export interface PaymentStrategyInterface {
      * @returns Результат обработки возврата
      */
     handleRefund: (paymentId: string, amount?: number) => Promise<PaymentResult<boolean>>;
-} 
+}

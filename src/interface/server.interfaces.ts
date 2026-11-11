@@ -15,4 +15,4 @@ export interface StartWebSocketServerParams {
 
 export interface AuthenticatedRequest extends Request {
     userId?: string;
-} 
+}

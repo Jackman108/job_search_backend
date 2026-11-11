@@ -13,20 +13,20 @@ export const getPaymentMethods = async () => {
             name: 'WebPay',
             description: 'Оплата банковской картой',
             currencies: ['BYN', 'USD', 'EUR', 'RUB'],
-            icon: '/assets/icons/card.svg'
+            icon: '/assets/icons/card.svg',
         },
         {
             id: 'crypto',
             name: 'Криптовалюта',
             description: 'Оплата Bitcoin, Ethereum и др.',
             currencies: ['BTC', 'ETH', 'USDT'],
-            icon: '/assets/icons/crypto.svg'
-        }
+            icon: '/assets/icons/crypto.svg',
+        },
     ];
 
     // В режиме разработки добавляем информацию о тестовом режиме
     if (USE_MOCK_PROVIDER) {
-        paymentMethods.forEach(method => {
+        paymentMethods.forEach((method) => {
             method.name += ' (Тестовый режим)';
             method.description += '. Платеж будет автоматически завершен через 1 минуту.';
         });
@@ -49,7 +49,7 @@ export const getCurrentPlan = async (userId: string) => {
 
     return {
         hasActiveSubscription: true,
-        subscriptionId
+        subscriptionId,
     };
 };
 
@@ -206,5 +206,5 @@ export const getTestPaymentPageHtml = () => {
 export const infoPaymentOperations = {
     getPaymentMethods: () => withErrorHandling(async () => await getPaymentMethods()),
     getCurrentPlan: (userId: string) => withErrorHandling(async () => await getCurrentPlan(userId)),
-    getTestPaymentPageHtml: () => withErrorHandling(async () => getTestPaymentPageHtml())
-}; 
+    getTestPaymentPageHtml: () => withErrorHandling(async () => getTestPaymentPageHtml()),
+};

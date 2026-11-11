@@ -35,4 +35,4 @@ export interface navigateAndProcessChats {
 
 export interface ExtractChatDataParams {
     chatUrl: string;
-} 
+}

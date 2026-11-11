@@ -9,17 +9,15 @@ import { ENV } from './base.config.js';
 export const WEBPAY_URL_BASE_DEV = process.env.WEBPAY_URL_BASE_DEV ?? '';
 export const WEBPAY_URL_BASE_PROD = process.env.WEBPAY_URL_BASE_PROD ?? '';
 
-/** 
- * Секретный ключ для формирования подписи WebPay 
+/**
+ * Секретный ключ для формирования подписи WebPay
  */
 export const WEBPAY_SECRET_KEY = process.env.WEBPAY_SECRET_KEY ?? '';
 
-/** 
- * Выбор базового URL WebPay провайдера на основе окружения 
+/**
+ * Выбор базового URL WebPay провайдера на основе окружения
  */
-export const WEBPAY_API_BASE_URL = ENV.isProduction
-    ? WEBPAY_URL_BASE_PROD
-    : WEBPAY_URL_BASE_DEV;
+export const WEBPAY_API_BASE_URL = ENV.isProduction ? WEBPAY_URL_BASE_PROD : WEBPAY_URL_BASE_DEV;
 
 /**
  * ID магазина в системе WebPay
@@ -54,5 +52,5 @@ export const WEBPAY_PAYMENT_TIMEOUT = parseInt(process.env.WEBPAY_PAYMENT_TIMEOU
  */
 export const WEBPAY_MOCK_CONFIG = {
     paymentTimeout: parseInt(process.env.WEBPAY_MOCK_TIMEOUT || '60', 10), // 1 минута для моковых платежей
-    defaultCurrency: process.env.WEBPAY_DEFAULT_CURRENCY || 'BYN'
-}; 
+    defaultCurrency: process.env.WEBPAY_DEFAULT_CURRENCY || 'BYN',
+};

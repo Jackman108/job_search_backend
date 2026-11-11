@@ -5,7 +5,6 @@ import { deleteVacancyTable, deleteVacancyUser, getVacanciesUser } from '@servic
 import { AuthenticatedRequest } from '@interface';
 
 export class VacancyController {
-
     async deleteVacanciesTable(req: AuthenticatedRequest, res: Response) {
         try {
             await deleteVacancyTable(req.userId!);
@@ -18,7 +17,9 @@ export class VacancyController {
     async getVacancies(req: AuthenticatedRequest, res: Response) {
         try {
             const vacancies = await getVacanciesUser(req.userId!);
-            res.status(vacancies.length ? 200 : 404).json(vacancies.length ? vacancies : { message: 'No vacancies found.' });
+            res.status(vacancies.length ? 200 : 404).json(
+                vacancies.length ? vacancies : { message: 'No vacancies found.' },
+            );
         } catch (error) {
             handleErrors(res, error, 'Error retrieving vacancies.');
         }

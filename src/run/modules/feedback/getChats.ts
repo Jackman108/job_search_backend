@@ -15,11 +15,7 @@ export async function getChats(page: Page): Promise<FeedbackWithResponse[]> {
         const visitedIds = new Set<number>();
 
         for (const chatHandle of chats) {
-            const chatUrl = await page.evaluate(
-                (el) => (el as HTMLAnchorElement).href,
-                chatHandle
-            );
-
+            const chatUrl = await page.evaluate((el) => (el as HTMLAnchorElement).href, chatHandle);
 
             const { chatId } = await extractChatId({ chatUrl });
             if (!visitedIds.has(chatId)) {
@@ -29,7 +25,6 @@ export async function getChats(page: Page): Promise<FeedbackWithResponse[]> {
         }
 
         return chatsWithResponse;
-
     } catch (error) {
         if (error instanceof Error) {
             console.error('Error during job processing:', error.message);

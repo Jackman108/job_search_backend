@@ -5,7 +5,7 @@ const vacancySubmitCache = new Map<string, VacancySubmitData[] | null>();
 
 export const createVacancySubmit = async (
     userId: string,
-    submitData: Omit<VacancySubmitData, "id" | "userId" | "createdAt" | "updatedAt">
+    submitData: Omit<VacancySubmitData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
 ): Promise<string> => {
     const query = `
         INSERT INTO vacancy_submit (
@@ -47,14 +47,11 @@ export const getVacancySubmitByUserId = async (userId: string): Promise<VacancyS
     return data;
 };
 
-export const updateVacancySubmit = async (
-    userId: string,
-    updates: UpdateVacancySubmitData
-): Promise<void> => {
-    const { query, values } = generateUpdateQueryWithConditions(
-        "vacancy_submit",
-        updates,
-        { user_id: userId, id: updates.id })
+export const updateVacancySubmit = async (userId: string, updates: UpdateVacancySubmitData): Promise<void> => {
+    const { query, values } = generateUpdateQueryWithConditions('vacancy_submit', updates, {
+        user_id: userId,
+        id: updates.id,
+    });
 
     await executeQuery(query, values);
 

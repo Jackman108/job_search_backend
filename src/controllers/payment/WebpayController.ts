@@ -22,8 +22,8 @@ export class WebpayController {
     }
 
     /**
-    * Получение информации о WebPay платеже по номеру заказа
-    */
+     * Получение информации о WebPay платеже по номеру заказа
+     */
     async getWebpayPayment(req: AuthenticatedRequest, res: Response) {
         const result = await webpayService.getPayment(req.userId!, req.params.paymentId);
 
@@ -32,12 +32,11 @@ export class WebpayController {
         } else {
             handleErrors(res, new Error(result.error), 'Failed to retrieve payment');
         }
-
     }
 
     /**
-    * Инициализация WebPay платежа
-    */
+     * Инициализация WebPay платежа
+     */
     async createWebpayPayment(req: AuthenticatedRequest, res: Response) {
         const result = await webpayService.createPayment(req.body);
 
@@ -46,7 +45,6 @@ export class WebpayController {
         } else {
             handleErrors(res, new Error(result.error), 'Failed to initialize WebPay payment');
         }
-
     }
 
     /**
@@ -74,5 +72,4 @@ export class WebpayController {
             handleErrors(res, new Error(result.error), 'Failed to delete payment');
         }
     }
-
-} 
+}

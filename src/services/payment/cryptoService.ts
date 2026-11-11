@@ -1,20 +1,13 @@
-import {
-    getPaymentIdByUserId,
-    withErrorHandling
-} from '@integrations';
+import { getPaymentIdByUserId, withErrorHandling } from '@integrations';
 import {
     CreateCryptoPaymentParams,
     CryptoPaymentData,
     CryptoPaymentDetails,
     ICryptoPaymentService,
     PaymentStatus,
-    RefundPaymentParams
+    RefundPaymentParams,
 } from '@interface';
-import {
-    checkTableExists,
-    executeQuery,
-    generateUpdateQueryWithConditions
-} from '@utils';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
 
 /**
  * Создание таблицы для криптоплатежей
@@ -61,7 +54,7 @@ export const listCryptoPayments = async (): Promise<CryptoPaymentDetails[]> => {
  */
 export const getActiveCryptoPayment = async (
     paymentId: string,
-    cryptoPaymentId: string
+    cryptoPaymentId: string,
 ): Promise<CryptoPaymentDetails | null> => {
     const query = `
         SELECT * FROM crypto_payments
@@ -122,7 +115,7 @@ export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promis
         new Date(),
         expiresAt,
         cryptoData.transaction_hash,
-        cryptoData.wallet_provider || 'NOWCRYPTO'
+        cryptoData.wallet_provider || 'NOWCRYPTO',
     ];
 
     const [result] = await executeQuery<CryptoPaymentDetails>(query, values);
@@ -134,9 +127,7 @@ export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promis
  * @param paymentId ID платежа
  * @returns Детали существующего криптоплатежа или null
  */
-export const getExistingCryptoPayment = async (
-    paymentId: string
-): Promise<CryptoPaymentDetails | null> => {
+export const getExistingCryptoPayment = async (paymentId: string): Promise<CryptoPaymentDetails | null> => {
     const query = `SELECT * FROM crypto_payments WHERE id = $1 LIMIT 1;`;
     const result = await executeQuery<CryptoPaymentDetails>(query, [paymentId]);
     return result.length > 0 ? result[0] : null;
@@ -149,9 +140,8 @@ export const getExistingCryptoPayment = async (
  */
 export const updateCryptoPayment = async (
     paymentId: string,
-    updates: Partial<CryptoPaymentDetails>
+    updates: Partial<CryptoPaymentDetails>,
 ): Promise<CryptoPaymentDetails> => {
-
     // Проверяем существование платежа перед обновлением
     const currentPayment = await getExistingCryptoPayment(paymentId);
 
@@ -162,18 +152,17 @@ export const updateCryptoPayment = async (
     // Добавляем payment_id из существующего платежа, если он не указан
     const updatesWithPayment = {
         ...updates,
-        payment_id: updates.payment_id || currentPayment.payment_id
+        payment_id: updates.payment_id || currentPayment.payment_id,
     };
 
     // Выполняем обновление полей
     const { query, values } = generateUpdateQueryWithConditions(
         'crypto_payments',
         { ...updatesWithPayment, updated_at: new Date() },
-        { id: paymentId }
+        { id: paymentId },
     );
 
     await executeQuery(query, values);
-
 
     // Получаем обновлённую запись
     const result = await getExistingCryptoPayment(paymentId);
@@ -188,22 +177,19 @@ export const updateCryptoPayment = async (
  * @param userId ID пользователя
  * @param cryptoPaymentId ID крипто платежа
  */
-export const deleteCryptoPayment = async (
-    userId: string, cryptoPaymentId: string
-): Promise<void> => {
+export const deleteCryptoPayment = async (userId: string, cryptoPaymentId: string): Promise<void> => {
     const paymentId = await getPaymentIdByUserId(userId);
     const query = `DELETE FROM crypto_payments WHERE payment_id = $1 AND id = $2;`;
     await executeQuery(query, [paymentId, cryptoPaymentId]);
 };
 
-/* Реализация интерфейса ICryptoPaymentService 
+/* Реализация интерфейса ICryptoPaymentService
  * Содержит только LCRUD операции для работы с криптоплатежами
  */
 export const cryptoService: ICryptoPaymentService = {
     // Create - Создание криптоплатежа
     createPayment: async (params: CreateCryptoPaymentParams) => {
         return withErrorHandling(async () => {
-
             // Создаем запись в БД для криптоплатежа
             const cryptoPayment = await createCryptoPayment({
                 payment_id: params.payment_id,
@@ -252,7 +238,7 @@ export const cryptoService: ICryptoPaymentService = {
         return withErrorHandling(async () => {
             // Обновляем статус платежа на "refunded"
             const payment = await updateCryptoPayment(params.paymentId, {
-                payment_status: PaymentStatus.Refunded
+                payment_status: PaymentStatus.Refunded,
             });
 
             // Здесь может быть дополнительная логика для фактического возврата средств
@@ -260,5 +246,5 @@ export const cryptoService: ICryptoPaymentService = {
 
             return payment;
         });
-    }
-}; 
+    },
+};

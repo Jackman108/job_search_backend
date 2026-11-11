@@ -14,7 +14,7 @@ export type FirstSelectorMatch = {
 export async function waitForFirstSelector(
     page: Page,
     selectors: readonly string[],
-    options?: { timeout?: number; visible?: boolean }
+    options?: { timeout?: number; visible?: boolean },
 ): Promise<FirstSelectorMatch | null> {
     const list = selectors.filter(Boolean);
     if (list.length === 0) return null;
@@ -38,7 +38,7 @@ export async function waitForFirstSelector(
 export async function clickFirstSelector(
     page: Page,
     selectors: readonly string[],
-    options?: { timeout?: number; visible?: boolean }
+    options?: { timeout?: number; visible?: boolean },
 ): Promise<FirstSelectorMatch | null> {
     const match = await waitForFirstSelector(page, selectors, options);
     if (!match) return null;
@@ -50,7 +50,7 @@ export async function typeFirstSelector(
     page: Page,
     selectors: readonly string[],
     text: string,
-    options?: { timeout?: number; visible?: boolean }
+    options?: { timeout?: number; visible?: boolean },
 ): Promise<FirstSelectorMatch | null> {
     const match = await waitForFirstSelector(page, selectors, options);
     if (!match) return null;

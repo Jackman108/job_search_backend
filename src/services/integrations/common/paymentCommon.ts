@@ -14,7 +14,6 @@ import { Response } from 'express';
  * - Обработка ошибок
  */
 
-
 /**
  * Проверяет доступность метода оплаты и возвращает соответствующий ответ в случае ошибки
  * @param res Ответ Express
@@ -23,7 +22,11 @@ import { Response } from 'express';
  */
 export const validatePaymentMethod = (res: Response, paymentMethod: string): boolean => {
     if (!isPaymentMethodAvailable(paymentMethod)) {
-        handleErrors(res, new Error(`Payment method '${paymentMethod}' is not available`), `Payment method '${paymentMethod}' is not available`);
+        handleErrors(
+            res,
+            new Error(`Payment method '${paymentMethod}' is not available`),
+            `Payment method '${paymentMethod}' is not available`,
+        );
         return false;
     }
     return true;
@@ -39,12 +42,9 @@ export const validatePaymentMethod = (res: Response, paymentMethod: string): boo
  * @param requiredFields Список обязательных полей
  * @returns Результат проверки с ошибкой или успехом
  */
-export const validatePaymentParams = <T>(
-    params: T,
-    requiredFields: (keyof T)[]
-): PaymentResult<boolean> => {
-    const missingFields = requiredFields.filter(field =>
-        params[field] === undefined || params[field] === null || params[field] === ''
+export const validatePaymentParams = <T>(params: T, requiredFields: (keyof T)[]): PaymentResult<boolean> => {
+    const missingFields = requiredFields.filter(
+        (field) => params[field] === undefined || params[field] === null || params[field] === '',
     );
 
     if (missingFields.length > 0) {
@@ -52,7 +52,7 @@ export const validatePaymentParams = <T>(
         logger.error(errorMessage, { params });
         return {
             success: false,
-            error: errorMessage
+            error: errorMessage,
         };
     }
 
@@ -71,13 +71,9 @@ export const formatAmount = (
         decimals?: number;
         asString?: boolean;
         multiplyBy?: number;
-    } = {}
+    } = {},
 ): string | number => {
-    const {
-        decimals = 2,
-        asString = true,
-        multiplyBy = 1
-    } = options;
+    const { decimals = 2, asString = true, multiplyBy = 1 } = options;
 
     const formattedAmount = (amount * multiplyBy).toFixed(decimals);
     return asString ? formattedAmount : parseFloat(formattedAmount);
@@ -128,9 +124,7 @@ export const getPaymentIdByUserId = async (userId: string): Promise<string> => {
  * @param paymentId ID платежа
  * @returns Информация о платеже или null, если платеж не найден
  */
-export const getPaymentByPaymentId = async (
-    paymentId: string
-): Promise<PaymentBase> => {
+export const getPaymentByPaymentId = async (paymentId: string): Promise<PaymentBase> => {
     const query = `SELECT * FROM payments WHERE id = $1;`;
     const result = await executeQuery<PaymentBase>(query, [paymentId]);
     if (!result[0]) throw new Error(`Payment not found for id ${paymentId}`);
@@ -170,8 +164,6 @@ export const updatePaymentStatus = async (paymentId: string, status: PaymentStat
     await executeQuery(query, [status, paymentId]);
 };
 
-
-
 /**
  * Функция-обертка для обработки ошибок в платежных сервисах
  * @param fn Функция для выполнения
@@ -188,11 +180,7 @@ export const withErrorHandling = async <T>(fn: () => Promise<T>): Promise<Paymen
         }
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Unknown payment service error'
+            error: error instanceof Error ? error.message : 'Unknown payment service error',
         };
     }
 };
-
-
-
-

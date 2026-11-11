@@ -1,6 +1,5 @@
-import { logError } from "@utils";
-import pool from "src/config/database.config";
-
+import { logError } from '@utils';
+import pool from 'src/config/database.config';
 
 export const executeQuery = async <T = any>(query: string, values: any[] = []): Promise<T[]> => {
     if (!pool) {
@@ -20,14 +19,14 @@ export const executeQuery = async <T = any>(query: string, values: any[] = []): 
     }
 };
 
-
 export const generateUpdateQuery = (
     tableName: string,
     updates: Record<string, any>,
     idFieldName: string,
-    idValue: string | number
+    idValue: string | number,
 ): {
-    query: string; values: any[]
+    query: string;
+    values: any[];
 } => {
     const { setClause, values } = generateSetClause(updates);
     if (setClause.length === 0) {
@@ -44,11 +43,10 @@ export const generateUpdateQuery = (
     return { query, values };
 };
 
-
 export const generateUpdateQueryWithConditions = (
     tableName: string,
     updates: Record<string, any>,
-    conditions: Record<string, any>
+    conditions: Record<string, any>,
 ): { query: string; values: any[] } => {
     const { setClause, values } = generateSetClause(updates);
     if (setClause.length === 0) {
@@ -68,15 +66,17 @@ export const generateUpdateQueryWithConditions = (
     return { query, values };
 };
 
-
-export const generateSetClause = (updates: Record<string, any>): {
-    setClause: string[]; values: any[]
+export const generateSetClause = (
+    updates: Record<string, any>,
+): {
+    setClause: string[];
+    values: any[];
 } => {
     const setClause: string[] = [];
     const values: any[] = [];
 
     Object.entries(updates).forEach(([key, value], index) => {
-        if (value !== undefined && key !== "updated_at") {
+        if (value !== undefined && key !== 'updated_at') {
             setClause.push(`${key} = COALESCE($${index + 1}, ${key})`);
             values.push(value);
         }
@@ -84,7 +84,6 @@ export const generateSetClause = (updates: Record<string, any>): {
 
     return { setClause, values };
 };
-
 
 const generateWhereClause = (conditions: Record<string, any>, values: any[]): string[] => {
     const whereClause: string[] = [];
@@ -97,13 +96,11 @@ const generateWhereClause = (conditions: Record<string, any>, values: any[]): st
     return whereClause;
 };
 
-
 export async function checkTableExists(tableName: string): Promise<boolean> {
     const query = `SELECT to_regclass('public.${tableName}');`;
     const result = await executeQuery(query);
     return result[0]?.to_regclass !== null;
 }
-
 
 export async function deleteTable(userId: string, tableName: string): Promise<void> {
     const fullTableName = `"${userId}_${tableName}"`;

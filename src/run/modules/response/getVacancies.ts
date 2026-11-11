@@ -19,16 +19,25 @@ export async function getVacancies(page: Page): Promise<VacancyWithResponse[]> {
             const vacancyResponseHandle = await vacancyHandle.$(SELECTORS.RESPONSE_BUTTON_SPAN);
             const companyLinkHandle = await vacancyHandle.$(SELECTORS.COMPANY_LINK);
 
-            const title_vacancy = vacancyTitleHandle ? await page.evaluate(el => (el as HTMLAnchorElement).innerText.trim(), vacancyTitleHandle) : '';
-            const url_vacancy = vacancyLinkHandle ? await page.evaluate(el => (el as HTMLAnchorElement).href, vacancyLinkHandle) : '';
-            const responseText = vacancyResponseHandle ? await page.evaluate(el => el.textContent, vacancyResponseHandle) : '';
+            const title_vacancy = vacancyTitleHandle
+                ? await page.evaluate((el) => (el as HTMLAnchorElement).innerText.trim(), vacancyTitleHandle)
+                : '';
+            const url_vacancy = vacancyLinkHandle
+                ? await page.evaluate((el) => (el as HTMLAnchorElement).href, vacancyLinkHandle)
+                : '';
+            const responseText = vacancyResponseHandle
+                ? await page.evaluate((el) => el.textContent, vacancyResponseHandle)
+                : '';
 
             let title_company = 'Компания не указана';
             let url_company = '#';
 
             if (companyLinkHandle) {
-                title_company = await page.evaluate(el => (el as HTMLAnchorElement).textContent?.trim() ?? '', companyLinkHandle);
-                url_company = await page.evaluate(el => (el as HTMLAnchorElement).href, companyLinkHandle);
+                title_company = await page.evaluate(
+                    (el) => (el as HTMLAnchorElement).textContent?.trim() ?? '',
+                    companyLinkHandle,
+                );
+                url_company = await page.evaluate((el) => (el as HTMLAnchorElement).href, companyLinkHandle);
             }
 
             if (responseText?.includes('Откликнуться')) {

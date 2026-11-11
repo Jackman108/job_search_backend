@@ -2,7 +2,10 @@
 import { ExtractVacancyDataParams, VacancyData } from '@interface';
 
 export async function extractVacancyData({
-    title_vacancy, url_vacancy, title_company, url_company
+    title_vacancy,
+    url_vacancy,
+    title_company,
+    url_company,
 }: ExtractVacancyDataParams): Promise<VacancyData> {
     const id = Number(url_vacancy.match(/\/(\d+)\?/)?.[1]) || 0;
 
@@ -16,6 +19,6 @@ export async function extractVacancyData({
         title_company: title_company || 'Название компании не найдено',
         url_company: url_company || 'Ссылка на компанию не найдена',
         vacancy_status: 'false',
-        response_date: responseDate.toISOString()
+        response_date: responseDate.toISOString(),
     };
 }

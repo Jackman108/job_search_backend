@@ -5,12 +5,11 @@ import {
     deleteSubscription,
     getActiveSubscription,
     getSubscription,
-    updateSubscription
+    updateSubscription,
 } from '@services';
 import { AuthenticatedRequest, SubscriptionRequestBody } from '@interface';
 
 export class SubscriptionController {
-
     async listSubscriptions(req: AuthenticatedRequest, res: Response) {
         try {
             const subscriptions = await getActiveSubscription(req.userId!);
@@ -20,17 +19,16 @@ export class SubscriptionController {
         }
     }
 
-
-    async getSubscription(req: AuthenticatedRequest, res: Response,) {
+    async getSubscription(req: AuthenticatedRequest, res: Response) {
         try {
             const subscription = await getSubscription(req.userId!, req.params.id);
             res.status(200).json(subscription);
         } catch (error) {
             handleErrors(res, error, 'Error fetching subscription');
         }
-    };
+    }
 
-    async createSubscription(req: AuthenticatedRequest, res: Response,) {
+    async createSubscription(req: AuthenticatedRequest, res: Response) {
         const { subscription_type, start_date }: SubscriptionRequestBody = req.body;
         try {
             const createdSubscription = await createSubscription({
@@ -42,15 +40,13 @@ export class SubscriptionController {
         } catch (error) {
             handleErrors(res, error, 'Error creating subscription');
         }
-    };
-
+    }
 
     async updateSubscription(req: AuthenticatedRequest, res: Response) {
         const { subscription_type }: SubscriptionRequestBody = req.body;
         try {
-
             await updateSubscription(req.userId!, req.params.id, {
-                subscription_type
+                subscription_type,
             });
             handleSuccess(res, 'Subscription successfully updating.');
         } catch (error) {

@@ -19,12 +19,15 @@ export const createPaymentMonitoring = (): PaymentMonitoring => {
         totalAmount: 0,
 
         // Статистика по методам платежей
-        byMethod: {} as Record<string, {
-            attempts: number;
-            successful: number;
-            failed: number;
-            totalAmount: number;
-        }>,
+        byMethod: {} as Record<
+            string,
+            {
+                attempts: number;
+                successful: number;
+                failed: number;
+                totalAmount: number;
+            }
+        >,
 
         // Статистика по ошибкам
         byErrorCode: {} as Record<string, number>,
@@ -63,13 +66,15 @@ export const createPaymentMonitoring = (): PaymentMonitoring => {
         const now = new Date();
         const hour = now.getHours();
 
-        metrics.hourlyStats = [{
-            hour: `${hour}:00-${hour + 1}:00`,
-            attempts: 0,
-            successful: 0,
-            failed: 0,
-            amount: 0
-        }];
+        metrics.hourlyStats = [
+            {
+                hour: `${hour}:00-${hour + 1}:00`,
+                attempts: 0,
+                successful: 0,
+                failed: 0,
+                amount: 0,
+            },
+        ];
     };
 
     /**
@@ -90,7 +95,7 @@ export const createPaymentMonitoring = (): PaymentMonitoring => {
             attempts: 0,
             successful: 0,
             failed: 0,
-            amount: 0
+            amount: 0,
         });
     };
 
@@ -139,14 +144,14 @@ export const createPaymentMonitoring = (): PaymentMonitoring => {
             status: 'success' | 'failure';
             amount?: number;
             errorCode?: string;
-        }
+        },
     ): void => {
-        const paymentIndex = recentPayments.findIndex(p => p.id === paymentId);
+        const paymentIndex = recentPayments.findIndex((p) => p.id === paymentId);
 
         if (paymentIndex >= 0) {
             recentPayments[paymentIndex] = {
                 ...recentPayments[paymentIndex],
-                ...updates
+                ...updates,
             };
 
             // Если успешный платеж, обновляем статистику по методу
@@ -187,7 +192,7 @@ export const createPaymentMonitoring = (): PaymentMonitoring => {
                     attempts: 0,
                     successful: 0,
                     failed: 0,
-                    totalAmount: 0
+                    totalAmount: 0,
                 };
             }
 
@@ -201,7 +206,7 @@ export const createPaymentMonitoring = (): PaymentMonitoring => {
                 id: paymentId,
                 method,
                 timestamp: Date.now(),
-                status: 'success' // Временно, будет обновлено при успехе или ошибке
+                status: 'success', // Временно, будет обновлено при успехе или ошибке
             });
 
             logger.info(`Payment attempt registered: ${paymentId} (${method})`);
@@ -215,13 +220,13 @@ export const createPaymentMonitoring = (): PaymentMonitoring => {
             // Обновляем почасовую статистику
             updateCurrentHourStats({
                 successful: 1,
-                amount
+                amount,
             });
 
             // Обновляем платеж в списке последних
             updateRecentPayment(paymentId, {
                 status: 'success',
-                amount
+                amount,
             });
 
             logger.info(`Payment success registered: ${paymentId} (${amount})`);
@@ -244,7 +249,7 @@ export const createPaymentMonitoring = (): PaymentMonitoring => {
             // Обновляем платеж в списке последних
             updateRecentPayment(paymentId, {
                 status: 'failure',
-                errorCode
+                errorCode,
             });
 
             logger.info(`Payment failure registered: ${paymentId} (${errorCode})`);
@@ -254,13 +259,13 @@ export const createPaymentMonitoring = (): PaymentMonitoring => {
             return {
                 ...metrics,
                 uptime: Date.now() - metrics.startTime,
-                recentPayments: [...recentPayments]
+                recentPayments: [...recentPayments],
             };
-        }
+        },
     };
 };
 
 /**
  * Экземпляр сервиса мониторинга для глобального использования
  */
-export const paymentMonitoring = createPaymentMonitoring(); 
+export const paymentMonitoring = createPaymentMonitoring();

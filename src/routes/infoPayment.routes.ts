@@ -42,4 +42,4 @@ export const initializeInfoPaymentRoutes = (app: express.Application) => {
      *         description: Тестовая страница успешно получена
      */
     registerRoute(app, 'get', '/payment/info/test-page', InfoPaymentController, 'getTestPaymentPage', false);
-}; 
+};

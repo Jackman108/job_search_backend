@@ -2,11 +2,7 @@
  * Модуль для функций валидации подписей
  * Содержит общие функции для проверки подписей от разных платежных систем
  */
-import {
-    nowPaymentsConfig,
-    USE_MOCK_PROVIDER,
-    WEBPAY_SECRET_KEY
-} from '@config';
+import { nowPaymentsConfig, USE_MOCK_PROVIDER, WEBPAY_SECRET_KEY } from '@config';
 import { logger } from '@utils';
 import crypto, { createHash, createHmac } from 'crypto';
 
@@ -17,7 +13,7 @@ export enum HashAlgorithm {
     SHA1 = 'sha1',
     SHA256 = 'sha256',
     SHA512 = 'sha512',
-    MD5 = 'md5'
+    MD5 = 'md5',
 }
 
 /**
@@ -30,7 +26,7 @@ export enum HashAlgorithm {
 export const validateCryptoSignature = (
     data: any,
     signature: string,
-    options: { algorithm?: HashAlgorithm, logLevel?: string } = {}
+    options: { algorithm?: HashAlgorithm; logLevel?: string } = {},
 ): boolean => {
     // В режиме разработки пропускаем проверку
     if (USE_MOCK_PROVIDER) {
@@ -63,7 +59,7 @@ export const validateCryptoSignature = (
             isValid,
             algorithm,
             dataHash: crypto.createHash('md5').update(dataStr).digest('hex'), // Безопасный хеш данных для логов
-            signatureLength: signature.length
+            signatureLength: signature.length,
         });
 
         return isValid;
@@ -83,7 +79,7 @@ export const validateCryptoSignature = (
 export const validateWebpaySignature = (
     data: any,
     signature: string,
-    options: { algorithm?: HashAlgorithm, logLevel?: string } = {}
+    options: { algorithm?: HashAlgorithm; logLevel?: string } = {},
 ): boolean => {
     // В режиме разработки пропускаем проверку
     if (USE_MOCK_PROVIDER) {
@@ -121,10 +117,7 @@ export const validateWebpaySignature = (
         const algorithm = options.algorithm || HashAlgorithm.SHA1;
 
         // Создаем хеш для проверки подписи
-        const calculatedSignature = crypto
-            .createHash(algorithm)
-            .update(signaturePayload)
-            .digest('hex');
+        const calculatedSignature = crypto.createHash(algorithm).update(signaturePayload).digest('hex');
 
         const isValid = calculatedSignature === signature;
 
@@ -134,7 +127,7 @@ export const validateWebpaySignature = (
             isValid,
             algorithm,
             dataHash: crypto.createHash('md5').update(signaturePayload).digest('hex'), // Безопасный хеш данных для логов
-            signatureLength: signature.length
+            signatureLength: signature.length,
         });
 
         return isValid;
@@ -208,24 +201,18 @@ export const validateCryptoWebhookSignature = (data: any, signature: string): bo
 export const createDataHash = (
     data: string | Record<string, any>,
     algorithm: string = 'sha256',
-    secret?: string
+    secret?: string,
 ): string => {
     // Преобразуем объект в строку, если необходимо
     const dataString = typeof data === 'string' ? data : JSON.stringify(data);
 
     // Если указан секретный ключ, используем HMAC
     if (secret) {
-        return crypto
-            .createHmac(algorithm, secret)
-            .update(dataString)
-            .digest('hex');
+        return crypto.createHmac(algorithm, secret).update(dataString).digest('hex');
     }
 
     // Иначе используем обычное хеширование
-    return crypto
-        .createHash(algorithm)
-        .update(dataString)
-        .digest('hex');
+    return crypto.createHash(algorithm).update(dataString).digest('hex');
 };
 
 /**
@@ -240,7 +227,7 @@ export const normalizeDataForSignature = (
         sortKeys?: boolean;
         excludeEmpty?: boolean;
         excludeKeys?: string[];
-    } = {}
+    } = {},
 ): Record<string, any> => {
     const { sortKeys = true, excludeEmpty = true, excludeKeys = [] } = options;
 
@@ -287,7 +274,7 @@ export const normalizeDataForSignature = (
 export const generateSignature = (
     data: any,
     secret: string,
-    algorithm: HashAlgorithm = HashAlgorithm.SHA256
+    algorithm: HashAlgorithm = HashAlgorithm.SHA256,
 ): string => {
     try {
         // Преобразуем данные в строку, если это необходимо
@@ -298,11 +285,16 @@ export const generateSignature = (
             return crypto.createHmac(algorithm, secret).update(dataStr).digest('hex');
         } else {
             // Для прямого хеширования с солью
-            return crypto.createHash(algorithm).update(dataStr + secret).digest('hex');
+            return crypto
+                .createHash(algorithm)
+                .update(dataStr + secret)
+                .digest('hex');
         }
     } catch (error) {
         logger.error('Error generating signature', { error, algorithm });
-        throw new Error(`Failed to generate ${algorithm} signature: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+            `Failed to generate ${algorithm} signature: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
     }
 };
 
@@ -313,14 +305,8 @@ export const generateSignature = (
  * @param algorithm Алгоритм хеширования (по умолчанию sha256)
  * @returns HMAC подпись
  */
-export const createHmacSignature = (
-    data: string,
-    secret: string,
-    algorithm: string = 'sha256'
-): string => {
-    return createHmac(algorithm, secret)
-        .update(data)
-        .digest('hex');
+export const createHmacSignature = (data: string, secret: string, algorithm: string = 'sha256'): string => {
+    return createHmac(algorithm, secret).update(data).digest('hex');
 };
 
 /**
@@ -335,7 +321,7 @@ export const verifyHmacSignature = (
     data: string,
     signature: string,
     secret: string,
-    algorithm: string = 'sha256'
+    algorithm: string = 'sha256',
 ): boolean => {
     const calculatedSignature = createHmacSignature(data, secret, algorithm);
     const isValid = calculatedSignature === signature;
@@ -343,9 +329,9 @@ export const verifyHmacSignature = (
     if (!isValid) {
         logger.warn('Invalid signature', {
             expected: calculatedSignature,
-            received: signature
+            received: signature,
         });
     }
 
     return isValid;
-}; 
+};

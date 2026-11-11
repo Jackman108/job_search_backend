@@ -1,12 +1,7 @@
 // server/controllers/ResumeController.ts
 import { Response } from 'express';
 import { handleErrors } from '@middlewares';
-import {
-    createResumeUser,
-    deleteResumeUser,
-    getResumeUser,
-    updateResumeUser
-} from '@services';
+import { createResumeUser, deleteResumeUser, getResumeUser, updateResumeUser } from '@services';
 import { AuthenticatedRequest } from '@interface';
 
 export class ResumeController {

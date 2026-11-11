@@ -1,30 +1,21 @@
 import { CreateSkillInput, Skill, UpdateSkillInput } from '@interface';
 import { executeQuery, generateUpdateQueryWithConditions, getResumeByUserId } from '@utils';
 
-
-export const createSkillUser = async (
-    userId: string,
-    skillData: CreateSkillInput
-): Promise<string> => {
+export const createSkillUser = async (userId: string, skillData: CreateSkillInput): Promise<string> => {
     const resumeId = await getResumeByUserId(userId);
     if (!resumeId) {
-        throw new Error("Навык не создан. Возможно, у пользователя нет резюме.");
+        throw new Error('Навык не создан. Возможно, у пользователя нет резюме.');
     }
     const query = `
         INSERT INTO skills (resume_id, skill_name, proficiency_level)
         VALUES ($1, $2, $3) RETURNING id;
         `;
 
-    const values = [
-        resumeId,
-        skillData.skill_name,
-        skillData.proficiency_level,
-    ];
+    const values = [resumeId, skillData.skill_name, skillData.proficiency_level];
 
     const result = await executeQuery(query, values);
     return result[0]?.id;
 };
-
 
 export const getSkillsUser = async (userId: string): Promise<Skill[]> => {
     const resumeId = await getResumeByUserId(userId);
@@ -33,23 +24,16 @@ export const getSkillsUser = async (userId: string): Promise<Skill[]> => {
     return await executeQuery(query, [resumeId]);
 };
 
-
-export const updateSkillUser = async (
-    userId: string,
-    skillId: string,
-    updates: UpdateSkillInput
-): Promise<void> => {
+export const updateSkillUser = async (userId: string, skillId: string, updates: UpdateSkillInput): Promise<void> => {
     const resumeId = await getResumeByUserId(userId);
 
-    const { query, values } = generateUpdateQueryWithConditions(
-        "skills",
-        updates,
-        { resume_id: resumeId, id: skillId }
-    );
+    const { query, values } = generateUpdateQueryWithConditions('skills', updates, {
+        resume_id: resumeId,
+        id: skillId,
+    });
 
     await executeQuery(query, values);
 };
-
 
 export const deleteSkillUser = async (userId: string, skillId: string): Promise<void> => {
     const resumeId = await getResumeByUserId(userId);

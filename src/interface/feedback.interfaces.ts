@@ -35,4 +35,4 @@ export interface FeedbackData {
 export interface FeedbackWithResponse {
     chatId: number;
     chatLinkHandle: ElementHandle | null;
-} 
+}

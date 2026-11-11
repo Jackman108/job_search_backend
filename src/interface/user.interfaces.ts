@@ -20,4 +20,4 @@ export interface ProfileData {
 export interface AvatarUploadParams {
     avatar: string;
     updateFields: UserProfileUpdateFields;
-} 
+}

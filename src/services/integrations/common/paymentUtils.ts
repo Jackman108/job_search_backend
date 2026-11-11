@@ -23,15 +23,15 @@ export const safeToString = (value: any, defaultValue: string = ''): string => {
  */
 export const mapNowPaymentsStatus = (nowpaymentsStatus: string): PaymentStatus => {
     const statusMap: Record<string, PaymentStatus> = {
-        'waiting': PaymentStatus.Pending,
-        'confirming': PaymentStatus.Processing,
-        'confirmed': PaymentStatus.OnHold,
-        'sending': PaymentStatus.Processing,
-        'partially_paid': PaymentStatus.OnHold,
-        'finished': PaymentStatus.Completed,
-        'failed': PaymentStatus.Failed,
-        'expired': PaymentStatus.Expired,
-        'refunded': PaymentStatus.Refunded
+        waiting: PaymentStatus.Pending,
+        confirming: PaymentStatus.Processing,
+        confirmed: PaymentStatus.OnHold,
+        sending: PaymentStatus.Processing,
+        partially_paid: PaymentStatus.OnHold,
+        finished: PaymentStatus.Completed,
+        failed: PaymentStatus.Failed,
+        expired: PaymentStatus.Expired,
+        refunded: PaymentStatus.Refunded,
     };
 
     return statusMap[nowpaymentsStatus.toLowerCase()] || PaymentStatus.Pending;
@@ -68,6 +68,8 @@ export const isValidUuid = (str: string): boolean => {
  */
 export const generateTransactionId = (prefix: string = 'TX'): string => {
     const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const random = Math.floor(Math.random() * 1000000)
+        .toString()
+        .padStart(6, '0');
     return `${prefix}-${timestamp}-${random}`;
-}; 
+};

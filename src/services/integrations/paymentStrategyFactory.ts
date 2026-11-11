@@ -14,7 +14,7 @@ import { logger } from '@utils';
 const registerStrategy = (
     strategyMap: Map<string, () => Promise<PaymentStrategy>>,
     method: PaymentMethod,
-    factoryFn: () => Promise<PaymentStrategy>
+    factoryFn: () => Promise<PaymentStrategy>,
 ): void => {
     strategyMap.set(method.toLowerCase(), factoryFn);
 };
@@ -69,10 +69,7 @@ export const createPaymentStrategyFactory = () => {
      * @param method Метод оплаты
      * @param factoryFn Функция создания стратегии
      */
-    const registerNewStrategy = (
-        method: string,
-        factoryFn: () => Promise<PaymentStrategy>
-    ): void => {
+    const registerNewStrategy = (method: string, factoryFn: () => Promise<PaymentStrategy>): void => {
         strategies.set(method.toLowerCase(), factoryFn);
         logger.info(`Registered new payment strategy: ${method}`);
     };
@@ -90,6 +87,6 @@ export const createPaymentStrategyFactory = () => {
         getStrategy,
         supportsMethod,
         registerNewStrategy,
-        getAvailableMethods
+        getAvailableMethods,
     };
-}; 
+};

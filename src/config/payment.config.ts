@@ -24,7 +24,7 @@ export const PAYMENT_CONFIG = {
         confirmationTimeout: parseInt(process.env.MOCK_PAYMENT_TIMEOUT || '60', 10),
 
         // Вероятность успешного платежа в режиме разработки (от 0 до 1)
-        successRate: parseFloat(process.env.MOCK_PAYMENT_SUCCESS_RATE || '0.9')
+        successRate: parseFloat(process.env.MOCK_PAYMENT_SUCCESS_RATE || '0.9'),
     },
 
     // Доступные платежные системы
@@ -33,24 +33,21 @@ export const PAYMENT_CONFIG = {
     // Настройки повторных попыток
     retry: {
         maxRetries: parseInt(process.env.PAYMENT_MAX_RETRIES || '3', 10),
-        retryDelay: parseInt(process.env.PAYMENT_RETRY_DELAY || '5000', 10) // в миллисекундах
+        retryDelay: parseInt(process.env.PAYMENT_RETRY_DELAY || '5000', 10), // в миллисекундах
     },
 
     // Настройки логирования платежей
     logging: {
         enabled: process.env.PAYMENT_LOGGING_ENABLED !== 'false',
         logWebhooks: process.env.PAYMENT_LOG_WEBHOOKS !== 'false',
-        logLevel: process.env.PAYMENT_LOG_LEVEL || 'info'
-    }
+        logLevel: process.env.PAYMENT_LOG_LEVEL || 'info',
+    },
 };
 
 /**
  * Список активных платежных методов
  */
-export const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
-    PaymentMethod.WebPay,
-    PaymentMethod.Crypto
-];
+export const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [PaymentMethod.WebPay, PaymentMethod.Crypto];
 
 /**
  * Проверяет, доступен ли указанный метод оплаты
@@ -59,8 +56,5 @@ export const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
  */
 export const isPaymentMethodAvailable = (method: string): boolean => {
     const methodLower = method.toLowerCase();
-    return AVAILABLE_PAYMENT_METHODS.some(m =>
-        m.toLowerCase() === methodLower
-    );
+    return AVAILABLE_PAYMENT_METHODS.some((m) => m.toLowerCase() === methodLower);
 };
-

@@ -66,4 +66,4 @@ export interface UpdateVacancySubmitData {
     search_field?: string;
     experience?: string;
     search_period?: string;
-} 
+}
