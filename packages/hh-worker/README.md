@@ -40,7 +40,7 @@ await processJob(jobId, deps);
 | Port           | Methods                                                | API adapter                                            |
 | -------------- | ------------------------------------------------------ | ------------------------------------------------------ |
 | `JobCounters`  | `incrementSpinCount`, `updateSuccessfulResponsesCount` | `@services` profile                                    |
-| `JobBroadcast` | `broadcast`                                            | `@server` WebSocket (process-local in detached worker) |
+| `JobBroadcast` | `broadcast`                                            | **noop for WS** (log-only); poll `GET /jobs/:jobId` is SoT |
 | `VacancyRepo`  | `saveVacancy`, `getVacanciesUser`                      | `@services` vacancy                                    |
 | `FeedbackRepo` | `saveChatFeedback`, `getChatFeedback`                  | `@services` feedback                                   |
 
@@ -71,6 +71,6 @@ Override deps factory: `HH_WORKER_DEPS_FACTORY=/absolute/path/to/createProcessJo
 
 Selectors stay in API `src/config` (`constants.config.ts`). Credentials come from the job payload / form — never from package source.
 
-**Leftover:** real message broker when file-queue outgrows (adapters still process-local WS).
+**Broadcast / live updates:** detached worker cannot reach the API WebSocket. `JobBroadcast` logs in-process; clients treat **`GET /jobs/:jobId` (+ refetch after settle)** as source of truth. No cross-process WS broker unless product needs live CAPTCHA/progress push later.
 
 See root `docs/ARCHITECTURE.md` and `OPEN-WORK.md`.
