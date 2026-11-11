@@ -79,8 +79,11 @@ export const getVacancySubmitByUserId = async (userId: string): Promise<VacancyS
     const query = `SELECT * FROM vacancy_submit WHERE user_id = $1;`;
     const result = await executeQuery<VacancySubmitData>(query, [userId]);
     // Empty list is a valid resource state — REST 200 + [].
+    // Do not cache empty: avoids stale [] after migrate/seed without process restart.
     const data = result || [];
-    setToCache(vacancySubmitCache, userId, data);
+    if (data.length > 0) {
+        setToCache(vacancySubmitCache, userId, data);
+    }
 
     return data;
 };
