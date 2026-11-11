@@ -8,6 +8,5 @@ export * from './enqueue.js';
 export * from './spawnWorker.js';
 export * from './cancelJobs.js';
 
-/** Detached runtime: bound processJob (package + API port adapters). */
+/** Thin composition root: wire @services / @server into hh-worker ports. */
 export * from './createProcessJobDeps.js';
-export * from './processJob.js';

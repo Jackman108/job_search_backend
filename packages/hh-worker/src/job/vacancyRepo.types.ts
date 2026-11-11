@@ -1,6 +1,6 @@
 /**
  * Narrow port so apply scenarios stay free of API `@services` vacancy persistence.
- * Wired by the API composition root (`createProcessJobDeps`).
+ * Wired by the API composition root (`createProcessJobDeps`; loaded by package CLI).
  */
 export interface VacancySaveRecord {
     id: number;

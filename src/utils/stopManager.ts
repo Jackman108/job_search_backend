@@ -1,8 +1,12 @@
-import { Browser } from 'puppeteer';
+/** Duck-typed browser surface — API utils stay free of puppeteer type imports. */
+export type StoppableBrowser = {
+    pages: () => Promise<Array<{ isClosed: () => boolean; close: () => Promise<void> }>>;
+    close: () => Promise<void>;
+};
 
 let shouldStop = false;
 
-export async function stop(browser: Browser) {
+export async function stop(browser?: StoppableBrowser | null) {
     shouldStop = true;
     if (browser) {
         try {

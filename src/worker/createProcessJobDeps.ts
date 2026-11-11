@@ -11,7 +11,8 @@ import {
 
 /**
  * API composition root: wire `@services` counters/persistence + `@server` broadcast
- * into hh-worker ports (scenarios must not import `@services` / `@server` directly).
+ * into hh-worker ports. Loaded by package CLI (`HH_WORKER_DEPS_FACTORY` override).
+ * Scenarios must not import `@services` / `@server` directly.
  */
 export function createProcessJobDeps(): ProcessJobDeps {
     return {

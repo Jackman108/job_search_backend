@@ -1,22 +1,24 @@
 # `@market-hunter/hh-worker`
 
-Dedicated package for the HeadHunter Puppeteer worker: public bin, scenario API, job file store, claim/`processJob`, and Puppeteer run scenarios.
+Dedicated package for the HeadHunter Puppeteer worker: public bin, scenario API, job file store, claim/`processJob`, detached CLI, and Puppeteer run scenarios.
 
 ## Crash isolation
 
-API always queues: writes `.hh-jobs/<id>.json`, spawns this package’s `bin/run.mjs` **detached**. Chrome/Puppeteer death kills the worker process only (`HH_WORKER_MODE=sync` removed).
+API always queues: writes `.hh-jobs/<id>.json`, spawns this package’s `bin/run.mjs` **detached**. Chrome/Puppeteer death kills the worker process only.
 
 Poll status: `GET /jobs/:jobId`. Stop: `POST /stop` cancels queued + tree-kills running PIDs.
 
 ## Layout
 
-| Path                        | Role                                                                |
-| --------------------------- | ------------------------------------------------------------------- |
-| `bin/run.mjs`               | Stable public entry (spawn target)                                  |
-| `src/index.ts`              | **Public API** — scenarios + job store + `processJob`               |
-| `src/job/`                  | File-backed `.hh-jobs` store, job types, claim/`processJob` + ports |
-| `src/run/`                  | Puppeteer scenarios (internal; `@run` only inside this tree)        |
-| `src/worker/` (API package) | Enqueue/spawn/cancel + thin `createProcessJobDeps` binder           |
+| Path                          | Role                                                                |
+| ----------------------------- | ------------------------------------------------------------------- |
+| `bin/run.mjs`                 | Stable public entry (spawn target)                                  |
+| `src/cli.ts`                  | Detached binder — loads deps factory, runs `processJob`             |
+| `src/loadProcessJobDeps.ts`   | Resolves injectable factory (`HH_WORKER_DEPS_FACTORY` or API root)  |
+| `src/index.ts`                | **Public API** — scenarios + job store + `processJob`               |
+| `src/job/`                    | File-backed `.hh-jobs` store, job types, claim/`processJob` + ports |
+| `src/run/`                    | Puppeteer scenarios (internal; `@run` only inside this tree)        |
+| API `src/worker/`             | Enqueue/spawn/cancel + thin `createProcessJobDeps` composition      |
 
 ## Ports (dependency inversion)
 
@@ -64,10 +66,11 @@ yarn worker -- <jobId>
 node packages/hh-worker/bin/run.mjs <jobId>
 ```
 
-Override spawn target: `HH_WORKER_ENTRY=/absolute/path/to/run.mjs`.
+Override spawn target: `HH_WORKER_ENTRY=/absolute/path/to/run.mjs`.  
+Override deps factory: `HH_WORKER_DEPS_FACTORY=/absolute/path/to/createProcessJobDeps.ts`.
 
 Selectors stay in API `src/config` (`constants.config.ts`). Credentials come from the job payload / form — never from package source.
 
-**Leftover:** real message broker when file-queue outgrows (adapters still process-local WS); CLI binder stays in API `src/worker` (needs `@services` adapters).
+**Leftover:** real message broker when file-queue outgrows (adapters still process-local WS).
 
 See root `docs/ARCHITECTURE.md` and `OPEN-WORK.md`.
