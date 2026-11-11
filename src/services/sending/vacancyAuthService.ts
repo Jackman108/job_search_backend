@@ -60,8 +60,11 @@ export const getVacancyAuthByUserId = async (userId: string): Promise<VacancyAut
     const query = `SELECT * FROM vacancy_auth WHERE user_id = $1;`;
     const result = await executeQuery<VacancyAuthData>(query, [userId]);
     // Empty list is a valid resource state — REST 200 + [].
+    // Do not cache empty: avoids stale [] after migrate/seed without process restart.
     const data = result || [];
-    setToCache(vacancyAuthCache, userId, data);
+    if (data.length > 0) {
+        setToCache(vacancyAuthCache, userId, data);
+    }
 
     return data;
 };
