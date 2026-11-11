@@ -25,7 +25,8 @@ const createNowPaymentsApi = (): INowPaymentsApi => {
     const ipnSecret = nowPaymentsConfig.ipnSecret;
 
     if (!apiKey) {
-        logger.error('NOWPayments API key is not configured');
+        // Local/dev often omits payments — warn, don't paint startup as a hard failure.
+        logger.warn('NOWPayments API key is not configured; crypto payment calls will fail until set');
     }
 
     // Создаем HTTP клиент с базовыми настройками
