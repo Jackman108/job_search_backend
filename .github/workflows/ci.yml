@@ -37,3 +37,27 @@ jobs:
 
       - name: Typecheck
         run: yarn typecheck
+
+  e2e-cross:
+    name: e2e cross (optional stack)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: lint-typecheck
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Cross-service smoke (skips if auth/backend not running)
+        run: yarn e2e
+        env:
+          AUTH_URL: http://localhost:8001/api
+          API_URL: http://localhost:8000
