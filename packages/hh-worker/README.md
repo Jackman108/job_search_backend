@@ -22,9 +22,16 @@ Poll status: `GET /jobs/:jobId`. Stop: `POST /stop` cancels queued + tree-kills 
 
 ```ts
 import { processJob } from '@market-hunter/hh-worker';
-import type { ProcessJobDeps, JobCounters, JobBroadcast } from '@market-hunter/hh-worker/job';
+import type {
+    ProcessJobDeps,
+    ScenarioDeps,
+    JobCounters,
+    JobBroadcast,
+    VacancyRepo,
+    FeedbackRepo,
+} from '@market-hunter/hh-worker/job';
 
-// API binder: createProcessJobDeps() → @services counters + @server broadcast
+// API binder: createProcessJobDeps() → @services + @server
 await processJob(jobId, deps);
 ```
 
@@ -32,6 +39,10 @@ await processJob(jobId, deps);
 |------|---------|-------------|
 | `JobCounters` | `incrementSpinCount`, `updateSuccessfulResponsesCount` | `@services` profile |
 | `JobBroadcast` | `broadcast` | `@server` WebSocket (process-local in detached worker) |
+| `VacancyRepo` | `saveVacancy`, `getVacanciesUser` | `@services` vacancy |
+| `FeedbackRepo` | `saveChatFeedback`, `getChatFeedback` | `@services` feedback |
+
+`ScenarioDeps` = `Pick<ProcessJobDeps, 'vacancyRepo' | 'feedbackRepo' | 'broadcast'>`.
 
 ## Imports
 
@@ -57,6 +68,6 @@ Override spawn target: `HH_WORKER_ENTRY=/absolute/path/to/run.mjs`.
 
 Selectors stay in API `src/config` (`constants.config.ts`). Credentials come from the job payload / form — never from package source.
 
-**Leftover:** scenario persistence still imports API `@services` (saveVacancy / feedback); real message broker when file-queue outgrows; worker `broadcast()` still process-local (clients poll `GET /jobs/:id`).
+**Leftover:** `authorize` / `initializeBrowser` / mid-apply CAPTCHA still import process-local `@server` `broadcast()` (inject via `ScenarioDeps.broadcast` next); real message broker when file-queue outgrows; CLI binder stays in API `src/worker` (needs `@services` adapters).
 
 See root `docs/ARCHITECTURE.md` and `OPEN-WORK.md`.

@@ -1,17 +1,21 @@
 import { HH_SCRAPE, TIMEOUTS } from '@config';
 import { FeedbackWithResponse, navigateAndProcessChats } from '@interface';
-import { getChatFeedback } from '@services';
 import { isStopped, stop } from '@utils';
 import { getChats } from './getChats.js';
 import { processChat } from './processChat.js';
 
-export async function navigateAndProcessChats({ userId, page, browser }: navigateAndProcessChats): Promise<void> {
+export async function navigateAndProcessChats({
+    userId,
+    page,
+    browser,
+    feedbackRepo,
+}: navigateAndProcessChats): Promise<void> {
     let currentPage = 0;
     let existingChatsIds: Set<number>;
     const totalPages = HH_SCRAPE.TOTAL_PAGES;
 
     try {
-        const ChatsFromDb = await getChatFeedback(userId);
+        const ChatsFromDb = await feedbackRepo.getChatFeedback(userId);
         existingChatsIds = new Set(ChatsFromDb.map((chat) => chat.id));
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
@@ -48,7 +52,7 @@ export async function navigateAndProcessChats({ userId, page, browser }: navigat
                 try {
                     existingChatsIds.add(chatId);
                     if (chatLinkHandle) {
-                        await processChat({ page, chatLinkHandle, chatId, userId });
+                        await processChat({ page, chatLinkHandle, chatId, userId, feedbackRepo });
                         chats = (await getChats(page)).filter(({ chatId }) => chatId && !existingChatsIds.has(chatId));
                     } else {
                         console.error(`Feedback response for ID ${chatId} is null.`);

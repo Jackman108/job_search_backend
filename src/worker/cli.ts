@@ -1,6 +1,6 @@
 /**
  * Detached HH worker claim loop (spawned by packages/hh-worker bin).
- * Package owns processJob; this process injects API counters + broadcast ports.
+ * Package owns processJob; this process injects API counters, persistence, and broadcast ports.
  * Prefer: yarn worker -- <jobId>  |  node packages/hh-worker/bin/run.mjs <jobId>
  */
 import { processJob } from './processJob.js';

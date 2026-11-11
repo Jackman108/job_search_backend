@@ -5,7 +5,7 @@ import { claimQueuedJob, readJob, updateJob } from './store.js';
 
 /**
  * Claim a queued HH job and run the matching scenario.
- * Counters + broadcast are injected — package must not import API internals.
+ * Counters, broadcast, and persistence are injected — package must not import API internals.
  */
 export async function processJob(id: string, deps: ProcessJobDeps): Promise<void> {
     const { counters, broadcast } = deps;
@@ -20,7 +20,7 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
 
     try {
         if (job.kind === 'sendFeedback') {
-            await sendFeedback(job.payload);
+            await sendFeedback(job.payload, { vacancyRepo: deps.vacancyRepo });
             await counters.incrementSpinCount(job.userId);
             await counters.updateSuccessfulResponsesCount(job.userId);
             // Don't overwrite a late cancel mark (rare; kill may race).
@@ -34,7 +34,7 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             });
             broadcast.broadcast(`HH job ${id} done (sendFeedback)`);
         } else {
-            await getFeedback(job.payload);
+            await getFeedback(job.payload, { feedbackRepo: deps.feedbackRepo });
             if (readJob(id)?.status === 'cancelled') {
                 return;
             }

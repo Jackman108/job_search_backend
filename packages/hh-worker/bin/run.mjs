@@ -5,7 +5,7 @@
  * stay out of the Express process.
  *
  * Owns: src/run/ (scenarios), src/job/ (store + processJob + ports).
- * Detached CLI (src/worker/cli.ts) injects API counters + broadcast ports.
+ * Detached CLI (src/worker/cli.ts) injects API counters, persistence, and broadcast ports.
  *
  * Usage: node packages/hh-worker/bin/run.mjs <jobId>
  *    or: yarn workspace @market-hunter/hh-worker start <jobId>

@@ -1,10 +1,15 @@
 // src/processVacancy.js
 import { SELECTORS_CHAT } from '@config';
 import { ProcessChatParams } from '@interface';
-import { saveChatFeedback } from '@services';
 import { extractFeedbackData, isStopped } from '@utils';
 
-export async function processChat({ page, chatLinkHandle, chatId, userId }: ProcessChatParams): Promise<void> {
+export async function processChat({
+    page,
+    chatLinkHandle,
+    chatId,
+    userId,
+    feedbackRepo,
+}: ProcessChatParams): Promise<void> {
     if (isStopped()) {
         console.log('Processing stopped before processing chat:', chatId);
         return;
@@ -51,6 +56,6 @@ export async function processChat({ page, chatLinkHandle, chatId, userId }: Proc
         feedback_time,
     });
 
-    await saveChatFeedback(newData, userId);
+    await feedbackRepo.saveChatFeedback(newData, userId);
     console.log(`The Chat with ID ${newData.id} is saved with flag ${newData.response_status}`);
 }

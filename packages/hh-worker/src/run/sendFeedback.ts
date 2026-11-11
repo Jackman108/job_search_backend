@@ -3,19 +3,16 @@ import * as dotenv from 'dotenv';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { ENV, ENV_BROWSER_CONFIG } from '@config';
 import { Counters, SendFeedbackParams } from '@interface';
+import type { VacancyRepo } from '../job/vacancyRepo.types.js';
 import { isStopped, stop } from '@utils';
 import { authorize, initializeBrowser, navigateAndProcessVacancies, searchForVacancy } from '@run';
 
 dotenv.config();
 
-export async function sendFeedback({
-    userId,
-    email,
-    password,
-    position,
-    message,
-    vacancyUrl,
-}: SendFeedbackParams): Promise<void> {
+export async function sendFeedback(
+    { userId, email, password, position, message, vacancyUrl }: SendFeedbackParams,
+    deps: { vacancyRepo: VacancyRepo },
+): Promise<void> {
     let browser: Browser | null = null;
     let page: Page | null = null;
 
@@ -45,7 +42,14 @@ export async function sendFeedback({
             return;
         }
 
-        await navigateAndProcessVacancies({ userId, page, counters, message, browser });
+        await navigateAndProcessVacancies({
+            userId,
+            page,
+            counters,
+            message,
+            browser,
+            vacancyRepo: deps.vacancyRepo,
+        });
         await page.screenshot({ path: 'screenshot-navigate.png' });
         console.log(`Total number of forms successfully submitted: ${counters.successfullySubmittedCount}`);
     } catch (err) {
