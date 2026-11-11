@@ -9,6 +9,7 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
 
 const isLogLevel = (value: string): value is LogLevel => value in LEVEL_ORDER;
 
+/** Resolve on each call so dotenv / LOG_LEVEL changes are not frozen at import time. */
 const resolveMinLevel = (): LogLevel => {
     const fromEnv = process.env.LOG_LEVEL?.toLowerCase();
     if (fromEnv && isLogLevel(fromEnv)) {
@@ -18,10 +19,8 @@ const resolveMinLevel = (): LogLevel => {
 };
 
 class Logger {
-    private static minLevel: LogLevel = resolveMinLevel();
-
     private static shouldLog(level: LogLevel): boolean {
-        return LEVEL_ORDER[level] >= LEVEL_ORDER[this.minLevel];
+        return LEVEL_ORDER[level] >= LEVEL_ORDER[resolveMinLevel()];
     }
 
     private static formatMessage(level: LogLevel, message: string, meta?: unknown): string {
@@ -30,15 +29,19 @@ class Logger {
         return `[${timestamp}] ${level.toUpperCase()}: ${message}${metaStr}`;
     }
 
+    /**
+     * Use console.log/warn/error (not info/debug): some Windows/Cursor terminals
+     * and redirected hosts drop or demote console.info/debug.
+     */
     static debug(message: string, meta?: unknown): void {
         if (this.shouldLog('debug')) {
-            console.debug(this.formatMessage('debug', message, meta));
+            console.log(this.formatMessage('debug', message, meta));
         }
     }
 
     static info(message: string, meta?: unknown): void {
         if (this.shouldLog('info')) {
-            console.info(this.formatMessage('info', message, meta));
+            console.log(this.formatMessage('info', message, meta));
         }
     }
 

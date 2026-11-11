@@ -4,6 +4,7 @@ import express from 'express';
 import fs from 'fs';
 import { URLS, BASE_PATHS } from '@config';
 import { InitializeMiddleware } from '@interface';
+import { requestLoggerMiddleware } from './requestLogger.middleware.js';
 
 const corsOptions: CorsOptions = {
     origin: URLS.domain,
@@ -15,6 +16,7 @@ const corsOptions: CorsOptions = {
 export const CorsMiddleware = (app: express.Application) => app.use(cors(corsOptions));
 
 export const initializeMiddleware: InitializeMiddleware = (app: express.Application) => {
+    app.use(requestLoggerMiddleware);
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     app.use(bodyParser.json({ limit: '10mb' }));
