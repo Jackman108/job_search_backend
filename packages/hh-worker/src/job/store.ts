@@ -4,7 +4,9 @@ import { randomUUID } from 'crypto';
 import type { GetFeedbackParams, SendFeedbackParams } from '@interface';
 import type { GetFeedbackJob, HhJob, SendFeedbackJob } from './types.js';
 
-const JOBS_DIR = path.resolve(process.cwd(), '.hh-jobs');
+const JOBS_DIR = process.env.HH_JOBS_DIR
+    ? path.resolve(process.env.HH_JOBS_DIR)
+    : path.resolve(process.cwd(), '.hh-jobs');
 
 function ensureDir(): void {
     if (!fs.existsSync(JOBS_DIR)) {

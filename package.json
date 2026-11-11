@@ -17,7 +17,8 @@
     "format": "prettier --write \"src/**/*.ts\" \"packages/hh-worker/src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"packages/hh-worker/src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"No unit tests yet — use typecheck/lint\" && exit 0",
+    "test": "node scripts/run-unit-tests.mjs",
+    "check:structure": "node scripts/check-structure.mjs",
     "smoke:health": "node scripts/smoke-health.mjs",
     "e2e": "node scripts/e2e-cross.mjs",
 

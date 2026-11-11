@@ -5,6 +5,7 @@ import {
     getFromCache,
     setToCache,
     checkTableExists,
+    asListResult,
 } from '@utils';
 import { UpdateVacancyAuthData, VacancyAuthData } from '@interface';
 
@@ -61,7 +62,7 @@ export const getVacancyAuthByUserId = async (userId: string): Promise<VacancyAut
     const result = await executeQuery<VacancyAuthData>(query, [userId]);
     // Empty list is a valid resource state — REST 200 + [].
     // Do not cache empty: avoids stale [] after migrate/seed without process restart.
-    const data = result || [];
+    const data = asListResult(result);
     if (data.length > 0) {
         setToCache(vacancyAuthCache, userId, data);
     }

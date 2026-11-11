@@ -38,6 +38,12 @@ jobs:
       - name: Typecheck
         run: yarn typecheck
 
+      - name: Unit tests
+        run: yarn test
+
+      - name: Structure (≤300 lines)
+        run: yarn check:structure
+
   e2e-cross:
     name: e2e cross (optional stack)
     runs-on: ubuntu-latest
