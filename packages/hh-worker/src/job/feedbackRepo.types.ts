@@ -1,6 +1,6 @@
 /**
  * Narrow port so chat scenarios stay free of API `@services` feedback persistence.
- * Wired by the API composition root (`createProcessJobDeps`).
+ * Wired by the API composition root (`createProcessJobDeps`; loaded by package CLI).
  */
 export interface FeedbackSaveRecord {
     id: number;

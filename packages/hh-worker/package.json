@@ -2,7 +2,7 @@
   "name": "@market-hunter/hh-worker",
   "version": "1.0.0",
   "private": true,
-  "description": "Detached HH Puppeteer worker — owns run scenarios, job store, processJob; crash-isolated queue mode",
+  "description": "Detached HH Puppeteer worker — owns run scenarios, job store, processJob, CLI; crash-isolated queue mode",
   "type": "module",
   "bin": {
     "hh-worker": "./bin/run.mjs"

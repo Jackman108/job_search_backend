@@ -12,7 +12,6 @@
     "start": "node -r tsconfig-paths/register dist/src/server.js",
     "dev": "tsx watch src/server.ts",
     "worker": "node packages/hh-worker/bin/run.mjs",
-    "worker:legacy": "tsx src/worker/cli.ts",
     "lint": "eslint \"src/**/*.ts\" \"packages/hh-worker/src/**/*.ts\" --max-warnings 50",
     "lint:fix": "eslint \"src/**/*.ts\" \"packages/hh-worker/src/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\" \"packages/hh-worker/src/**/*.ts\"",

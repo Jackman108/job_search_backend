@@ -1,17 +1,14 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { killProcessTree } from './killProcessTree.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** jobId → detached worker PID (API process only). */
 const workerPids = new Map<string, number>();
 
 /**
  * Resolve the detached worker entry.
- * Prefer `HH_WORKER_ENTRY`, then workspace package bin, then legacy `cli.ts` via tsx.
+ * Prefer `HH_WORKER_ENTRY`, then workspace package `bin/run.mjs`.
  */
 export function resolveWorkerSpawn(): { command: string; args: string[] } {
     const envEntry = process.env.HH_WORKER_ENTRY?.trim();
@@ -24,9 +21,7 @@ export function resolveWorkerSpawn(): { command: string; args: string[] } {
         return { command: process.execPath, args: [packageBin] };
     }
 
-    const tsxCli = path.resolve(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
-    const cli = path.join(__dirname, 'cli.ts');
-    return { command: process.execPath, args: [tsxCli, cli] };
+    throw new Error('HH worker entry not found: set HH_WORKER_ENTRY or ensure packages/hh-worker/bin/run.mjs exists');
 }
 
 /** Spawn a detached worker for one job (queue mode). */
