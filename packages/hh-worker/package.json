@@ -2,10 +2,14 @@
   "name": "@market-hunter/hh-worker",
   "version": "1.0.0",
   "private": true,
-  "description": "Detached HH Puppeteer worker entry — crash-isolated from the API when HH_WORKER_MODE=queue",
+  "description": "Detached HH Puppeteer worker — owns run scenarios + job store; crash-isolated when HH_WORKER_MODE=queue",
   "type": "module",
   "bin": {
     "hh-worker": "./bin/run.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./job": "./src/job/index.ts"
   },
   "scripts": {
     "start": "node ./bin/run.mjs"

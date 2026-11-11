@@ -1,4 +1,4 @@
-import { getFeedback, sendFeedback } from '@run';
+import { getFeedback, sendFeedback } from '@market-hunter/hh-worker';
 import { incrementSpinCount, updateSuccessfulResponsesCount } from '@services';
 import { claimQueuedJob, readJob, updateJob } from './jobStore.js';
 

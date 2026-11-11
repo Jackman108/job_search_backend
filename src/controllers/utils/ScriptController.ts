@@ -1,6 +1,5 @@
 import { Response } from 'express';
-import { getFeedback } from '@run';
-import { sendFeedback } from '@run';
+import { getFeedback, sendFeedback } from '@market-hunter/hh-worker';
 import { handleErrors } from '@middlewares';
 import { incrementSpinCount, updateSuccessfulResponsesCount } from '@services';
 import { stop } from '@utils';
