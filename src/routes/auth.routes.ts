@@ -68,5 +68,4 @@ export const initializeAuthRoutes = (app: express.Application) => {
      *         description: Не авторизован
      */
     registerRoute(app, 'delete', '/profile', ProfileController, 'deleteProfile');
-
-}; 
+};

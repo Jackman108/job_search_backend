@@ -12,4 +12,3 @@ export * from './crypto.config';
 
 // Настройки API
 export * from './swagger.config';
-

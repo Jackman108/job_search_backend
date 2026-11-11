@@ -8,11 +8,7 @@ import { authorize, navigateAndProcessChats, initializeBrowser } from '@run';
 
 dotenv.config();
 
-export async function getFeedback({
-    userId,
-    email,
-    password,
-}: GetFeedbackParams): Promise<void> {
+export async function getFeedback({ userId, email, password }: GetFeedbackParams): Promise<void> {
     let browser: Browser | null = null;
     let page: Page | null = null;
 
@@ -32,7 +28,6 @@ export async function getFeedback({
         }
 
         await navigateAndProcessChats({ userId, page, browser });
-
     } catch (err) {
         console.error('Error during script execution:', err);
     } finally {

@@ -11,15 +11,9 @@ import {
     normalizeDataForSignature,
     updatePaymentStatus,
     validateWebpaySignature,
-    verifyHmacSignature
+    verifyHmacSignature,
 } from '@integrations';
-import {
-    InitWebPayPaymentParams,
-    PaymentResult,
-    PaymentStatus,
-    WebpayInitResult,
-    WebPayStrategy
-} from '@interface';
+import { InitWebPayPaymentParams, PaymentResult, PaymentStatus, WebpayInitResult, WebPayStrategy } from '@interface';
 import { logger } from '@utils';
 
 /**
@@ -27,7 +21,6 @@ import { logger } from '@utils';
  * Реализует интерфейс PaymentStrategy
  */
 export const createWebPayStrategy = (): WebPayStrategy => {
-
     /**
      * Инициализирует платеж через WebPay
      * @param params Параметры платежа
@@ -43,7 +36,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         } catch (error) {
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
         }
     };
@@ -53,7 +46,9 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @param params Параметры платежа WebPay
      * @returns Результат инициализации платежа
      */
-    const initWebpayStrategyPayment = async (params: InitWebPayPaymentParams): Promise<PaymentResult<WebpayInitResult>> => {
+    const initWebpayStrategyPayment = async (
+        params: InitWebPayPaymentParams,
+    ): Promise<PaymentResult<WebpayInitResult>> => {
         try {
             logger.info('Initializing WebPay payment details', { params });
 
@@ -64,7 +59,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
             const formattedAmount = formatAmount(params.amount, {
                 decimals: 2,
                 asString: false,
-                multiplyBy: 1
+                multiplyBy: 1,
             }) as number;
 
             // Подготавливаем данные для подписи
@@ -72,13 +67,13 @@ export const createWebPayStrategy = (): WebPayStrategy => {
                 order_num: orderNum,
                 amount: formattedAmount,
                 currency: params.currency,
-                payment_id: params.paymentId
+                payment_id: params.paymentId,
             };
 
             // Нормализуем данные для подписи
             const normalizedData = normalizeDataForSignature(paymentData, {
                 sortKeys: true,
-                excludeEmpty: true
+                excludeEmpty: true,
             });
 
             // Вызов сервиса инициализации WebPay
@@ -86,7 +81,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
                 userId: params.userId,
                 paymentId: params.paymentId,
                 currency: params.currency,
-                amount: formattedAmount
+                amount: formattedAmount,
             });
 
             if (!result.success || !result.data) {
@@ -98,13 +93,13 @@ export const createWebPayStrategy = (): WebPayStrategy => {
                 data: {
                     wt: result.data.wt || '',
                     redirectUrl: result.data.redirectUrl,
-                    orderNum: orderNum
-                }
+                    orderNum: orderNum,
+                },
             };
         } catch (error) {
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
         }
     };
@@ -123,7 +118,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
 
         // Нормализуем данные для проверки подписи
         const normalizedData = normalizeDataForSignature(data, {
-            excludeKeys: ['signature', 'wsb_signature']
+            excludeKeys: ['signature', 'wsb_signature'],
         });
 
         // Проверяем подпись с использованием HMAC
@@ -135,11 +130,13 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @param params Параметры возврата
      * @returns URL для редиректа пользователя
      */
-    const handlePaymentCallback = async (params: { orderNum: string, transactionId: string }): Promise<PaymentResult<string>> => {
-
+    const handlePaymentCallback = async (params: {
+        orderNum: string;
+        transactionId: string;
+    }): Promise<PaymentResult<string>> => {
         return {
             success: true,
-            data: (await handleWebpayReturn(params.orderNum, params.transactionId)).data || ''
+            data: (await handleWebpayReturn(params.orderNum, params.transactionId)).data || '',
         };
     };
 
@@ -154,9 +151,8 @@ export const createWebPayStrategy = (): WebPayStrategy => {
 
         return {
             success: true,
-            data: `${FRONTEND_URL}/payment/success`
+            data: `${FRONTEND_URL}/payment/success`,
         };
-
     };
 
     /**
@@ -169,7 +165,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
 
         return {
             success: true,
-            data: `${FRONTEND_URL}/payment/cancel`
+            data: `${FRONTEND_URL}/payment/cancel`,
         };
     };
 
@@ -180,7 +176,6 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @returns Результат обработки вебхука
      */
     const processPaymentWebhook = async (data: any, signature: string): Promise<PaymentResult<boolean>> => {
-
         // Проверяем подпись вебхука
         if (!validatePaymentSignature(data, signature)) {
             logger.error('Invalid WebPay webhook signature', { data, signature });
@@ -195,7 +190,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
 
         return {
             success: true,
-            data: true
+            data: true,
         };
     };
 
@@ -209,10 +204,9 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         // Для примера вернем успешный статус
         return {
             success: true,
-            data: PaymentStatus.Completed
+            data: PaymentStatus.Completed,
         };
     };
-
 
     /**
      * Очищает платеж
@@ -224,7 +218,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         const result = await cleanupPendingCryptoPayment(paymentId);
         return {
             success: true,
-            data: result.data || false
+            data: result.data || false,
         };
     };
 
@@ -238,7 +232,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
 
         return {
             success: true,
-            data: { success: true }
+            data: { success: true },
         };
     };
 
@@ -252,7 +246,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
 
         return {
             success: true,
-            data: { id: paymentId, status: PaymentStatus.Completed }
+            data: { id: paymentId, status: PaymentStatus.Completed },
         };
     };
 
@@ -267,6 +261,6 @@ export const createWebPayStrategy = (): WebPayStrategy => {
         processPaymentWebhook,
         checkPaymentStatus,
         refundPayment,
-        getPaymentDetails
+        getPaymentDetails,
     };
-}
+};

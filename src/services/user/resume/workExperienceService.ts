@@ -6,7 +6,6 @@ export const getExperienceUser = async (userId: string): Promise<any[]> => {
     return await executeQuery(query, [resumeId]);
 };
 
-
 export const createExperienceUser = async (
     userId: string,
     experienceData: {
@@ -15,11 +14,11 @@ export const createExperienceUser = async (
         start_date: Date;
         end_date: Date;
         description: string;
-    }
+    },
 ): Promise<string> => {
     const resumeId = await getResumeByUserId(userId);
     if (!resumeId) {
-        throw new Error("Контакт не создан. Возможно, у пользователя нет резюме.");
+        throw new Error('Контакт не создан. Возможно, у пользователя нет резюме.');
     }
     const query = `
         INSERT INTO work_experience (resume_id, company_name, position, start_date, end_date, description)
@@ -38,7 +37,6 @@ export const createExperienceUser = async (
     return result[0].id;
 };
 
-
 export const updateExperienceUser = async (
     userId: string,
     experienceId: string,
@@ -49,17 +47,15 @@ export const updateExperienceUser = async (
         start_date: Date;
         end_date: Date;
         description?: string;
-    }
+    },
 ): Promise<void> => {
-    const { query, values } = generateUpdateQueryWithConditions(
-        "work_experience",
-        updates,
-        { resume_id: updates.resume_id, id: experienceId }
-    );
+    const { query, values } = generateUpdateQueryWithConditions('work_experience', updates, {
+        resume_id: updates.resume_id,
+        id: experienceId,
+    });
 
     await executeQuery(query, values);
 };
-
 
 export const deleteExperienceUser = async (userId: string, experienceId: string): Promise<void> => {
     const resumeId = await getResumeByUserId(userId);

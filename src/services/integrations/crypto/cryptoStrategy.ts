@@ -6,15 +6,9 @@ import {
     getCryptoPaymentById,
     initCryptoDirectPayment,
     processWebhook,
-    validateNowPaymentsSignature
+    validateNowPaymentsSignature,
 } from '@integrations';
-import {
-    CryptoPaymentDetails,
-    PaymentResult,
-    PaymentStatus,
-    PaymentStrategy,
-    RefundPaymentParams
-} from '@interface';
+import { CryptoPaymentDetails, PaymentResult, PaymentStatus, PaymentStrategy, RefundPaymentParams } from '@interface';
 
 /**
  * Создает стратегию для работы с криптоплатежами
@@ -35,12 +29,12 @@ export const createCryptoStrategy = (): PaymentStrategy => {
             const status = await checkUserCryptoPaymentStatus('', paymentId);
             return {
                 success: true,
-                data: status
+                data: status,
             };
         } catch (error) {
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
         }
     };
@@ -53,12 +47,12 @@ export const createCryptoStrategy = (): PaymentStrategy => {
             const details = await getCryptoPaymentById(paymentId);
             return {
                 success: true,
-                data: details
+                data: details,
             };
         } catch (error) {
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
         }
     };
@@ -85,7 +79,7 @@ export const createCryptoStrategy = (): PaymentStrategy => {
         // Необходимо ручное вмешательство администратора
         return {
             success: false,
-            error: 'Crypto payments do not support automatic refunds'
+            error: 'Crypto payments do not support automatic refunds',
         };
     };
 
@@ -95,7 +89,7 @@ export const createCryptoStrategy = (): PaymentStrategy => {
     const handlePaymentCallback = async (params: any): Promise<PaymentResult<string>> => {
         return {
             success: true,
-            data: ''
+            data: '',
         };
     };
 
@@ -107,9 +101,9 @@ export const createCryptoStrategy = (): PaymentStrategy => {
         processPaymentWebhook,
         validatePaymentSignature,
         refundPayment,
-        handlePaymentCallback
+        handlePaymentCallback,
     };
 };
 
 // Экспортируем экземпляр стратегии
-export const cryptoStrategy = createCryptoStrategy(); 
+export const cryptoStrategy = createCryptoStrategy();

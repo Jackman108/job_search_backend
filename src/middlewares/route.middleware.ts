@@ -16,10 +16,8 @@ export function registerRoute(
     }
 
     app[method](path, ...middlewares, (req: AuthenticatedRequest, res: Response) => {
-        const controllerInstance = typeof controller === 'function'
-            ? new controller()
-            : controller;
+        const controllerInstance = typeof controller === 'function' ? new controller() : controller;
 
         controllerInstance[action](req, res);
     });
-} 
+}

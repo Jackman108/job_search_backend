@@ -7,10 +7,7 @@ interface UpdateFields {
     [key: string]: any;
 }
 
-export const handleAvatarUpload = async (
-    avatar: string,
-    updateFields: UpdateFields
-): Promise<void> => {
+export const handleAvatarUpload = async (avatar: string, updateFields: UpdateFields): Promise<void> => {
     if (avatar.startsWith('data:image')) {
         const matches = avatar.match(/^data:(image\/[^;]+);base64,/);
         if (!matches) {

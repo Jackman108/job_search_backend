@@ -10,7 +10,7 @@ import {
     NowPaymentsCreateInvoiceResponse,
     NowPaymentsCreatePaymentResponse,
     NowPaymentsPaymentStatusResponse,
-    PaymentStatus
+    PaymentStatus,
 } from '@interface';
 import { logger } from '@utils';
 import axios from 'axios';
@@ -33,9 +33,9 @@ const createNowPaymentsApi = (): INowPaymentsApi => {
         baseURL: nowPaymentsConfig.baseUrl,
         headers: {
             'Content-Type': 'application/json',
-            'x-api-key': apiKey
+            'x-api-key': apiKey,
         },
-        timeout: 10000
+        timeout: 10000,
     });
 
     // Добавляем перехватчики для логирования
@@ -44,31 +44,31 @@ const createNowPaymentsApi = (): INowPaymentsApi => {
             logger.info('NOWPayments API request', {
                 method: config.method,
                 url: config.url,
-                data: config.data
+                data: config.data,
             });
             return config;
         },
         (error) => {
             logger.error('NOWPayments API request error', { error });
             return Promise.reject(error);
-        }
+        },
     );
 
     api.interceptors.response.use(
         (response) => {
             logger.info('NOWPayments API response', {
                 status: response.status,
-                data: response.data
+                data: response.data,
             });
             return response;
         },
         (error) => {
             logger.error('NOWPayments API response error', {
                 error: error.message,
-                response: error.response?.data
+                response: error.response?.data,
             });
             return Promise.reject(error);
-        }
+        },
     );
 
     /**
@@ -161,9 +161,9 @@ const createNowPaymentsApi = (): INowPaymentsApi => {
         createInvoice,
         getPaymentStatus,
         validateWebhookSignature,
-        mapPaymentStatus
+        mapPaymentStatus,
     };
 };
 
 // Создаем и экспортируем экземпляр API клиента
-export const nowpaymentsApi = createNowPaymentsApi(); 
+export const nowpaymentsApi = createNowPaymentsApi();

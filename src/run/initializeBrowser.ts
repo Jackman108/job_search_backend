@@ -7,14 +7,14 @@ export async function initializeBrowser(vacancyUrl: string, browser: Browser, pa
     try {
         reset();
         await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
-        await new Promise(resolve => setTimeout(resolve, TIMEOUTS.SHORT));
+        await new Promise((resolve) => setTimeout(resolve, TIMEOUTS.SHORT));
 
         await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
         console.log('Start script');
 
-        const cookieHandle = await page.waitForSelector(SELECTORS.COOKIE_ACCEPT,
-            { timeout: TIMEOUTS.SEARCH, visible: true }
-        ).catch(() => null);
+        const cookieHandle = await page
+            .waitForSelector(SELECTORS.COOKIE_ACCEPT, { timeout: TIMEOUTS.SEARCH, visible: true })
+            .catch(() => null);
 
         if (!cookieHandle) {
             broadcast('hh closed');

@@ -2,7 +2,6 @@ import { CreatePaymentParams, PaymentBase, PaymentStatus } from '@interface';
 import { getSubscriptionIdByUserId, withErrorHandling } from '@integrations';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
 
-
 /**
  * @module PaymentService
  * @description Базовый сервис для управления платежами
@@ -46,10 +45,7 @@ export const listPayments = async (userId: string): Promise<PaymentBase[]> => {
  * @param userId ID пользователя
  * @param paymentId ID платежа
  */
-export const getPayment = async (
-    userId: string,
-    paymentId: string
-): Promise<PaymentBase> => {
+export const getPayment = async (userId: string, paymentId: string): Promise<PaymentBase> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
     const query = `SELECT * FROM payments WHERE subscription_id = $1 AND id = $2;`;
     const result = await executeQuery<PaymentBase>(query, [subscriptionId, paymentId]);
@@ -61,9 +57,7 @@ export const getPayment = async (
  * Создание нового платежа
  * @param params Параметры для создания платежа
  */
-export const createPayment = async (
-    params: CreatePaymentParams
-): Promise<PaymentBase> => {
+export const createPayment = async (params: CreatePaymentParams): Promise<PaymentBase> => {
     const { userId, amount, payment_method, subscription_id } = params;
 
     // Проверяем, что хотя бы один из userId или subscription_id определен
@@ -79,12 +73,7 @@ export const createPayment = async (
         VALUES ($1, $2, $3, $4)
         RETURNING *;
     `;
-    const values = [
-        actualSubscriptionId,
-        amount,
-        PaymentStatus.Pending,
-        payment_method || 'webpay'
-    ];
+    const values = [actualSubscriptionId, amount, PaymentStatus.Pending, payment_method || 'webpay'];
     const [created] = await executeQuery<PaymentBase>(query, values);
     return created;
 };
@@ -98,22 +87,19 @@ export const createPayment = async (
 export const updatePayment = async (
     userId: string,
     paymentId: string,
-    updates: Partial<PaymentBase>
+    updates: Partial<PaymentBase>,
 ): Promise<PaymentBase> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
 
     const { query, values } = generateUpdateQueryWithConditions(
         'payments',
         { ...updates, updated_at: new Date() },
-        { subscription_id: subscriptionId, id: paymentId }
+        { subscription_id: subscriptionId, id: paymentId },
     );
     await executeQuery(query, values);
 
     // Возвращаем обновлённую запись
-    const [updated] = await executeQuery<PaymentBase>(
-        `SELECT * FROM payments WHERE id = $1;`,
-        [paymentId]
-    );
+    const [updated] = await executeQuery<PaymentBase>(`SELECT * FROM payments WHERE id = $1;`, [paymentId]);
     return updated;
 };
 
@@ -122,23 +108,14 @@ export const updatePayment = async (
  * @param userId ID пользователя
  * @param paymentId ID платежа
  */
-export const deletePayment = async (
-    userId: string,
-    paymentId: string
-): Promise<void> => {
+export const deletePayment = async (userId: string, paymentId: string): Promise<void> => {
     const subscriptionId = await getSubscriptionIdByUserId(userId);
 
     // Сначала удаляем связанные записи в crypto_payments и webpay_payments
     // Эти таблицы имеют внешний ключ на payments(id)
-    await executeQuery(
-        `DELETE FROM crypto_payments WHERE payment_id = $1;`,
-        [paymentId]
-    );
+    await executeQuery(`DELETE FROM crypto_payments WHERE payment_id = $1;`, [paymentId]);
 
-    await executeQuery(
-        `DELETE FROM webpay_payments WHERE payment_id = $1;`,
-        [paymentId]
-    );
+    await executeQuery(`DELETE FROM webpay_payments WHERE payment_id = $1;`, [paymentId]);
 
     // Затем удаляем запись в основной таблице payments
     const query = `DELETE FROM payments WHERE subscription_id = $1 AND id = $2;`;
@@ -182,5 +159,5 @@ export const safePaymentOperations = {
         return withErrorHandling(async () => {
             await deletePayment(userId, paymentId);
         });
-    }
+    },
 };

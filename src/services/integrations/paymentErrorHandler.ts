@@ -2,11 +2,7 @@
  * Обработчик ошибок для платежных интеграций
  * Предоставляет структурированный подход к обработке ошибок платежных систем
  */
-import {
-    PaymentErrorDetails,
-    PaymentErrorType,
-    PaymentResult
-} from '@interface';
+import { PaymentErrorDetails, PaymentErrorType, PaymentResult } from '@interface';
 import { logger } from '@utils';
 import { paymentMonitoring } from '@integrations';
 
@@ -20,7 +16,7 @@ import { paymentMonitoring } from '@integrations';
 export const createPaymentError = <T>(
     error: any,
     customMessage: string = 'Ошибка платежной операции',
-    paymentId?: string
+    paymentId?: string,
 ): PaymentResult<T> => {
     // Определяем тип ошибки и дополнительные данные
     const errorDetails = analyzePaymentError(error);
@@ -33,7 +29,7 @@ export const createPaymentError = <T>(
         type: errorDetails.type,
         code: errorDetails.code,
         context: errorDetails.context,
-        originalError: error
+        originalError: error,
     });
 
     // Регистрируем ошибку в мониторинге, если известен ID платежа
@@ -50,8 +46,8 @@ export const createPaymentError = <T>(
         details: {
             recoverable: errorDetails.recoverable,
             retryable: errorDetails.retryable,
-            context: errorDetails.context
-        }
+            context: errorDetails.context,
+        },
     };
 };
 
@@ -71,7 +67,7 @@ export const analyzePaymentError = (error: any): PaymentErrorDetails => {
         message: '',
         type: PaymentErrorType.Unknown,
         recoverable: false,
-        retryable: false
+        retryable: false,
     };
 
     // Если это Error или строка, получаем сообщение
@@ -110,12 +106,14 @@ export const analyzePaymentError = (error: any): PaymentErrorDetails => {
  * @returns true, если объект является структурой данных ошибки платежа
  */
 const isPaymentErrorDetails = (obj: any): obj is PaymentErrorDetails => {
-    return obj &&
+    return (
+        obj &&
         typeof obj === 'object' &&
         typeof obj.message === 'string' &&
         typeof obj.type === 'string' &&
         typeof obj.recoverable === 'boolean' &&
-        typeof obj.retryable === 'boolean';
+        typeof obj.retryable === 'boolean'
+    );
 };
 
 /**
@@ -161,15 +159,28 @@ const detectErrorTypeFromMessage = (message: string): PaymentErrorType => {
         return PaymentErrorType.Network;
     } else if (messageLower.includes('timeout') || messageLower.includes('timed out')) {
         return PaymentErrorType.Timeout;
-    } else if (messageLower.includes('auth') || messageLower.includes('token') || messageLower.includes('key') || messageLower.includes('unauthorized')) {
+    } else if (
+        messageLower.includes('auth') ||
+        messageLower.includes('token') ||
+        messageLower.includes('key') ||
+        messageLower.includes('unauthorized')
+    ) {
         return PaymentErrorType.Authentication;
-    } else if (messageLower.includes('validate') || messageLower.includes('invalid') || messageLower.includes('required')) {
+    } else if (
+        messageLower.includes('validate') ||
+        messageLower.includes('invalid') ||
+        messageLower.includes('required')
+    ) {
         return PaymentErrorType.Validation;
     } else if (messageLower.includes('rate') || messageLower.includes('limit') || messageLower.includes('too many')) {
         return PaymentErrorType.RateLimit;
     } else if (messageLower.includes('server') || messageLower.includes('internal')) {
         return PaymentErrorType.ServerError;
-    } else if (messageLower.includes('funds') || messageLower.includes('balance') || messageLower.includes('insufficient')) {
+    } else if (
+        messageLower.includes('funds') ||
+        messageLower.includes('balance') ||
+        messageLower.includes('insufficient')
+    ) {
         return PaymentErrorType.InsufficientFunds;
     } else if (messageLower.includes('duplicate') || messageLower.includes('already')) {
         return PaymentErrorType.Duplicate;
@@ -191,7 +202,7 @@ const isRecoverableError = (errorType: PaymentErrorType): boolean => {
         PaymentErrorType.Network,
         PaymentErrorType.RateLimit,
         PaymentErrorType.ServerError,
-        PaymentErrorType.Timeout
+        PaymentErrorType.Timeout,
     ];
 
     return recoverableErrors.includes(errorType);
@@ -208,8 +219,8 @@ const isRetryableError = (errorType: PaymentErrorType): boolean => {
         PaymentErrorType.Network,
         PaymentErrorType.RateLimit,
         PaymentErrorType.ServerError,
-        PaymentErrorType.Timeout
+        PaymentErrorType.Timeout,
     ];
 
     return retryableErrors.includes(errorType);
-}; 
+};

@@ -2,13 +2,7 @@
  * Контекст для реализации паттерна Стратегия платежей
  * Позволяет динамически переключаться между разными платежными системами
  */
-import {
-    PaymentResult,
-    PaymentStatus,
-    PaymentStrategy,
-    PaymentStrategyContext,
-    RefundPaymentParams
-} from '@interface';
+import { PaymentResult, PaymentStatus, PaymentStrategy, PaymentStrategyContext, RefundPaymentParams } from '@interface';
 import { logger } from '@utils';
 
 /**
@@ -39,7 +33,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             logger.error('Payment strategy not set');
             return {
                 success: false,
-                error: 'Payment strategy not set'
+                error: 'Payment strategy not set',
             };
         }
 
@@ -50,7 +44,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             logger.error('Error executing payment strategy', { error });
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
         }
     };
@@ -66,7 +60,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             logger.error('Payment strategy not set for webhook validation');
             return {
                 success: false,
-                error: 'Payment strategy not set'
+                error: 'Payment strategy not set',
             };
         }
 
@@ -77,7 +71,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             logger.error('Error processing webhook', { error });
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
         }
     };
@@ -92,7 +86,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             logger.error('Payment strategy not set for status check');
             return {
                 success: false,
-                error: 'Payment strategy not set'
+                error: 'Payment strategy not set',
             };
         }
 
@@ -103,7 +97,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             logger.error('Error checking payment status', { error });
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
         }
     };
@@ -118,7 +112,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             logger.error('Payment strategy not set for refund operation');
             return {
                 success: false,
-                error: 'Payment strategy not set'
+                error: 'Payment strategy not set',
             };
         }
 
@@ -130,7 +124,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',
-                errorCode: 'REFUND_ERROR'
+                errorCode: 'REFUND_ERROR',
             };
         }
     };
@@ -145,7 +139,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             logger.error('Payment strategy not set for getting payment details');
             return {
                 success: false,
-                error: 'Payment strategy not set'
+                error: 'Payment strategy not set',
             };
         }
 
@@ -157,7 +151,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',
-                errorCode: 'DETAILS_ERROR'
+                errorCode: 'DETAILS_ERROR',
             };
         }
     };
@@ -170,6 +164,6 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
         validateWebhook,
         checkStatus,
         refundPayment,
-        getPaymentDetails
+        getPaymentDetails,
     };
-}; 
+};

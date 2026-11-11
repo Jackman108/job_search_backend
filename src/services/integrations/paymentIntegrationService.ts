@@ -2,10 +2,7 @@
  * Интеграционный сервис для работы с платежами
  * Использует паттерн стратегии для переключения между разными платежными системами
  */
-import {
-    createPaymentError,
-    createPaymentStrategyContext
-} from '@integrations';
+import { createPaymentError, createPaymentStrategyContext } from '@integrations';
 import {
     CryptoPaymentDetails,
     InitCryptoPaymentParams,
@@ -14,13 +11,10 @@ import {
     PaymentResult,
     PaymentStatus,
     RefundPaymentParams,
-    WebpayInitResult
+    WebpayInitResult,
 } from '@interface';
 import { logger } from '@utils';
 import { createPaymentStrategyFactory } from './paymentStrategyFactory.js';
-
-
-
 
 // Создаем фабрику стратегий и контекст
 const paymentStrategyFactory = createPaymentStrategyFactory();
@@ -35,14 +29,14 @@ const paymentContext = createPaymentStrategyContext();
 const executePaymentWithStrategy = async <T>(
     strategyType: string,
     params: any,
-    logLabel: string
+    logLabel: string,
 ): Promise<PaymentResult<T>> => {
     try {
         // Проверяем поддержку метода оплаты
         if (!paymentStrategyFactory.supportsMethod(strategyType)) {
             return {
                 success: false,
-                error: `Unsupported payment method: ${strategyType}`
+                error: `Unsupported payment method: ${strategyType}`,
             };
         }
 
@@ -53,7 +47,7 @@ const executePaymentWithStrategy = async <T>(
         paymentContext.setStrategy(strategy);
 
         // Выполняем платеж через контекст
-        return await paymentContext.executePayment(params) as PaymentResult<T>;
+        return (await paymentContext.executePayment(params)) as PaymentResult<T>;
     } catch (error) {
         return createPaymentError<T>(error, `Error initializing ${logLabel} payment`);
     }
@@ -65,20 +59,20 @@ const executePaymentWithStrategy = async <T>(
  * @returns Результат инициализации платежа
  */
 export const initializeWebpayPayment = async (
-    params: InitWebPayPaymentParams
+    params: InitWebPayPaymentParams,
 ): Promise<PaymentResult<WebpayInitResult>> => {
     // Проверяем обязательные параметры
     if (!params.paymentId) {
         return {
             success: false,
-            error: 'Payment ID is required'
+            error: 'Payment ID is required',
         };
     }
 
     if (!params.amount || params.amount <= 0) {
         return {
             success: false,
-            error: 'Valid amount is required'
+            error: 'Valid amount is required',
         };
     }
 
@@ -91,20 +85,20 @@ export const initializeWebpayPayment = async (
  * @returns Результат инициализации криптоплатежа
  */
 export const initializeCryptoPayment = async (
-    params: InitCryptoPaymentParams
+    params: InitCryptoPaymentParams,
 ): Promise<PaymentResult<CryptoPaymentDetails>> => {
     // Проверяем обязательные параметры
     if (!params.paymentId) {
         return {
             success: false,
-            error: 'Payment ID is required'
+            error: 'Payment ID is required',
         };
     }
 
     if (!params.amount || params.amount <= 0) {
         return {
             success: false,
-            error: 'Valid amount is required'
+            error: 'Valid amount is required',
         };
     }
 
@@ -121,7 +115,7 @@ export const initializeCryptoPayment = async (
 export const processPaymentWebhook = async (
     paymentMethod: string,
     data: any,
-    signature: string
+    signature: string,
 ): Promise<PaymentResult<boolean>> => {
     try {
         logger.info('Processing payment webhook', { paymentMethod, data });
@@ -130,7 +124,7 @@ export const processPaymentWebhook = async (
         if (!data) {
             return {
                 success: false,
-                error: 'Empty webhook data'
+                error: 'Empty webhook data',
             };
         }
 
@@ -138,7 +132,7 @@ export const processPaymentWebhook = async (
         if (!paymentStrategyFactory.supportsMethod(paymentMethod)) {
             return {
                 success: false,
-                error: `Unsupported payment method: ${paymentMethod}`
+                error: `Unsupported payment method: ${paymentMethod}`,
             };
         }
 
@@ -161,7 +155,7 @@ export const processPaymentWebhook = async (
  */
 export const checkPaymentStatus = async (
     paymentMethod: string,
-    paymentId: string
+    paymentId: string,
 ): Promise<PaymentResult<PaymentStatus>> => {
     try {
         logger.info('Checking payment status', { paymentMethod, paymentId });
@@ -170,7 +164,7 @@ export const checkPaymentStatus = async (
         if (!paymentId) {
             return {
                 success: false,
-                error: 'Payment ID is required'
+                error: 'Payment ID is required',
             };
         }
 
@@ -178,7 +172,7 @@ export const checkPaymentStatus = async (
         if (!paymentStrategyFactory.supportsMethod(paymentMethod)) {
             return {
                 success: false,
-                error: `Unsupported payment method: ${paymentMethod}`
+                error: `Unsupported payment method: ${paymentMethod}`,
             };
         }
 
@@ -201,7 +195,7 @@ export const checkPaymentStatus = async (
  */
 export const refundPayment = async (
     paymentMethod: string,
-    params: RefundPaymentParams
+    params: RefundPaymentParams,
 ): Promise<PaymentResult<any>> => {
     try {
         logger.info('Processing refund', { paymentMethod, params });
@@ -210,7 +204,7 @@ export const refundPayment = async (
         if (!params.paymentId) {
             return {
                 success: false,
-                error: 'Payment ID is required for refund'
+                error: 'Payment ID is required for refund',
             };
         }
 
@@ -218,7 +212,7 @@ export const refundPayment = async (
         if (!paymentStrategyFactory.supportsMethod(paymentMethod)) {
             return {
                 success: false,
-                error: `Unsupported payment method: ${paymentMethod}`
+                error: `Unsupported payment method: ${paymentMethod}`,
             };
         }
 
@@ -239,10 +233,7 @@ export const refundPayment = async (
  * @param paymentId ID платежа
  * @returns Детальная информация о платеже
  */
-export const getPaymentDetails = async (
-    paymentMethod: string,
-    paymentId: string
-): Promise<PaymentResult<any>> => {
+export const getPaymentDetails = async (paymentMethod: string, paymentId: string): Promise<PaymentResult<any>> => {
     try {
         logger.info('Getting payment details', { paymentMethod, paymentId });
 
@@ -250,7 +241,7 @@ export const getPaymentDetails = async (
         if (!paymentId) {
             return {
                 success: false,
-                error: 'Payment ID is required'
+                error: 'Payment ID is required',
             };
         }
 
@@ -258,7 +249,7 @@ export const getPaymentDetails = async (
         if (!paymentStrategyFactory.supportsMethod(paymentMethod)) {
             return {
                 success: false,
-                error: `Unsupported payment method: ${paymentMethod}`
+                error: `Unsupported payment method: ${paymentMethod}`,
             };
         }
 
@@ -279,4 +270,4 @@ export const getPaymentDetails = async (
  */
 export const getAvailablePaymentMethods = (): string[] => {
     return paymentStrategyFactory.getAvailableMethods();
-}; 
+};

@@ -5,7 +5,6 @@ import { AuthenticatedRequest } from '@interface';
 import { handleErrors } from '@middlewares';
 
 export class FeedbackController {
-
     async deleteFeedbackTable(req: AuthenticatedRequest, res: Response) {
         try {
             await deleteFeedbackTable(req.userId!);
@@ -18,7 +17,9 @@ export class FeedbackController {
     async getFeedback(req: AuthenticatedRequest, res: Response) {
         try {
             const feedbacks = await getChatFeedback(req.userId!);
-            res.status(feedbacks.length ? 200 : 404).json(feedbacks.length ? feedbacks : { message: 'No feedback found.' });
+            res.status(feedbacks.length ? 200 : 404).json(
+                feedbacks.length ? feedbacks : { message: 'No feedback found.' },
+            );
         } catch (error) {
             handleErrors(res, error, 'Error retrieving feedback.');
         }

@@ -132,4 +132,4 @@ export const initializeSubscriptionRoutes = (app: express.Application) => {
      *         description: Подписка не найдена
      */
     registerRoute(app, 'delete', '/subscription/:id', SubscriptionController, 'deleteSubscription');
-}; 
+};

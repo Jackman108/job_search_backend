@@ -1,9 +1,8 @@
 import { ExtractChatDataParams, ExtractFeedbackData, FeedbackData } from '../interface/index.js';
 
-export async function extractChatId({ chatUrl }: ExtractChatDataParams): Promise<{ chatId: number; }> {
+export async function extractChatId({ chatUrl }: ExtractChatDataParams): Promise<{ chatId: number }> {
     const chatId = Number(chatUrl.match(/\/chat\/(\d+)/)?.[1]) || 0;
     return { chatId };
-
 }
 
 export async function extractFeedbackData({
@@ -12,9 +11,8 @@ export async function extractFeedbackData({
     response_status,
     feedback_text,
     feedback_date,
-    feedback_time
+    feedback_time,
 }: ExtractFeedbackData): Promise<FeedbackData> {
-
     if (!feedback_date || !feedback_time) {
         console.error('Invalid feedback date or time:', feedback_date, feedback_time);
         throw new Error('Feedback date or time is missing');
@@ -35,9 +33,7 @@ export async function extractFeedbackData({
         feedback_date: feedbackDate,
         response_status: status,
     };
-
 }
-
 
 function parseDate(feedbackDate: string | undefined, feedbackTime: string | undefined): Date {
     const now = new Date();
@@ -65,7 +61,20 @@ function parseDate(feedbackDate: string | undefined, feedbackTime: string | unde
     }
 
     const [day, monthName] = feedbackDate.split(' ');
-    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const months = [
+        'января',
+        'февраля',
+        'марта',
+        'апреля',
+        'мая',
+        'июня',
+        'июля',
+        'августа',
+        'сентября',
+        'октября',
+        'ноября',
+        'декабря',
+    ];
     const month = months.indexOf(monthName.toLowerCase());
 
     return new Date(now.getFullYear(), month, Number(day), hours, minutes);

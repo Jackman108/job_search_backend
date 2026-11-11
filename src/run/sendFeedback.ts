@@ -14,14 +14,14 @@ export async function sendFeedback({
     password,
     position,
     message,
-    vacancyUrl
+    vacancyUrl,
 }: SendFeedbackParams): Promise<void> {
     let browser: Browser | null = null;
     let page: Page | null = null;
 
     const counters: Counters = {
         successfullySubmittedCount: 0,
-        unsuccessfullySubmittedCount: 0
+        unsuccessfullySubmittedCount: 0,
     };
 
     try {
@@ -48,7 +48,6 @@ export async function sendFeedback({
         await navigateAndProcessVacancies({ userId, page, counters, message, browser });
         await page.screenshot({ path: 'screenshot-navigate.png' });
         console.log(`Total number of forms successfully submitted: ${counters.successfullySubmittedCount}`);
-
     } catch (err) {
         console.error('Error during script execution:', err);
     } finally {

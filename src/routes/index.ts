@@ -30,4 +30,4 @@ export const initializeRoutes = (app: express.Application) => {
 
     // Инициализация интеграционных маршрутов
     initializeIntegrationRoutes(app);
-}; 
+};

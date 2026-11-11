@@ -25,4 +25,4 @@ export const initializeMiddleware: InitializeMiddleware = (app: express.Applicat
     if (!fs.existsSync(BASE_PATHS.uploads)) {
         fs.mkdirSync(BASE_PATHS.uploads);
     }
-}; 
+};

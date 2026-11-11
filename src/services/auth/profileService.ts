@@ -17,7 +17,6 @@ async function createUserProfile(userId: string): Promise<void> {
     broadcast(`Profile has been successfully created for user ${userId}`);
 }
 
-
 export async function getUserProfile(userId: string): Promise<ProfileData> {
     const userIdStr = userId.toString();
 
@@ -37,28 +36,18 @@ export async function getUserProfile(userId: string): Promise<ProfileData> {
     return userProfile;
 }
 
-
-export async function updateUserProfile(
-    profileData: UserProfileUpdateFields,
-    user_id: string): Promise<void> {
-    const { query, values } = generateUpdateQuery(
-        "profiles",
-        profileData,
-        "user_id",
-        user_id
-    );
+export async function updateUserProfile(profileData: UserProfileUpdateFields, user_id: string): Promise<void> {
+    const { query, values } = generateUpdateQuery('profiles', profileData, 'user_id', user_id);
     const result = await executeQuery(query, values);
     invalidateUserProfileCache(user_id);
     return result[0];
 }
-
 
 export async function deleteUserProfile(userId: string): Promise<void> {
     const query = `DELETE FROM profiles WHERE user_id = $1`;
     await executeQuery(query, [userId]);
     invalidateUserProfileCache(userId);
 }
-
 
 export async function incrementSpinCount(userId: string): Promise<void> {
     const query = `
@@ -69,7 +58,6 @@ export async function incrementSpinCount(userId: string): Promise<void> {
 
     await executeQuery(query, [userId]);
 }
-
 
 export async function updateSuccessfulResponsesCount(userId: string): Promise<void> {
     const tableName = `"${userId}_vacancy"`;

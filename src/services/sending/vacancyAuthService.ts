@@ -5,7 +5,7 @@ const vacancyAuthCache = new Map<string, VacancyAuthData[]>();
 
 export const createVacancyAuth = async (
     userId: string,
-    authData: Omit<VacancyAuthData, "id" | "userId" | "createdAt" | "updatedAt">
+    authData: Omit<VacancyAuthData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
 ): Promise<string> => {
     const query = `
         INSERT INTO vacancy_auth ( user_id, email, password)
@@ -34,14 +34,11 @@ export const getVacancyAuthByUserId = async (userId: string): Promise<VacancyAut
     return data;
 };
 
-export const updateVacancyAuth = async (
-    userId: string,
-    updates: UpdateVacancyAuthData
-): Promise<void> => {
-    const { query, values } = generateUpdateQueryWithConditions(
-        "vacancy_auth",
-        updates,
-        { user_id: userId, id: updates.id })
+export const updateVacancyAuth = async (userId: string, updates: UpdateVacancyAuthData): Promise<void> => {
+    const { query, values } = generateUpdateQueryWithConditions('vacancy_auth', updates, {
+        user_id: userId,
+        id: updates.id,
+    });
 
     await executeQuery(query, values);
 

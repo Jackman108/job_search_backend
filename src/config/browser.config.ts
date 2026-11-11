@@ -33,4 +33,4 @@ export const ENV_BROWSER_CONFIG: Record<Environment, typeof BROWSER_CONFIG> = {
         ...BROWSER_CONFIG,
         headless: true,
     },
-}; 
+};

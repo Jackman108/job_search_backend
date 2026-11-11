@@ -15,7 +15,7 @@ export const mockCryptoResponse = {
     expires_at: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
     network: 'BTC',
     transaction_hash: null,
-    wallet_provider: 'mock'
+    wallet_provider: 'mock',
 };
 
 /**
@@ -25,13 +25,13 @@ export const SUPPORTED_CRYPTO_NETWORKS = [
     { value: 'BTC', label: 'Bitcoin' },
     { value: 'ETH', label: 'Ethereum' },
     { value: 'USDT', label: 'Tether USD' },
-    { value: 'BNB', label: 'Binance Coin' }
+    { value: 'BNB', label: 'Binance Coin' },
 ];
 
 /**
  * Моковые данные методов оплаты криптовалютой
  */
-export const mockCryptoPaymentMethods = SUPPORTED_CRYPTO_NETWORKS.map(network => ({
+export const mockCryptoPaymentMethods = SUPPORTED_CRYPTO_NETWORKS.map((network) => ({
     id: network.value,
     name: network.label,
     icon: `/assets/crypto/${network.value.toLowerCase()}.svg`,
@@ -39,5 +39,5 @@ export const mockCryptoPaymentMethods = SUPPORTED_CRYPTO_NETWORKS.map(network =>
     maxAmount: 1.0,
     fee: 0.0001,
     processingTime: '10-30 minutes',
-    confirmations: network.value === 'BTC' ? 3 : 12
-})); 
+    confirmations: network.value === 'BTC' ? 3 : 12,
+}));

@@ -6,21 +6,18 @@ import {
     nowpaymentsApi,
     updatePaymentStatuses,
     validateNowPaymentsSignature,
-    withErrorHandling
+    withErrorHandling,
 } from '@integrations';
 import {
     CryptoPaymentData,
     CryptoPaymentDetails,
     InitCryptoPaymentParams,
     PaymentResult,
-    PaymentStatus
+    PaymentStatus,
 } from '@interface';
-import {
-    createCryptoPayment
-} from '@services';
+import { createCryptoPayment } from '@services';
 import { executeQuery, logger } from '@utils';
 import { mockCryptoResponse } from '../../../mock/mockCryptoResponse';
-
 
 /**
  * @module CryptoIntegrationService
@@ -30,7 +27,6 @@ import { mockCryptoResponse } from '../../../mock/mockCryptoResponse';
  * - Обработки вебхуков от провайдера
  * - Проверки статуса платежей
  */
-
 
 /**
  * Проверяет статус платежа у провайдера и обновляет записи
@@ -65,10 +61,7 @@ const handleMockPaymentStatus = async (paymentId: string): Promise<PaymentStatus
     logger.info('Using mock crypto payment status in development mode');
 
     // Проверяем, прошла ли 1 минута с момента создания платежа
-    const createdAtResults = await executeQuery(
-        'SELECT created_at FROM crypto_payments WHERE id = $1',
-        [paymentId]
-    );
+    const createdAtResults = await executeQuery('SELECT created_at FROM crypto_payments WHERE id = $1', [paymentId]);
 
     if (createdAtResults.length > 0) {
         const createdAt = new Date(createdAtResults[0].created_at);
@@ -76,7 +69,7 @@ const handleMockPaymentStatus = async (paymentId: string): Promise<PaymentStatus
         const oneMinuteInMs = 60 * 1000;
 
         // Если прошла 1 минута, обновляем статус на завершенный
-        if ((now.getTime() - createdAt.getTime()) > oneMinuteInMs) {
+        if (now.getTime() - createdAt.getTime() > oneMinuteInMs) {
             const status = mockCryptoResponse.payment_status;
             const mockTxHash = mockCryptoResponse.transaction_hash || 'mock-tx-hash';
 
@@ -144,7 +137,7 @@ export const processWebhook = async (webhookData: any, signature: string): Promi
         // Получаем криптоплатеж по внешнему ID транзакции
         const cryptoPayments = await executeQuery<CryptoPaymentDetails>(
             'SELECT * FROM crypto_payments WHERE transaction_hash = $1',
-            [nowPaymentsId]
+            [nowPaymentsId],
         );
 
         if (cryptoPayments.length === 0) {
@@ -155,9 +148,7 @@ export const processWebhook = async (webhookData: any, signature: string): Promi
         const cryptoPayment = cryptoPayments[0];
 
         // Преобразуем статус из NOWPayments в наш формат
-        const normalizedStatus = USE_MOCK_PROVIDER
-            ? payment_status
-            : nowpaymentsApi.mapPaymentStatus(payment_status);
+        const normalizedStatus = USE_MOCK_PROVIDER ? payment_status : nowpaymentsApi.mapPaymentStatus(payment_status);
 
         // Обновляем статус в таблице crypto_payments
         if (cryptoPayment.id) {
@@ -170,7 +161,7 @@ export const processWebhook = async (webhookData: any, signature: string): Promi
         await logWebhook({
             paymentId: cryptoPayment.payment_id,
             status: normalizedStatus,
-            data: webhookData
+            data: webhookData,
         });
 
         return true;
@@ -181,13 +172,13 @@ export const processWebhook = async (webhookData: any, signature: string): Promi
  * Логирует данные вебхука в БД
  * @param data Данные для логирования
  */
-const logWebhook = async (data: { paymentId: string, status: PaymentStatus, data: any }): Promise<void> => {
+const logWebhook = async (data: { paymentId: string; status: PaymentStatus; data: any }): Promise<void> => {
     try {
         await executeQuery(
             `INSERT INTO webhook_logs 
              (payment_id, payment_status, data, created_at) 
              VALUES ($1, $2, $3, $4)`,
-            [data.paymentId, data.status, JSON.stringify(data.data), new Date()]
+            [data.paymentId, data.status, JSON.stringify(data.data), new Date()],
         );
     } catch (error) {
         logger.error('Error logging webhook data', { error, data });
@@ -200,7 +191,7 @@ const logWebhook = async (data: { paymentId: string, status: PaymentStatus, data
  * @returns Результат с деталями созданного платежа
  */
 export const initCryptoDirectPayment = async (
-    params: InitCryptoPaymentParams
+    params: InitCryptoPaymentParams,
 ): Promise<PaymentResult<CryptoPaymentDetails>> => {
     return withErrorHandling(async () => {
         const { paymentId, amount, currency, network, userId } = params;
@@ -214,7 +205,7 @@ export const initCryptoDirectPayment = async (
             amount,
             currency: currency || 'BTC',
             network: network || 'BTC',
-            wallet_provider: 'NOWCRYPTO'
+            wallet_provider: 'NOWCRYPTO',
         };
 
         // В режиме разработки используем моковые данные
@@ -242,11 +233,14 @@ const createMockCryptoPayment = async (cryptoData: CryptoPaymentData): Promise<C
     // Запускаем обработку вебхука через минуту
     setTimeout(async () => {
         try {
-            await processWebhook({
-                payment_id: payment.id,
-                payment_status: PaymentStatus.Completed,
-                txid: 'mock-tx-' + Date.now()
-            }, 'mock-signature');
+            await processWebhook(
+                {
+                    payment_id: payment.id,
+                    payment_status: PaymentStatus.Completed,
+                    txid: 'mock-tx-' + Date.now(),
+                },
+                'mock-signature',
+            );
             logger.info(`Mock crypto payment ${payment.id} completed successfully`);
         } catch (error) {
             logger.error('Error processing mock webhook:', { error });
@@ -264,7 +258,7 @@ const createMockCryptoPayment = async (cryptoData: CryptoPaymentData): Promise<C
  */
 const createRealCryptoPayment = async (
     cryptoData: CryptoPaymentData,
-    userId: string
+    userId: string,
 ): Promise<CryptoPaymentDetails> => {
     try {
         // Создаем платеж через NOWPayments API
@@ -275,7 +269,7 @@ const createRealCryptoPayment = async (
             ipn_callback_url: `${process.env.API_URL}/api/payments/webhook/crypto`,
             order_id: cryptoData.payment_id,
             order_description: `Payment for user ${userId}`,
-            is_fixed_rate: true
+            is_fixed_rate: true,
         });
 
         // Извлекаем payment_id из ответа API, с проверкой на undefined или null
@@ -292,7 +286,7 @@ const createRealCryptoPayment = async (
             transaction_hash: transactionHash,
             payment_status: nowpaymentsApi.mapPaymentStatus(apiResponse.payment_status),
             wallet_provider: 'NOWCRYPTO',
-            expires_at: apiResponse.valid_until ? new Date(apiResponse.valid_until) : undefined
+            expires_at: apiResponse.valid_until ? new Date(apiResponse.valid_until) : undefined,
         });
     } catch (error) {
         logger.error('Error creating crypto payment', { error, cryptoData });
@@ -324,10 +318,9 @@ export const checkUserCryptoPaymentStatus = async (userId: string, paymentId: st
 const checkMockCryptoStatus = async (paymentId: string): Promise<PaymentStatus> => {
     logger.info('Using mock crypto payment status in development mode');
 
-    const cryptoPayments = await executeQuery<CryptoPaymentDetails>(
-        `SELECT * FROM crypto_payments WHERE id = $1`,
-        [paymentId]
-    );
+    const cryptoPayments = await executeQuery<CryptoPaymentDetails>(`SELECT * FROM crypto_payments WHERE id = $1`, [
+        paymentId,
+    ]);
 
     if (cryptoPayments.length > 0) {
         const cryptoPayment = cryptoPayments[0];
@@ -336,7 +329,7 @@ const checkMockCryptoStatus = async (paymentId: string): Promise<PaymentStatus> 
         const oneMinuteInMs = 60 * 1000;
 
         // Если прошла 1 минута, обновляем статус
-        if ((now.getTime() - createdAt.getTime()) > oneMinuteInMs) {
+        if (now.getTime() - createdAt.getTime() > oneMinuteInMs) {
             const status = PaymentStatus.Completed;
             const mockTxHash = mockCryptoResponse.transaction_hash || 'mock-tx-hash';
 
@@ -360,7 +353,7 @@ const checkMockCryptoStatus = async (paymentId: string): Promise<PaymentStatus> 
 const checkRealCryptoStatus = async (paymentId: string): Promise<PaymentStatus> => {
     const statusResults = await executeQuery<{ payment_status: PaymentStatus }>(
         `SELECT payment_status FROM crypto_payments WHERE id = $1`,
-        [paymentId]
+        [paymentId],
     );
 
     if (statusResults.length === 0) {

@@ -8,15 +8,13 @@ interface SearchForVacancyParams {
 }
 
 export async function searchForVacancy({ page, position }: SearchForVacancyParams): Promise<void> {
-    await new Promise(r => setTimeout(r, TIMEOUTS.SEARCH));
+    await new Promise((r) => setTimeout(r, TIMEOUTS.SEARCH));
 
     try {
-        const vacancyInputSelector = await page.waitForSelector(
-            SELECTORS.VACANCY_INPUT,
-            { timeout: TIMEOUTS.SEARCH });
+        const vacancyInputSelector = await page.waitForSelector(SELECTORS.VACANCY_INPUT, { timeout: TIMEOUTS.SEARCH });
 
         if (vacancyInputSelector) {
-            await vacancyInputSelector.evaluate(input => {
+            await vacancyInputSelector.evaluate((input) => {
                 (input as HTMLInputElement).value = '';
             });
 
@@ -25,10 +23,7 @@ export async function searchForVacancy({ page, position }: SearchForVacancyParam
         } else {
             console.error('No vacancy entry field was found.');
         }
-
     } catch (error) {
         console.error('Error when searching for a vacancy:', error);
     }
 }
-
-

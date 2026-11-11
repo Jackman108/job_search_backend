@@ -210,4 +210,4 @@ export const initializeVacancyRoutes = (app: express.Application) => {
      *         description: Поле не найдено
      */
     registerRoute(app, 'delete', '/vacancy-field/:fieldId', VacancySubmitController, 'deleteVacancySubmit');
-}; 
+};

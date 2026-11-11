@@ -12,10 +12,7 @@ import { updatePaymentStatus } from '@integrations';
  * @returns Детали криптоплатежа или null
  */
 export const getCryptoPaymentById = async (paymentId: string): Promise<any> => {
-    const results = await executeQuery(
-        'SELECT * FROM crypto_payments WHERE id = $1',
-        [paymentId]
-    );
+    const results = await executeQuery('SELECT * FROM crypto_payments WHERE id = $1', [paymentId]);
 
     if (results.length === 0) {
         throw new Error(`Crypto payment not found for id ${paymentId}`);
@@ -33,7 +30,7 @@ export const getCryptoPaymentById = async (paymentId: string): Promise<any> => {
 export const updatePaymentStatuses = async (
     cryptoPaymentId: string,
     status: PaymentStatus,
-    transactionHash?: string
+    transactionHash?: string,
 ): Promise<void> => {
     if (!cryptoPaymentId) {
         logger.error('Missing crypto payment ID for status update');
@@ -46,9 +43,7 @@ export const updatePaymentStatuses = async (
             ? 'UPDATE crypto_payments SET payment_status = $1, updated_at = NOW(), transaction_hash = $2 WHERE id = $3'
             : 'UPDATE crypto_payments SET payment_status = $1, updated_at = NOW() WHERE id = $2';
 
-        const queryParams = transactionHash
-            ? [status, transactionHash, cryptoPaymentId]
-            : [status, cryptoPaymentId];
+        const queryParams = transactionHash ? [status, transactionHash, cryptoPaymentId] : [status, cryptoPaymentId];
 
         await executeQuery(updateQuery, queryParams);
 
@@ -62,4 +57,4 @@ export const updatePaymentStatuses = async (
     } catch (error) {
         logger.error('Error updating payment statuses', { error, cryptoPaymentId, status });
     }
-}; 
+};

@@ -1,12 +1,7 @@
 // server/controllers/ContactsController.ts
 import { Response } from 'express';
 import { handleErrors } from '@middlewares';
-import {
-    createContactUser,
-    deleteContactUser,
-    getContactUser,
-    updateContactUser
-} from '@services';
+import { createContactUser, deleteContactUser, getContactUser, updateContactUser } from '@services';
 import { AuthenticatedRequest } from '@interface';
 
 export class ContactsController {

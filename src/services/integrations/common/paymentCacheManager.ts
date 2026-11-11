@@ -76,7 +76,7 @@ export const createPaymentCache = (): PaymentCache => {
         setPayment: async (paymentId: string, data: any, ttl: number = DEFAULT_TTL): Promise<void> => {
             paymentStore.set(paymentId, {
                 data,
-                expiry: Date.now() + ttl
+                expiry: Date.now() + ttl,
             });
 
             logger.info(`Payment cached: ${paymentId}`);
@@ -119,13 +119,13 @@ export const createPaymentCache = (): PaymentCache => {
         setStatus: async (paymentId: string, status: PaymentStatus, ttl: number = DEFAULT_TTL): Promise<void> => {
             statusStore.set(paymentId, {
                 status,
-                expiry: Date.now() + ttl
+                expiry: Date.now() + ttl,
             });
 
             logger.info(`Payment status cached: ${paymentId} = ${status}`);
-        }
+        },
     };
 };
 
 // Создаем и экспортируем сервис кэширования платежей
-export const paymentCacheManager = createPaymentCache(); 
+export const paymentCacheManager = createPaymentCache();

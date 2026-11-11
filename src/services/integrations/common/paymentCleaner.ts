@@ -21,10 +21,7 @@ export const cleanupPendingCryptoPayment = async (paymentId: string): Promise<Pa
             AND payment_status = $2
         `;
 
-        const result = await executeQuery(query, [
-            paymentId,
-            PaymentStatus.Pending
-        ]);
+        const result = await executeQuery(query, [paymentId, PaymentStatus.Pending]);
 
         const rows = Array.isArray(result) ? result : [];
 
@@ -32,7 +29,7 @@ export const cleanupPendingCryptoPayment = async (paymentId: string): Promise<Pa
             logger.info('Незавершенные криптоплатежи не найдены', { paymentId });
             return {
                 success: true,
-                data: true
+                data: true,
             };
         }
 
@@ -45,19 +42,19 @@ export const cleanupPendingCryptoPayment = async (paymentId: string): Promise<Pa
                 `UPDATE crypto_payments 
                  SET payment_status = $1, updated_at = NOW() 
                  WHERE id = $2`,
-                [PaymentStatus.Canceled, row.id]
+                [PaymentStatus.Canceled, row.id],
             );
         }
 
         return {
             success: true,
-            data: true
+            data: true,
         };
     } catch (error) {
         logger.error('Ошибка при удалении незавершенного криптоплатежа', { error, paymentId });
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Error deleting pending crypto payment'
+            error: error instanceof Error ? error.message : 'Error deleting pending crypto payment',
         };
     }
 };
@@ -78,10 +75,7 @@ export const cleanupPendingWebPayPayment = async (paymentId: string): Promise<Pa
             AND payment_status = $2
         `;
 
-        const result = await executeQuery(query, [
-            paymentId,
-            PaymentStatus.Pending
-        ]);
+        const result = await executeQuery(query, [paymentId, PaymentStatus.Pending]);
 
         const rows = Array.isArray(result) ? result : [];
 
@@ -89,7 +83,7 @@ export const cleanupPendingWebPayPayment = async (paymentId: string): Promise<Pa
             logger.info('Незавершенные WebPay платежи не найдены', { paymentId });
             return {
                 success: true,
-                data: true
+                data: true,
             };
         }
 
@@ -97,7 +91,7 @@ export const cleanupPendingWebPayPayment = async (paymentId: string): Promise<Pa
         for (const row of rows) {
             logger.info('Обновление статуса WebPay платежа на отмененный', {
                 paymentId: row.id,
-                orderNum: row.wsb_order_num
+                orderNum: row.wsb_order_num,
             });
 
             // Обновляем статус на отмененный
@@ -105,19 +99,19 @@ export const cleanupPendingWebPayPayment = async (paymentId: string): Promise<Pa
                 `UPDATE webpay_payments 
                  SET payment_status = $1, updated_at = NOW() 
                  WHERE id = $2`,
-                [PaymentStatus.Canceled, row.id]
+                [PaymentStatus.Canceled, row.id],
             );
         }
 
         return {
             success: true,
-            data: true
+            data: true,
         };
     } catch (error) {
         logger.error('Ошибка при удалении незавершенного WebPay платежа', { error, paymentId });
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Error deleting pending WebPay payment'
+            error: error instanceof Error ? error.message : 'Error deleting pending WebPay payment',
         };
     }
-}; 
+};

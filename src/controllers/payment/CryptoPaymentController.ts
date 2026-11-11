@@ -45,7 +45,6 @@ export class CryptoPaymentController {
         }
 
         const result = await cryptoService.createPayment({
-
             amount,
             currency,
             payment_id,
@@ -61,8 +60,8 @@ export class CryptoPaymentController {
     }
 
     /**
-    * Обновление криптоплатежа
-    */
+     * Обновление криптоплатежа
+     */
     async updateCryptoPayment(req: AuthenticatedRequest, res: Response) {
         const result = await cryptoService.updatePayment(req.params.paymentId, req.body);
         if (result.success) {
@@ -84,4 +83,4 @@ export class CryptoPaymentController {
             handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to delete crypto payment');
         }
     }
-} 
+}

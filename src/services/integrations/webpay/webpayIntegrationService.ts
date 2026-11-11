@@ -1,18 +1,26 @@
-import { USE_MOCK_PROVIDER, WEBPAY_API_BASE_URL, WEBPAY_CANCEL_URL, WEBPAY_RETURN_URL, WEBPAY_SECRET_KEY } from '@config';
+import {
+    USE_MOCK_PROVIDER,
+    WEBPAY_API_BASE_URL,
+    WEBPAY_CANCEL_URL,
+    WEBPAY_RETURN_URL,
+    WEBPAY_SECRET_KEY,
+} from '@config';
 import {
     cleanupPendingCryptoPayment,
     generateOrderNumber,
     getPaymentByPaymentId,
     updatePaymentStatus,
     validateWebpaySignature,
-    withErrorHandling
+    withErrorHandling,
 } from '@integrations';
 import {
     InitWebPayPaymentParams,
-    PaymentBase, PaymentMethod,
-    PaymentResult, PaymentStatus,
+    PaymentBase,
+    PaymentMethod,
+    PaymentResult,
+    PaymentStatus,
     WebpayInitParams,
-    WebpayInitResult
+    WebpayInitResult,
 } from '@interface';
 import {
     createWebpayPayment,
@@ -37,9 +45,7 @@ import { mockWebPayResponse } from '../../../mock/mockWebPayResponse';
  * Инициализация платежа через WebPay (Host-to-Host JSON API)
  * В режиме разработки использует моковые данные
  */
-export async function initWebpayDirectPayment(
-    params: WebpayInitParams
-): Promise<PaymentResult<WebpayInitResult>> {
+export async function initWebpayDirectPayment(params: WebpayInitParams): Promise<PaymentResult<WebpayInitResult>> {
     return await withErrorHandling(async () => {
         // В режиме разработки возвращаем моковые данные
         if (USE_MOCK_PROVIDER) {
@@ -47,28 +53,16 @@ export async function initWebpayDirectPayment(
             return {
                 wt: mockWebPayResponse.wt,
                 redirectUrl: mockWebPayResponse.redirectUrl,
-                orderNum: params.wsb_order_num
+                orderNum: params.wsb_order_num,
             };
         }
 
         // В продакшене делаем реальный запрос к WebPay
-        const {
-            wsb_seed,
-            wsb_storeid,
-            wsb_order_num,
-            wsb_test,
-            wsb_currency_id,
-            wsb_total,
-            ...rest
-        } = params;
+        const { wsb_seed, wsb_storeid, wsb_order_num, wsb_test, wsb_currency_id, wsb_total, ...rest } = params;
 
         // Формирование подписи SHA1: seed+storeid+order_num+test+currency+total+secret_key
-        const signaturePayload =
-            `${wsb_seed}${wsb_storeid}${wsb_order_num}${wsb_test}${wsb_currency_id}${wsb_total}${WEBPAY_SECRET_KEY}`;
-        const wsb_signature = crypto
-            .createHash('sha1')
-            .update(signaturePayload)
-            .digest('hex');
+        const signaturePayload = `${wsb_seed}${wsb_storeid}${wsb_order_num}${wsb_test}${wsb_currency_id}${wsb_total}${WEBPAY_SECRET_KEY}`;
+        const wsb_signature = crypto.createHash('sha1').update(signaturePayload).digest('hex');
 
         // Формируем тело запроса
         const requestBody = {
@@ -79,16 +73,16 @@ export async function initWebpayDirectPayment(
             wsb_currency_id,
             wsb_total,
             wsb_signature,
-            ...rest
+            ...rest,
         };
 
         // Отправляем запрос к WebPay API
         const response = await fetch(`${WEBPAY_API_BASE_URL}/init`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
@@ -100,7 +94,7 @@ export async function initWebpayDirectPayment(
         return {
             wt: data.wt,
             redirectUrl: data.redirectUrl,
-            orderNum: wsb_order_num
+            orderNum: wsb_order_num,
         };
     });
 }
@@ -110,10 +104,7 @@ export async function initWebpayDirectPayment(
  * @param orderNum Номер заказа WebPay
  * @param transactionId ID транзакции WebPay
  */
-export const handleWebpayReturn = async (
-    orderNum: string,
-    transactionId: string
-): Promise<string> => {
+export const handleWebpayReturn = async (orderNum: string, transactionId: string): Promise<string> => {
     // Получаем платеж по номеру заказа
     const webpayPayment = await getWebpayPaymentByOrderNum(orderNum);
     if (!webpayPayment) {
@@ -123,15 +114,17 @@ export const handleWebpayReturn = async (
     // Обновляем статус в таблице webpay_payments
     await updateWebpayPaymentByOrderNum(orderNum, {
         payment_status: PaymentStatus.Completed,
-        transaction_id: transactionId
+        transaction_id: transactionId,
     });
 
     // Обновляем статус в основной таблице payments
     await updatePaymentStatus(webpayPayment.payment_id, PaymentStatus.Completed);
 
     // Возвращаем URL для редиректа
-    return webpayPayment.success_url ||
-        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/success?order=${orderNum}`;
+    return (
+        webpayPayment.success_url ||
+        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/success?order=${orderNum}`
+    );
 };
 
 /**
@@ -147,16 +140,17 @@ export const handleWebpayCancel = async (orderNum: string): Promise<string> => {
 
     // Обновляем статус в таблице webpay_payments
     await updateWebpayPaymentByOrderNum(orderNum, {
-        payment_status: PaymentStatus.Failed
+        payment_status: PaymentStatus.Failed,
     });
 
     // Обновляем статус в основной таблице payments
     await updatePaymentStatus(webpayPayment.payment_id, PaymentStatus.Failed);
 
-
     // Возвращаем URL для редиректа
-    return webpayPayment.cancel_url ||
-        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/cancel?order=${orderNum}`;
+    return (
+        webpayPayment.cancel_url ||
+        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/cancel?order=${orderNum}`
+    );
 };
 
 /**
@@ -164,10 +158,7 @@ export const handleWebpayCancel = async (orderNum: string): Promise<string> => {
  * @param payload Тело уведомления
  * @param signature Подпись из заголовка X-Webpay-Signature
  */
-export const handleWebpayNotify = async (
-    payload: any,
-    signature: string
-): Promise<boolean> => {
+export const handleWebpayNotify = async (payload: any, signature: string): Promise<boolean> => {
     // Проверяем подпись уведомления
     if (!USE_MOCK_PROVIDER && !validateWebpaySignature(payload, signature)) {
         logger.error('Invalid WebPay notification signature');
@@ -191,12 +182,13 @@ export const handleWebpayNotify = async (
         }
 
         // Определяем статус платежа
-        const paymentStatus = USE_MOCK_PROVIDER || wsb_status === 'paid' ? PaymentStatus.Completed : PaymentStatus.Failed;
+        const paymentStatus =
+            USE_MOCK_PROVIDER || wsb_status === 'paid' ? PaymentStatus.Completed : PaymentStatus.Failed;
 
         // Обновляем статус в таблице webpay_payments
         await updateWebpayPaymentByOrderNum(wsb_order_num, {
             payment_status: paymentStatus,
-            transaction_id: wsb_tid || null
+            transaction_id: wsb_tid || null,
         });
 
         // Обновляем статус в основной таблице payments
@@ -205,7 +197,7 @@ export const handleWebpayNotify = async (
         // Логируем успешную обработку уведомления
         logger.info(`WebPay notification processed for order ${wsb_order_num}`, {
             status: paymentStatus,
-            transactionId: wsb_tid
+            transactionId: wsb_tid,
         });
 
         return true;
@@ -233,7 +225,7 @@ export const processWebpayWebhook = async (orderNum: string, transactionId: stri
         // Обновляем статус в таблице webpay_payments
         await updateWebpayPaymentByOrderNum(orderNum, {
             payment_status: PaymentStatus.Completed,
-            transaction_id: transactionId
+            transaction_id: transactionId,
         });
 
         // Обновляем статус в основной таблице payments
@@ -250,9 +242,7 @@ export const processWebpayWebhook = async (orderNum: string, transactionId: stri
 /**
  * Инициализация Fiat платежа через WebPay
  */
-export const initWebpayFiatPayment = async (
-    params: InitWebPayPaymentParams
-): Promise<PaymentResult<any>> => {
+export const initWebpayFiatPayment = async (params: InitWebPayPaymentParams): Promise<PaymentResult<any>> => {
     return withErrorHandling(async () => {
         try {
             const { userId, paymentId, currency, amount } = params;
@@ -265,7 +255,7 @@ export const initWebpayFiatPayment = async (
                 // Если есть существующий платеж в статусе Pending, обновляем его
                 const payment: PaymentBase = await updatePayment(userId, paymentId, {
                     amount,
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 });
 
                 // Если метод оплаты изменился на webpay, удаляем криптоплатежи
@@ -289,7 +279,7 @@ export const initWebpayFiatPayment = async (
                 wsb_storeid: Number(process.env.WEBPAY_STORE_ID || '000000'),
                 wsb_order_num: orderNum,
                 wsb_test: USE_MOCK_PROVIDER ? 1 : 0,
-                wsb_currency_id: currency as "BYN" | "USD" | "EUR" | "RUB",
+                wsb_currency_id: currency as 'BYN' | 'USD' | 'EUR' | 'RUB',
                 wsb_total: amount,
                 wsb_version: 2,
                 wsb_return_url: WEBPAY_RETURN_URL,
@@ -299,7 +289,7 @@ export const initWebpayFiatPayment = async (
                 wsb_invoice_item_quantity: [1],
                 wsb_invoice_item_price: [amount],
                 success_url: WEBPAY_RETURN_URL,
-                cancel_url: WEBPAY_CANCEL_URL
+                cancel_url: WEBPAY_CANCEL_URL,
             };
 
             // Создаем запись в таблице webpay_payments
@@ -314,7 +304,7 @@ export const initWebpayFiatPayment = async (
                 wsb_total: amount,
                 payment_status: PaymentStatus.Pending,
                 success_url: WEBPAY_RETURN_URL,
-                cancel_url: WEBPAY_CANCEL_URL
+                cancel_url: WEBPAY_CANCEL_URL,
             });
 
             const result = await initWebpayDirectPayment(webpayParams);
@@ -338,7 +328,7 @@ export const initWebpayFiatPayment = async (
             return {
                 wt: result.data.wt || '',
                 redirectUrl: result.data.redirectUrl,
-                orderNum: result.data.orderNum
+                orderNum: result.data.orderNum,
             };
         } catch (error) {
             logger.error('Error initializing WebPay payment', { error, params });

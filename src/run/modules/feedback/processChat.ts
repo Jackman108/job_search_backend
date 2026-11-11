@@ -4,13 +4,7 @@ import { ProcessChatParams } from '@interface';
 import { saveChatFeedback } from '@services';
 import { extractFeedbackData, isStopped } from '@utils';
 
-export async function processChat({
-    page,
-    chatLinkHandle,
-    chatId,
-    userId
-}: ProcessChatParams): Promise<void> {
-
+export async function processChat({ page, chatLinkHandle, chatId, userId }: ProcessChatParams): Promise<void> {
     if (isStopped()) {
         console.log('Processing stopped before processing chat:', chatId);
         return;
@@ -32,12 +26,21 @@ export async function processChat({
     const dateHandle = dateHandles?.at(-1);
     const timeHandle = timeHandles?.at(-1);
 
-    const url_vacancy = vacancyUrlHandle ? await page.evaluate(el => (el as HTMLAnchorElement).href, vacancyUrlHandle) : '';
-    const response_status = statusHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), statusHandle) : '';
-    const feedback_text = textHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), textHandle) : '';
-    const feedback_date = dateHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), dateHandle) : 'N/A';
-    const feedback_time = timeHandle ? await page.evaluate(el => (el as HTMLElement).innerText.trim(), timeHandle) : '00:00';
-
+    const url_vacancy = vacancyUrlHandle
+        ? await page.evaluate((el) => (el as HTMLAnchorElement).href, vacancyUrlHandle)
+        : '';
+    const response_status = statusHandle
+        ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), statusHandle)
+        : '';
+    const feedback_text = textHandle
+        ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), textHandle)
+        : '';
+    const feedback_date = dateHandle
+        ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), dateHandle)
+        : 'N/A';
+    const feedback_time = timeHandle
+        ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), timeHandle)
+        : '00:00';
 
     const newData = await extractFeedbackData({
         chatId,
@@ -45,10 +48,9 @@ export async function processChat({
         response_status,
         feedback_text,
         feedback_date,
-        feedback_time
+        feedback_time,
     });
 
     await saveChatFeedback(newData, userId);
     console.log(`The Chat with ID ${newData.id} is saved with flag ${newData.response_status}`);
-
 }

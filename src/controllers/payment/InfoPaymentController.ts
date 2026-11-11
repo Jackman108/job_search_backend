@@ -58,4 +58,4 @@ export class InfoPaymentController {
             handleErrors(res, error, 'Error loading test payment page');
         }
     }
-} 
+}

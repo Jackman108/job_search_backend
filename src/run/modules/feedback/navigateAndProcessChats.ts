@@ -5,19 +5,14 @@ import { isStopped, stop } from '@utils';
 import { getChats } from './getChats.js';
 import { processChat } from './processChat.js';
 
-export async function navigateAndProcessChats({
-    userId,
-    page,
-    browser
-}: navigateAndProcessChats): Promise<void> {
-
+export async function navigateAndProcessChats({ userId, page, browser }: navigateAndProcessChats): Promise<void> {
     let currentPage = 0;
     let existingChatsIds: Set<number>;
     const totalPages = HH_SCRAPE.TOTAL_PAGES;
 
     try {
         const ChatsFromDb = await getChatFeedback(userId);
-        existingChatsIds = new Set(ChatsFromDb.map(chat => chat.id));
+        existingChatsIds = new Set(ChatsFromDb.map((chat) => chat.id));
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
         return;
@@ -49,13 +44,12 @@ export async function navigateAndProcessChats({
 
                 console.log('chats found', chats.length);
 
-                await new Promise(r => setTimeout(r, TIMEOUTS.SHORT));
+                await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT));
                 try {
                     existingChatsIds.add(chatId);
                     if (chatLinkHandle) {
                         await processChat({ page, chatLinkHandle, chatId, userId });
                         chats = (await getChats(page)).filter(({ chatId }) => chatId && !existingChatsIds.has(chatId));
-
                     } else {
                         console.error(`Feedback response for ID ${chatId} is null.`);
                     }
