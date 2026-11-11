@@ -112,6 +112,13 @@ export async function waitAndSubmitCaptchaAnswer(jobId: string, page: Page, capt
         return false;
     }
 
+    // After captcha, Magritte may still be on /account/login briefly — wait to leave.
+    await page
+        .waitForFunction(() => !location.pathname.includes('/account/login'), {
+            timeout: TIMEOUTS.MODAL,
+        })
+        .catch(() => undefined);
+
     stage('captcha', 'accepted');
     updateJob(jobId, {
         awaitingCaptcha: false,

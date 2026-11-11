@@ -37,8 +37,9 @@ export async function sendFeedback(
             return;
         }
 
+        // Login leaves applicant home /account — reopen the form SERP before typing.
         stage('search', position);
-        await searchForVacancy({ page, position });
+        await searchForVacancy({ page, position, vacancyUrl });
         if (isStopped()) {
             stage('stopped', 'before apply loop');
             await stop(browser);
