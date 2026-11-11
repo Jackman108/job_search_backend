@@ -7,15 +7,41 @@ export const initializeUtilRoutes = (app: express.Application) => {
      * @swagger
      * /start:
      *   post:
-     *     summary: Запустить скрипт
-     *     tags: [Утилиты]
+     *     summary: Queue or run HH apply (sendFeedback)
+     *     description: |
+     *       Requires JWT. Body credentials come from the client SearchForm.
+     *       Default `HH_WORKER_MODE=queue` → **202** `{ jobId, mode: queue }` (poll `GET /jobs/{jobId}`).
+     *       `HH_WORKER_MODE=sync` → **200** after in-process Puppeteer finishes.
+     *     tags: [HH]
      *     security:
      *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/StartScriptBody'
      *     responses:
+     *       202:
+     *         description: Apply job accepted into detached worker queue
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/HhJobQueuedResponse'
      *       200:
-     *         description: Скрипт успешно запущен
+     *         description: Sync mode — apply finished in API process
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/HhJobSyncResponse'
+     *       400:
+     *         description: Missing body fields, or missing userId (no usable Bearer)
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ErrorMessage'
      *       401:
-     *         description: Не авторизован
+     *         description: Invalid or expired JWT
      */
     registerRoute(app, 'post', '/start', ScriptController, 'startScript');
 
@@ -23,15 +49,30 @@ export const initializeUtilRoutes = (app: express.Application) => {
      * @swagger
      * /stop:
      *   post:
-     *     summary: Остановить скрипт; отменить queued и abort running HH jobs текущего пользователя
-     *     tags: [Утилиты]
+     *     summary: Stop HH automation for the caller
+     *     description: |
+     *       Cancels **queued** jobs and aborts **running** workers for `req.userId`
+     *       (tree-kill detached PID). Also signals legacy sync stop.
+     *     tags: [HH]
      *     security:
      *       - bearerAuth: []
+     *     requestBody:
+     *       required: false
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/StopScriptBody'
      *     responses:
      *       200:
-     *         description: Скрипт остановлен; queued/running jobs помечены cancelled, worker PID tree-killed
+     *         description: Stop acknowledged; lists cancelled and aborted job ids
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StopScriptResponse'
+     *       400:
+     *         description: Missing userId (no usable Bearer)
      *       401:
-     *         description: Не авторизован
+     *         description: Invalid or expired JWT
      */
     registerRoute(app, 'post', '/stop', ScriptController, 'stopScript');
 
@@ -39,15 +80,40 @@ export const initializeUtilRoutes = (app: express.Application) => {
      * @swagger
      * /refresh:
      *   post:
-     *     summary: Обновить данные
-     *     tags: [Утилиты]
+     *     summary: Queue or run HH feedback refresh (getFeedback)
+     *     description: |
+     *       Requires JWT + HH email/password from SearchForm.
+     *       Queue mode → **202** + `jobId`; sync → **200**.
+     *     tags: [HH]
      *     security:
      *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/RefreshScriptBody'
      *     responses:
+     *       202:
+     *         description: Refresh job queued
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/HhJobQueuedResponse'
      *       200:
-     *         description: Данные успешно обновлены
+     *         description: Sync mode — refresh finished in API process
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/HhJobSyncResponse'
+     *       400:
+     *         description: Missing email/password, or missing userId
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ErrorMessage'
      *       401:
-     *         description: Не авторизован
+     *         description: Invalid or expired JWT
      */
     registerRoute(app, 'post', '/refresh', ScriptController, 'refreshData');
 
@@ -55,8 +121,11 @@ export const initializeUtilRoutes = (app: express.Application) => {
      * @swagger
      * /jobs/{jobId}:
      *   get:
-     *     summary: Статус HH worker job
-     *     tags: [Утилиты]
+     *     summary: HH worker job status
+     *     description: |
+     *       Authz: job must belong to `req.userId` (**403** otherwise).
+     *       Response omits stored HH credentials.
+     *     tags: [HH]
      *     security:
      *       - bearerAuth: []
      *     parameters:
@@ -67,9 +136,27 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *           type: string
      *     responses:
      *       200:
-     *         description: Статус задачи
+     *         description: Job status
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/HhJobStatusResponse'
+     *       400:
+     *         description: Missing userId
+     *       401:
+     *         description: Invalid or expired JWT
+     *       403:
+     *         description: Job exists but belongs to another user
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ErrorMessage'
      *       404:
-     *         description: Не найдено
+     *         description: Job not found
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ErrorMessage'
      */
     registerRoute(app, 'get', '/jobs/:jobId', ScriptController, 'getJobStatus');
 };

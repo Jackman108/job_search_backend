@@ -1,11 +1,18 @@
-// controllers/ScriptController.js
 import { Response } from 'express';
 import { getFeedback } from '@run';
 import { sendFeedback } from '@run';
 import { handleErrors } from '@middlewares';
 import { incrementSpinCount, updateSuccessfulResponsesCount } from '@services';
 import { stop } from '@utils';
-import { AuthenticatedRequest } from '@interface';
+import {
+    AuthenticatedRequest,
+    HhJobQueuedResponse,
+    HhJobStatusResponse,
+    HhJobSyncResponse,
+    RefreshScriptBody,
+    StartScriptBody,
+    StopScriptResponse,
+} from '@interface';
 import { cancelJobsForUser } from '../../worker/cancelJobs.js';
 import { queueGetFeedback, queueSendFeedback, useQueuedWorker } from '../../worker/enqueue.js';
 import { readJob } from '../../worker/jobStore.js';
@@ -13,7 +20,7 @@ import { readJob } from '../../worker/jobStore.js';
 export class ScriptController {
     async startScript(req: AuthenticatedRequest, res: Response) {
         try {
-            const { email, password, position, message, vacancyUrl } = req.body;
+            const { email, password, position, message, vacancyUrl } = req.body as Partial<StartScriptBody>;
             if (!email || !password || !position || !message || !vacancyUrl) {
                 res.status(400).json({
                     message: 'Required: email, password, position, message, vacancyUrl (from form).',
@@ -32,18 +39,23 @@ export class ScriptController {
             if (useQueuedWorker()) {
                 const { jobId } = queueSendFeedback(payload);
                 // Counters update when the detached worker finishes successfully.
-                res.status(202).json({
+                const body: HhJobQueuedResponse = {
                     message: 'HH apply job queued (detached worker).',
                     jobId,
                     mode: 'queue',
-                });
+                };
+                res.status(202).json(body);
                 return;
             }
 
             await sendFeedback(payload);
             await incrementSpinCount(req.userId!);
             await updateSuccessfulResponsesCount(req.userId!);
-            res.status(200).json({ message: 'The script was executed successfully!', mode: 'sync' });
+            const body: HhJobSyncResponse = {
+                message: 'The script was executed successfully!',
+                mode: 'sync',
+            };
+            res.status(200).json(body);
         } catch (error) {
             handleErrors(res, error, 'Script execution error.');
         }
@@ -53,13 +65,14 @@ export class ScriptController {
         try {
             const { cancelledJobIds, abortedJobIds } = cancelJobsForUser(req.userId!);
             await stop(req.body?.browser);
-            res.status(200).json({
+            const body: StopScriptResponse = {
                 message: 'Script stopped successfully!',
                 cancelledJobIds,
                 cancelledCount: cancelledJobIds.length,
                 abortedJobIds,
                 abortedCount: abortedJobIds.length,
-            });
+            };
+            res.status(200).json(body);
         } catch (error) {
             handleErrors(res, error, 'Script stop error.');
         }
@@ -67,7 +80,7 @@ export class ScriptController {
 
     async refreshData(req: AuthenticatedRequest, res: Response) {
         try {
-            const { email, password } = req.body;
+            const { email, password } = req.body as Partial<RefreshScriptBody>;
             if (!email || !password) {
                 res.status(400).json({ message: 'Required: email, password (from form).' });
                 return;
@@ -80,16 +93,21 @@ export class ScriptController {
 
             if (useQueuedWorker()) {
                 const { jobId } = queueGetFeedback(payload);
-                res.status(202).json({
+                const body: HhJobQueuedResponse = {
                     message: 'HH feedback refresh queued (detached worker).',
                     jobId,
                     mode: 'queue',
-                });
+                };
+                res.status(202).json(body);
                 return;
             }
 
             await getFeedback(payload);
-            res.status(200).json({ message: 'The update is up and running!', mode: 'sync' });
+            const body: HhJobSyncResponse = {
+                message: 'The update is up and running!',
+                mode: 'sync',
+            };
+            res.status(200).json(body);
         } catch (error) {
             handleErrors(res, error, 'Error Update!');
         }
@@ -107,7 +125,7 @@ export class ScriptController {
                 res.status(403).json({ message: 'Forbidden.' });
                 return;
             }
-            res.status(200).json({
+            const body: HhJobStatusResponse = {
                 id: job.id,
                 kind: job.kind,
                 status: job.status,
@@ -116,7 +134,8 @@ export class ScriptController {
                 finishedAt: job.finishedAt,
                 error: job.error,
                 countersUpdated: job.countersUpdated === true,
-            });
+            };
+            res.status(200).json(body);
         } catch (error) {
             handleErrors(res, error, 'Job status error.');
         }

@@ -1,36 +1,48 @@
 import { Options } from 'swagger-jsdoc';
-import { PROTOCOL } from '@config';
 
 export const swaggerOptions: Options = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'Job Search API',
+            title: 'Market Hunter API',
             version: '1.0.0',
-            description: 'API для поиска работы',
+            description: [
+                'Backend API for Market Hunter (vacancies, payments, HH automation).',
+                'HH routes: POST `/start`, `/refresh`, `/stop`, GET `/jobs/{jobId}`.',
+                'Default worker mode is queue (`HH_WORKER_MODE=queue`) → HTTP 202 + poll job status.',
+                'Auth: Bearer JWT; mutating routes require a resolved `userId`.',
+            ].join(' '),
             contact: {
                 name: 'API Support',
-                email: 'support@example.com'
-            }
+                email: 'support@example.com',
+            },
         },
         servers: [
             {
                 url: 'http://localhost:8000',
-                description: 'Development server'
-            }
+                description: 'Development server',
+            },
         ],
         components: {
             securitySchemes: {
                 bearerAuth: {
-                    type: PROTOCOL,
+                    type: 'http',
                     scheme: 'bearer',
-                    bearerFormat: 'JWT'
-                }
-            }
+                    bearerFormat: 'JWT',
+                    description:
+                        'Access JWT from auth service. Missing/invalid token → 401; missing userId on guarded routes → 400.',
+                },
+            },
         },
-        security: [{
-            bearerAuth: []
-        }]
+        security: [
+            {
+                bearerAuth: [],
+            },
+        ],
+        tags: [
+            { name: 'HH', description: 'HeadHunter Puppeteer apply / refresh / jobs' },
+            { name: 'Health', description: 'Liveness probes' },
+        ],
     },
-    apis: ['./src/routes/*.ts']
-}; 
+    apis: ['./src/routes/*.ts', './src/swagger/**/*.ts'],
+};
