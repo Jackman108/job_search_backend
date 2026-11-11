@@ -12,18 +12,20 @@ export const HH_SCRAPE = {
 
 export const SELECTORS = {
     COOKIE_ACCEPT: '[data-qa="cookies-policy-informer-accept"]',
-    LOGIN: '[data-qa="login"]',
+    // Header LOGIN on serp (optional). Magritte authorize prefers /account/login.
+    LOGIN: '[data-qa^="login "], [data-qa="login"], [data-qa*="mainmenu_loginButton"]',
     REGION_BUTTON: '.supernova-overlay-closer',
-    // 2026 HH: /account/login first asks applicant vs employer, then credentials.
+    // Magritte: applicant → submit → email credential (phone default) → email →
+    // expand-login-by-password → password-only screen → submit.
     ACCOUNT_TYPE_APPLICANT: '[data-qa="account-type-card-APPLICANT"]',
     ACCOUNT_TYPE_APPLICANT_RADIO:
         '[data-qa="account-type-card-APPLICANT-radio"], [data-qa="account-type-card-APPLICANT-radio checked"]',
     ACCOUNT_LOGIN_FORM: '[data-qa="account-login-form"]',
-    // Magritte may append " checked" into data-qa value — match with ^= .
-    EMAIL_BUTTON: '[data-qa^="credential-type-email"], [data-qa="credential-type-EMAIL"]',
+    // Magritte may append " checked" into data-qa — match with ^= .
+    EMAIL_BUTTON: '[data-qa^="credential-type-email"]',
     EMAIL_INPUT: '[data-qa="applicant-login-input-email"]',
     PASSWORD_BUTTON: '[data-qa="expand-login-by-password"]',
-    // Primary + Magritte/legacy alts (comma = first match).
+    // After expand, Magritte drops the email field and shows password only.
     PASSWORD_INPUT:
         '[data-qa="applicant-login-input-password"], [data-qa="login-input-password"], input[type="password"]',
     LOGIN_SUBMIT: '[data-qa="submit-button"], [data-qa="account-login-submit"]',
