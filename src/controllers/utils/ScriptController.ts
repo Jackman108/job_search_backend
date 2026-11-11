@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { Response } from 'express';
 import { handleErrors } from '@middlewares';
 import { stop } from '@utils';
@@ -100,6 +101,11 @@ export class ScriptController {
                 res.status(403).json({ message: 'Forbidden.' });
                 return;
             }
+            const hasCaptchaImage = Boolean(
+                job.captchaImagePath &&
+                fs.existsSync(job.captchaImagePath) &&
+                fs.statSync(job.captchaImagePath).size > 32,
+            );
             const body: HhJobStatusResponse = {
                 id: job.id,
                 kind: job.kind,
@@ -112,11 +118,37 @@ export class ScriptController {
                 lastEvent: job.lastEvent,
                 lastEventAt: job.lastEventAt,
                 captchaSrc: job.captchaSrc,
+                hasCaptchaImage,
                 awaitingCaptcha: job.awaitingCaptcha === true,
             };
             res.status(200).json(body);
         } catch (error) {
             handleErrors(res, error, 'Job status error.');
+        }
+    }
+
+    /** Serve worker-captured CAPTCHA PNG (HH picture URL is often unusable cross-origin). */
+    async getCaptchaImage(req: AuthenticatedRequest, res: Response) {
+        try {
+            const job = readJob(req.params.jobId);
+            if (!job) {
+                res.status(404).json({ message: 'Job not found.' });
+                return;
+            }
+            if (job.userId !== req.userId) {
+                res.status(403).json({ message: 'Forbidden.' });
+                return;
+            }
+            const filePath = job.captchaImagePath;
+            if (!filePath || !fs.existsSync(filePath) || fs.statSync(filePath).size < 32) {
+                res.status(404).json({ message: 'CAPTCHA image not ready.' });
+                return;
+            }
+            res.setHeader('Cache-Control', 'no-store');
+            res.type('png');
+            fs.createReadStream(filePath).pipe(res);
+        } catch (error) {
+            handleErrors(res, error, 'CAPTCHA image error.');
         }
     }
 

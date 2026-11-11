@@ -10,14 +10,20 @@ const DEFAULT_WAIT_MS = 5 * 60 * 1000;
 const POLL_MS = 1500;
 const MAX_ATTEMPTS = 5;
 
+const isPictureUrl = (src: string) => /captcha\/picture/i.test(src);
+
 export function captchaImagePath(jobId: string): string {
     return path.join(JOBS_DIR, `${jobId}-captcha.png`);
 }
 
-async function readCaptchaSrc(page: Page): Promise<string> {
-    const handle = await page.$(SELECTORS.CAPTCHA_IMAGE);
-    if (!handle) return '';
-    return page.evaluate((img) => (img as HTMLImageElement).src || '', handle).catch(() => '');
+export async function readCaptchaSrc(page: Page): Promise<string> {
+    return page
+        .evaluate((sel) => {
+            const nodes = Array.from(document.querySelectorAll(sel)) as HTMLImageElement[];
+            const hit = nodes.find((img) => /captcha\/picture/i.test(img.src || ''));
+            return hit?.src || '';
+        }, SELECTORS.CAPTCHA_IMAGE)
+        .catch(() => '');
 }
 
 /** Snapshot CAPTCHA image for human solve (headless — no Chrome window). */
@@ -25,18 +31,26 @@ export async function saveCaptchaImage(jobId: string, page: Page, captchaSrc: st
     const out = captchaImagePath(jobId);
     if (!fs.existsSync(JOBS_DIR)) fs.mkdirSync(JOBS_DIR, { recursive: true });
 
-    // Prefer network bytes of the picture URL — element screenshots are often cropped.
-    if (captchaSrc) {
+    if (captchaSrc && isPictureUrl(captchaSrc)) {
         const bytes = await page
             .evaluate(async (url) => {
-                const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
+                const res = await fetch(url, {
+                    credentials: 'include',
+                    cache: 'no-store',
+                    headers: { Accept: 'image/*,*/*' },
+                });
                 if (!res.ok) return [];
-                return Array.from(new Uint8Array(await res.arrayBuffer()));
+                const buf = new Uint8Array(await res.arrayBuffer());
+                // Reject HTML / tiny payloads mistaken for PNG.
+                if (buf.length < 64) return [];
+                const head = String.fromCharCode(...buf.slice(0, 15));
+                if (/<!doctype|<html/i.test(head)) return [];
+                return Array.from(buf);
             }, captchaSrc)
             .catch(() => [] as number[]);
-        if (bytes.length > 32) {
+        if (bytes.length > 64) {
             fs.writeFileSync(out, Buffer.from(bytes));
-            stage('captcha image', out);
+            stage('captcha image', `${out} (${bytes.length}b fetch)`);
             return out;
         }
     }
@@ -44,9 +58,13 @@ export async function saveCaptchaImage(jobId: string, page: Page, captchaSrc: st
     const handle = await page.$(SELECTORS.CAPTCHA_IMAGE);
     if (handle) {
         await handle.screenshot({ path: out }).catch(() => undefined);
+        if (fs.existsSync(out) && fs.statSync(out).size > 64) {
+            stage('captcha image', `${out} (element shot)`);
+            return out;
+        }
     }
 
-    stage('captcha image', out);
+    stage('captcha image', 'capture failed');
     return out;
 }
 
@@ -97,6 +115,24 @@ async function typeAndSubmitAnswer(page: Page, answer: string): Promise<boolean>
     return true;
 }
 
+async function ensureCaptchaPicture(page: Page, hintSrc: string): Promise<string> {
+    let src = (hintSrc && isPictureUrl(hintSrc) ? hintSrc : '') || (await readCaptchaSrc(page));
+    if (src) return src;
+
+    // Magritte refresh control when the picture failed to load.
+    await page
+        .evaluate(() => {
+            const btn =
+                (document.querySelector('[data-qa="captcha-refresh"], [data-qa*="captcha"] button') as HTMLElement) ||
+                Array.from(document.querySelectorAll('button')).find((b) => /обнов|refresh/i.test(b.textContent || ''));
+            btn?.click();
+        })
+        .catch(() => undefined);
+    await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT * 2));
+    src = await readCaptchaSrc(page);
+    return src;
+}
+
 /**
  * Headless human-in-the-loop: expose captchaSrc + local PNG, wait for
  * POST /jobs/:id/captcha. Retries with a fresh image if the answer was wrong.
@@ -104,18 +140,17 @@ async function typeAndSubmitAnswer(page: Page, answer: string): Promise<boolean>
 export async function waitAndSubmitCaptchaAnswer(jobId: string, page: Page, captchaSrc: string): Promise<boolean> {
     const budget = Number(process.env.HH_CAPTCHA_WAIT_MS) || DEFAULT_WAIT_MS;
     const deadline = Date.now() + budget;
-    let currentSrc = captchaSrc || (await readCaptchaSrc(page));
+    let currentSrc = await ensureCaptchaPicture(page, captchaSrc);
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS && Date.now() < deadline; attempt++) {
+        currentSrc = (await ensureCaptchaPicture(page, currentSrc)) || currentSrc;
         const imagePath = await saveCaptchaImage(jobId, page, currentSrc);
-        // Cache-bust so the client modal reloads when the picture key changes.
-        const displaySrc = currentSrc
-            ? `${currentSrc}${currentSrc.includes('?') ? '&' : '?'}t=${Date.now()}`
-            : undefined;
+        const imageReady = fs.existsSync(imagePath) && fs.statSync(imagePath).size > 64;
+
         updateJob(jobId, {
             awaitingCaptcha: true,
-            captchaSrc: displaySrc || currentSrc || undefined,
-            captchaImagePath: imagePath,
+            captchaSrc: currentSrc && isPictureUrl(currentSrc) ? currentSrc : undefined,
+            captchaImagePath: imageReady ? imagePath : undefined,
             captchaAnswer: undefined,
             lastEvent: `CAPTCHA awaiting answer (try ${attempt}/${MAX_ATTEMPTS}) ${currentSrc || imagePath}`,
             lastEventAt: new Date().toISOString(),
@@ -154,20 +189,6 @@ export async function waitAndSubmitCaptchaAnswer(jobId: string, page: Page, capt
 
         stage('captcha', `still visible after submit — retry (${attempt}/${MAX_ATTEMPTS})`);
         currentSrc = await readCaptchaSrc(page);
-        // Magritte may keep the same key until refresh — nudge image reload.
-        if (currentSrc) {
-            await page
-                .evaluate((sel) => {
-                    const img = document.querySelector(sel) as HTMLImageElement | null;
-                    if (!img?.src) return;
-                    const u = new URL(img.src, location.origin);
-                    u.searchParams.set('_retry', String(Date.now()));
-                    img.src = u.toString();
-                }, SELECTORS.CAPTCHA_IMAGE)
-                .catch(() => undefined);
-            await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT));
-            currentSrc = (await readCaptchaSrc(page)) || currentSrc;
-        }
     }
 
     stage('captcha', 'exhausted retries / budget');

@@ -38,11 +38,14 @@ export async function pageHasBadCredentials(page: Page): Promise<boolean> {
 }
 
 async function handleCaptchaGate(page: Page, browser: Browser, broadcast: JobBroadcast, jobId: string): Promise<void> {
-    const captchaHandle = await page.$(SELECTORS.CAPTCHA_IMAGE);
-    const captchaSrc = captchaHandle
-        ? await page.evaluate((img) => (img as HTMLImageElement).src, captchaHandle).catch(() => '')
-        : '';
-    broadcast.broadcast(`CAPTCHA detected restart ${captchaSrc}`);
+    const captchaSrc = await page
+        .evaluate((sel) => {
+            const nodes = Array.from(document.querySelectorAll(sel)) as HTMLImageElement[];
+            const hit = nodes.find((img) => /captcha\/picture/i.test(img.currentSrc || img.src || ''));
+            return hit?.currentSrc || hit?.src || '';
+        }, SELECTORS.CAPTCHA_IMAGE)
+        .catch(() => '');
+    broadcast.broadcast(`CAPTCHA detected restart ${captchaSrc || 'local-image'}`);
     await page.screenshot({ path: 'screenshot-CAPTCHA.png' }).catch(() => null);
 
     const solved = await waitAndSubmitCaptchaAnswer(jobId, page, captchaSrc || '');
