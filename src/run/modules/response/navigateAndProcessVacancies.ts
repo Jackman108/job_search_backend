@@ -2,6 +2,7 @@
 import { HH_SCRAPE, SELECTORS } from '@config';
 import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '@interface';
 import { getVacanciesUser } from '@services';
+import { broadcast } from '@server';
 import { delayBeforeApply, delayBetweenPages, isStopped, stop } from '@utils';
 import { getVacancies } from './getVacancies.js';
 import { processVacancy } from './processVacancy.js';
@@ -11,7 +12,7 @@ export async function navigateAndProcessVacancies({
     page,
     counters,
     message,
-    browser
+    browser,
 }: NavigateAndProcessVacanciesParams): Promise<void> {
     let currentPage = 0;
     let existingVacanciesIds: Set<number>;
@@ -20,7 +21,7 @@ export async function navigateAndProcessVacancies({
 
     try {
         const vacanciesFromDb = await getVacanciesUser(userId);
-        existingVacanciesIds = new Set(vacanciesFromDb.map(vacancy => vacancy.id));
+        existingVacanciesIds = new Set(vacanciesFromDb.map((vacancy) => vacancy.id));
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
         return;
@@ -50,7 +51,12 @@ export async function navigateAndProcessVacancies({
                 }
 
                 console.log('Vacancies found', vacancies.length);
-                console.log('Sent feedback:', counters.successfullySubmittedCount, 'UnSent feedback:', counters.unsuccessfullySubmittedCount);
+                console.log(
+                    'Sent feedback:',
+                    counters.successfullySubmittedCount,
+                    'UnSent feedback:',
+                    counters.unsuccessfullySubmittedCount,
+                );
 
                 // HH pacing: base + jitter (+ stepped backoff after outer failures)
                 const waitedMs = await delayBeforeApply(consecutiveApplyFailures);
@@ -58,9 +64,23 @@ export async function navigateAndProcessVacancies({
                 try {
                     existingVacanciesIds.add(data.id);
                     if (vacancyResponse) {
-                        await processVacancy({ page, vacancyResponse, data, counters, message, userId });
-                        consecutiveApplyFailures = 0;
-                        vacancies = (await getVacancies(page)).filter(({ data }) => data.id && !existingVacanciesIds.has(data.id));
+                        const result = await processVacancy({
+                            page,
+                            vacancyResponse,
+                            data,
+                            counters,
+                            message,
+                            userId,
+                        });
+                        if (result === 'captcha') {
+                            broadcast('CAPTCHA mid-apply — stopping browser');
+                            await stop(browser);
+                            return;
+                        }
+                        consecutiveApplyFailures = result === 'fail' ? consecutiveApplyFailures + 1 : 0;
+                        vacancies = (await getVacancies(page)).filter(
+                            ({ data }) => data.id && !existingVacanciesIds.has(data.id),
+                        );
                     } else {
                         console.error(`Vacancy response for ID ${data.id} is null.`);
                     }
