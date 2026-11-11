@@ -49,7 +49,7 @@ npm start
 
 Локальный `src/secrets.ts` больше не нужен (исторически мог содержать пароль HH — удалить, пароль на HH сменить).
 
-Worker (crash isolation): `/start` and `/refresh` always queue — spawn `@market-hunter/hh-worker` (`packages/hh-worker/bin/run.mjs`) detached; poll `GET /jobs/:jobId` (source of truth — CAPTCHA/errors persist on the job record; base broadcast is WS-noop). Override entry with `HH_WORKER_ENTRY`. Manual: `yarn worker -- <jobId>`. Requires **Node 20.x** (`engines.node`).
+Worker (crash isolation): `/start` and `/refresh` always queue — spawn `@market-hunter/hh-worker` (`packages/hh-worker/bin/run.mjs`) detached; poll `GET /jobs/:jobId` (source of truth — CAPTCHA/errors persist on the job record; base broadcast is WS-noop). Override entry with `HH_WORKER_ENTRY`. Manual: `yarn worker -- <jobId>`. Requires **Node >=20** (`engines.node`; CI uses 20, local 24 OK).
 
 ## Связанные репозитории
 

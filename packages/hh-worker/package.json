@@ -15,6 +15,6 @@
     "start": "node ./bin/run.mjs"
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=20"
   }
 }
