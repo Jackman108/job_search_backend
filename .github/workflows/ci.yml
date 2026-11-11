@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   lint-typecheck:
-    name: lint · typecheck
+    name: lint · format · typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -29,10 +29,11 @@ jobs:
       - name: Install
         run: yarn install --frozen-lockfile
 
-      # Matches docs/TOOLING.md gates that currently pass green.
-      # format:check deferred — ~144 files fail Prettier today (separate pass).
       - name: Lint
         run: yarn lint
+
+      - name: Format check
+        run: yarn format:check
 
       - name: Typecheck
         run: yarn typecheck
