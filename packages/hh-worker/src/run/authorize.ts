@@ -3,6 +3,7 @@ import { stop } from '@utils';
 import { Browser, Page } from 'puppeteer';
 import type { JobBroadcast } from '../job/broadcast.types.js';
 import { clickByExactText } from './helpers/clickByExactText.js';
+import { dismissPreLoginOverlays } from './helpers/dismissPreLoginOverlays.js';
 import { clickFirstSelector } from './helpers/waitForFirstSelector.js';
 
 const HH_LOGIN_URL = 'https://hh.ru/account/login';
@@ -56,10 +57,14 @@ async function passAccountTypeGate(page: Page): Promise<void> {
 
 /** Always Magritte /account/login — do not wait for serp English/header LOGIN. */
 async function ensureLoginForm(page: Page): Promise<void> {
-    if (await page.$(SELECTORS.ACCOUNT_LOGIN_FORM)) return;
+    if (await page.$(SELECTORS.ACCOUNT_LOGIN_FORM)) {
+        await dismissPreLoginOverlays(page);
+        return;
+    }
 
     await page.goto(HH_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
     await settle(TIMEOUTS.SHORT * 2);
+    await dismissPreLoginOverlays(page);
 
     const form = await page
         .waitForSelector(SELECTORS.ACCOUNT_LOGIN_FORM, { timeout: TIMEOUTS.MODAL, visible: true })

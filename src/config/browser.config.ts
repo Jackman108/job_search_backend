@@ -1,10 +1,13 @@
 import type { Environment } from './base.config.js';
+import type { PuppeteerLaunchOptions } from 'puppeteer';
 
 /**
  * HH / Puppeteer stays headless by default (dev + prod).
- * Headed only for explicit debug:
+ * Headed only for explicit debug (closest to a real browser — fewer CAPTCHAs):
  *   HH_HEADED=1
  *   PUPPETEER_HEADLESS=false
+ * Optional warm profile (reuse cookies across jobs):
+ *   HH_USER_DATA_DIR=C:\path\to\hh-profile
  */
 export function resolvePuppeteerHeadless(): boolean {
     const headed = process.env.HH_HEADED;
@@ -21,38 +24,31 @@ export function resolvePuppeteerHeadless(): boolean {
 }
 
 const headless = resolvePuppeteerHeadless();
+const userDataDir = process.env.HH_USER_DATA_DIR?.trim() || undefined;
 
-// Базовые настройки браузера
-export const BROWSER_CONFIG = {
+export const BROWSER_CONFIG: PuppeteerLaunchOptions = {
     headless,
+    userDataDir,
+    // Hide --enable-automation; block AutomationControlled blink feature.
+    ignoreDefaultArgs: ['--enable-automation'],
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-infobars',
         '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-        '--window-size=1920x1080',
+        '--disable-blink-features=AutomationControlled',
+        '--window-size=1440,1000',
+        '--lang=ru-RU,ru',
     ],
     defaultViewport: {
-        width: 1920,
-        height: 1080,
+        width: 1440,
+        height: 1000,
     },
     timeout: 30000,
 };
 
-// Настройки для разных окружений (all headless unless debug env set)
-export const ENV_BROWSER_CONFIG: Record<Environment, typeof BROWSER_CONFIG> = {
-    production: {
-        ...BROWSER_CONFIG,
-        headless,
-    },
-    development: {
-        ...BROWSER_CONFIG,
-        headless,
-    },
-    test: {
-        ...BROWSER_CONFIG,
-        headless,
-    },
+export const ENV_BROWSER_CONFIG: Record<Environment, PuppeteerLaunchOptions> = {
+    production: { ...BROWSER_CONFIG, headless },
+    development: { ...BROWSER_CONFIG, headless },
+    test: { ...BROWSER_CONFIG, headless },
 };
