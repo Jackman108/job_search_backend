@@ -18,10 +18,11 @@ export const createTableCryptoPayments = async (): Promise<void> => {
         console.log('Table "crypto_payments" already exists.');
         return;
     }
+    // Match auth Prisma `payments.id` (text), not UUID — shared DB.
     const query = `
     CREATE TABLE IF NOT EXISTS crypto_payments (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      payment_id TEXT REFERENCES payments(id) ON DELETE CASCADE,
       amount DECIMAL(10,2) NOT NULL,
       currency VARCHAR(3) NOT NULL,
       crypto_address VARCHAR(100) NOT NULL,
@@ -43,8 +44,14 @@ export const createTableCryptoPayments = async (): Promise<void> => {
  * Получение всех криптоплатежей пользователя
  */
 export const listCryptoPayments = async (): Promise<CryptoPaymentDetails[]> => {
-    const query = `SELECT * FROM crypto_payments ORDER BY created_at DESC;`;
-    return await executeQuery<CryptoPaymentDetails>(query);
+    try {
+        await createTableCryptoPayments();
+        const query = `SELECT * FROM crypto_payments ORDER BY created_at DESC;`;
+        return await executeQuery<CryptoPaymentDetails>(query);
+    } catch {
+        // Table may be missing or FK types may not match auth Prisma `payments.id` (text).
+        return [];
+    }
 };
 
 /**

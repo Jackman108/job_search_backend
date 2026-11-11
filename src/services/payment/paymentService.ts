@@ -35,9 +35,15 @@ export const createTablePayments = async (): Promise<void> => {
  * @param userId ID пользователя из AuthenticatedRequest
  */
 export const listPayments = async (userId: string): Promise<PaymentBase[]> => {
-    const subscriptionId = await getSubscriptionIdByUserId(userId);
-    const query = `SELECT * FROM payments WHERE subscription_id = $1;`;
-    return await executeQuery<PaymentBase>(query, [subscriptionId]);
+    // Shared DB: auth Prisma owns `payments` with user_id; backend historically used subscription_id.
+    try {
+        const subscriptionId = await getSubscriptionIdByUserId(userId);
+        return await executeQuery<PaymentBase>(`SELECT * FROM payments WHERE subscription_id = $1;`, [
+            subscriptionId,
+        ]);
+    } catch {
+        return await executeQuery<PaymentBase>(`SELECT * FROM payments WHERE user_id = $1;`, [userId]);
+    }
 };
 
 /**
