@@ -30,7 +30,7 @@ export const swaggerOptions: Options = {
                     scheme: 'bearer',
                     bearerFormat: 'JWT',
                     description:
-                        'Access JWT from auth service. Missing/invalid token → 401; missing userId on guarded routes → 400.',
+                        'Access JWT from auth service. Missing/invalid token (or unresolved userId on guarded routes) → 401.',
                 },
             },
         },

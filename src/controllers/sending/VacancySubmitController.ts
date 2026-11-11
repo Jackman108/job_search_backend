@@ -7,6 +7,7 @@ export class VacancySubmitController {
     async getVacancySubmit(req: AuthenticatedRequest, res: Response) {
         try {
             const vacancySubmitData = await getVacancySubmitByUserId(req.userId!);
+            // Empty list is a valid resource state — REST 200 + [].
             res.status(200).json(vacancySubmitData);
         } catch (error) {
             handleErrors(res, error, 'Error retrieving vacancy submit data.');

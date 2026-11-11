@@ -7,6 +7,7 @@ export class VacancyAuthController {
     async getVacancyAuth(req: AuthenticatedRequest, res: Response) {
         try {
             const vacancyAuthData = await getVacancyAuthByUserId(req.userId!);
+            // Empty list is a valid resource state — REST 200 + [].
             res.status(200).json(vacancyAuthData);
         } catch (error) {
             handleErrors(res, error, 'Error retrieving vacancy auth data.');
