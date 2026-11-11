@@ -14,9 +14,3 @@ export function queueGetFeedback(payload: GetFeedbackParams): { jobId: string } 
     spawnWorker(job.id);
     return { jobId: job.id };
 }
-
-/** Sync path (legacy). Set HH_WORKER_MODE=sync to force. Default: queue. */
-export function useQueuedWorker(): boolean {
-    const mode = (process.env.HH_WORKER_MODE || 'queue').toLowerCase();
-    return mode !== 'sync';
-}

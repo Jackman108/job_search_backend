@@ -9,7 +9,7 @@ export const swaggerOptions: Options = {
             description: [
                 'Backend API for Market Hunter (vacancies, payments, HH automation).',
                 'HH routes: POST `/start`, `/refresh`, `/stop`, GET `/jobs/{jobId}`.',
-                'Default worker mode is queue (`HH_WORKER_MODE=queue`) → HTTP 202 + poll job status.',
+                'HH worker is queue-only → HTTP 202 + poll job status (detached `@market-hunter/hh-worker`).',
                 'Auth: Bearer JWT; mutating routes require a resolved `userId`.',
             ].join(' '),
             contact: {

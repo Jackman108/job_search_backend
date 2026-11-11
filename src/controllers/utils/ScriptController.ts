@@ -1,19 +1,16 @@
 import { Response } from 'express';
-import { getFeedback, sendFeedback } from '@market-hunter/hh-worker';
 import { handleErrors } from '@middlewares';
-import { incrementSpinCount, updateSuccessfulResponsesCount } from '@services';
 import { stop } from '@utils';
 import {
     AuthenticatedRequest,
     HhJobQueuedResponse,
     HhJobStatusResponse,
-    HhJobSyncResponse,
     RefreshScriptBody,
     StartScriptBody,
     StopScriptResponse,
 } from '@interface';
 import { cancelJobsForUser } from '../../worker/cancelJobs.js';
-import { queueGetFeedback, queueSendFeedback, useQueuedWorker } from '../../worker/enqueue.js';
+import { queueGetFeedback, queueSendFeedback } from '../../worker/enqueue.js';
 import { readJob } from '../../worker/jobStore.js';
 
 export class ScriptController {
@@ -35,26 +32,14 @@ export class ScriptController {
                 vacancyUrl,
             };
 
-            if (useQueuedWorker()) {
-                const { jobId } = queueSendFeedback(payload);
-                // Counters update when the detached worker finishes successfully.
-                const body: HhJobQueuedResponse = {
-                    message: 'HH apply job queued (detached worker).',
-                    jobId,
-                    mode: 'queue',
-                };
-                res.status(202).json(body);
-                return;
-            }
-
-            await sendFeedback(payload);
-            await incrementSpinCount(req.userId!);
-            await updateSuccessfulResponsesCount(req.userId!);
-            const body: HhJobSyncResponse = {
-                message: 'The script was executed successfully!',
-                mode: 'sync',
+            const { jobId } = queueSendFeedback(payload);
+            // Counters update when the detached worker finishes successfully.
+            const body: HhJobQueuedResponse = {
+                message: 'HH apply job queued (detached worker).',
+                jobId,
+                mode: 'queue',
             };
-            res.status(200).json(body);
+            res.status(202).json(body);
         } catch (error) {
             handleErrors(res, error, 'Script execution error.');
         }
@@ -90,23 +75,13 @@ export class ScriptController {
                 password,
             };
 
-            if (useQueuedWorker()) {
-                const { jobId } = queueGetFeedback(payload);
-                const body: HhJobQueuedResponse = {
-                    message: 'HH feedback refresh queued (detached worker).',
-                    jobId,
-                    mode: 'queue',
-                };
-                res.status(202).json(body);
-                return;
-            }
-
-            await getFeedback(payload);
-            const body: HhJobSyncResponse = {
-                message: 'The update is up and running!',
-                mode: 'sync',
+            const { jobId } = queueGetFeedback(payload);
+            const body: HhJobQueuedResponse = {
+                message: 'HH feedback refresh queued (detached worker).',
+                jobId,
+                mode: 'queue',
             };
-            res.status(200).json(body);
+            res.status(202).json(body);
         } catch (error) {
             handleErrors(res, error, 'Error Update!');
         }

@@ -17,22 +17,17 @@ export interface RefreshScriptBody {
 }
 
 export interface StopScriptBody {
-    /** Optional Puppeteer browser handle hint (legacy sync path). */
+    /** Optional legacy browser hint (ignored; stop uses job cancel + PID kill). */
     browser?: unknown;
 }
 
-export type HhWorkerMode = 'queue' | 'sync';
+export type HhWorkerMode = 'queue';
 
-/** Default when `HH_WORKER_MODE` is unset or `queue`. */
+/** `/start` and `/refresh` always queue a detached worker. */
 export interface HhJobQueuedResponse {
     message: string;
     jobId: string;
     mode: 'queue';
-}
-
-export interface HhJobSyncResponse {
-    message: string;
-    mode: 'sync';
 }
 
 export interface StopScriptResponse {
