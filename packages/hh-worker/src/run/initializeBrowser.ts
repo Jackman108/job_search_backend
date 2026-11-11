@@ -10,8 +10,10 @@ export async function initializeBrowser(vacancyUrl: string, browser: Browser, pa
     try {
         reset();
         await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
-        // Warm profile (`HH_USER_DATA_DIR`) keeps cookies; ephemeral jobs wipe session first.
-        if (!process.env.HH_USER_DATA_DIR?.trim()) {
+        // Clearing session forces a cold fingerprint and often *increases* CAPTCHA rate.
+        // Opt-in only: HH_CLEAR_SESSION=1 (warm profile HH_USER_DATA_DIR never clears).
+        const clearSession = process.env.HH_CLEAR_SESSION?.trim().toLowerCase();
+        if ((clearSession === '1' || clearSession === 'true') && !process.env.HH_USER_DATA_DIR?.trim()) {
             await clearBrowserSession(page);
         }
 

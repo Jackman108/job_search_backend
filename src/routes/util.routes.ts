@@ -147,4 +147,39 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *               $ref: '#/components/schemas/ErrorMessage'
      */
     registerRoute(app, 'get', '/jobs/:jobId', ScriptController, 'getJobStatus');
+
+    /**
+     * @swagger
+     * /jobs/{jobId}/captcha:
+     *   post:
+     *     summary: Submit CAPTCHA text for a headless HH job
+     *     description: |
+     *       When `awaitingCaptcha` is true on GET /jobs/{jobId}, post `{ "answer": "…" }`.
+     *       The detached worker types it and continues — no headed Chrome required.
+     *     tags: [HH]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: jobId
+     *         required: true
+     *         schema:
+     *           type: string
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [answer]
+     *             properties:
+     *               answer:
+     *                 type: string
+     *     responses:
+     *       200:
+     *         description: Answer queued for the worker
+     *       409:
+     *         description: Job not awaiting CAPTCHA
+     */
+    registerRoute(app, 'post', '/jobs/:jobId/captcha', ScriptController, 'submitCaptchaAnswer');
 };

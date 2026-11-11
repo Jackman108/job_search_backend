@@ -57,4 +57,10 @@ export interface HhJobStatusResponse {
     lastEventAt?: string;
     /** CAPTCHA image URL when detected. */
     captchaSrc?: string;
+    /** Worker blocked on CAPTCHA — submit via POST /jobs/{jobId}/captcha. */
+    awaitingCaptcha?: boolean;
+}
+
+export interface CaptchaAnswerBody {
+    answer: string;
 }

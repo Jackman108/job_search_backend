@@ -13,7 +13,7 @@ dotenv.config();
 
 export async function getFeedback(
     { userId, email, password }: GetFeedbackParams,
-    deps: Pick<ScenarioDeps, 'feedbackRepo' | 'broadcast'>,
+    deps: Pick<ScenarioDeps, 'feedbackRepo' | 'broadcast'> & { jobId: string },
 ): Promise<void> {
     let browser: Browser | null = null;
     let page: Page | null = null;
@@ -26,7 +26,7 @@ export async function getFeedback(
         if (!isInitialized) return;
 
         stage('login');
-        await authorize(page, email, password, browser, deps.broadcast);
+        await authorize(page, email, password, browser, deps.broadcast, deps.jobId);
         await page.screenshot({ path: 'screenshot-authorize.png' });
         if (isStopped()) {
             stage('stopped', 'before chats');

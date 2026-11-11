@@ -12,7 +12,7 @@ dotenv.config();
 
 export async function sendFeedback(
     { userId, email, password, position, message, vacancyUrl }: SendFeedbackParams,
-    deps: Pick<ScenarioDeps, 'vacancyRepo' | 'broadcast'>,
+    deps: Pick<ScenarioDeps, 'vacancyRepo' | 'broadcast'> & { jobId: string },
 ): Promise<void> {
     let browser: Browser | null = null;
     let page: Page | null = null;
@@ -30,7 +30,7 @@ export async function sendFeedback(
         if (!isInitialized) return;
 
         stage('login');
-        await authorize(page, email, password, browser, deps.broadcast);
+        await authorize(page, email, password, browser, deps.broadcast, deps.jobId);
         if (isStopped()) {
             stage('stopped', 'before search');
             await stop(browser);
