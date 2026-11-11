@@ -1,6 +1,6 @@
 # `@market-hunter/hh-worker`
 
-Dedicated package for the HeadHunter Puppeteer worker: public bin + Puppeteer scenarios.
+Dedicated package for the HeadHunter Puppeteer worker: public bin, scenario API, job file store, and Puppeteer run scenarios.
 
 ## Crash isolation
 
@@ -16,8 +16,20 @@ Poll status: `GET /jobs/:jobId`. Stop: `POST /stop` cancels queued + tree-kills 
 | Path | Role |
 |------|------|
 | `bin/run.mjs` | Stable public entry (spawn target) |
-| `src/run/` | Puppeteer scenarios (authorize, apply, chats) — imported as `@run` |
-| `src/worker/` (API package) | Job store, enqueue/spawn, `processJob` claim loop |
+| `src/index.ts` | **Public API** — scenarios + job store |
+| `src/job/` | File-backed `.hh-jobs` store + job types |
+| `src/run/` | Puppeteer scenarios (internal; `@run` only inside this tree) |
+| `src/worker/` (API package) | Thin re-exports + enqueue/spawn/cancel + `processJob` (needs `@services` counters) |
+
+## Imports
+
+```ts
+import { getFeedback, sendFeedback, readJob, claimQueuedJob } from '@market-hunter/hh-worker';
+import type { HhJob } from '@market-hunter/hh-worker/job';
+
+// Inside src/run/* only
+import { authorize, initializeBrowser } from '@run';
+```
 
 ## Run
 
@@ -27,12 +39,12 @@ From backend root:
 yarn worker -- <jobId>
 # or
 node packages/hh-worker/bin/run.mjs <jobId>
-# or (workspaces)
-yarn workspace @market-hunter/hh-worker start <jobId>
 ```
 
 Override spawn target: `HH_WORKER_ENTRY=/absolute/path/to/run.mjs`.
 
 Selectors stay in API `src/config` (`constants.config.ts`). Credentials come from the job payload / form — never from package source.
+
+**Leftover:** move `processJob` into the package once counters are decoupled; drop sync Puppeteer from the API process.
 
 See root `docs/ARCHITECTURE.md` and `OPEN-WORK.md`.
