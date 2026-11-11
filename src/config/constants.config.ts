@@ -12,11 +12,10 @@ export const HH_SCRAPE = {
 
 export const SELECTORS = {
     COOKIE_ACCEPT: '[data-qa="cookies-policy-informer-accept"]',
-    // Header LOGIN on serp (optional). Magritte authorize prefers /account/login.
+    // Legacy serp header CTA — authorize does NOT wait on this (no English LOGIN).
     LOGIN: '[data-qa^="login "], [data-qa="login"], [data-qa*="mainmenu_loginButton"]',
     REGION_BUTTON: '.supernova-overlay-closer',
-    // Magritte: applicant → submit → email credential (phone default) → email →
-    // expand-login-by-password → password-only screen → submit.
+    // Magritte 2026: applicant → Почта → email → «Войти с паролем» → password → «Войти».
     ACCOUNT_TYPE_APPLICANT: '[data-qa="account-type-card-APPLICANT"]',
     ACCOUNT_TYPE_APPLICANT_RADIO:
         '[data-qa="account-type-card-APPLICANT-radio"], [data-qa="account-type-card-APPLICANT-radio checked"]',
@@ -24,10 +23,12 @@ export const SELECTORS = {
     // Magritte may append " checked" into data-qa — match with ^= .
     EMAIL_BUTTON: '[data-qa^="credential-type-email"]',
     EMAIL_INPUT: '[data-qa="applicant-login-input-email"]',
+    // «Войти с паролем» — text fallback in authorize when data-qa drifts.
     PASSWORD_BUTTON: '[data-qa="expand-login-by-password"]',
     // After expand, Magritte drops the email field and shows password only.
     PASSWORD_INPUT:
         '[data-qa="applicant-login-input-password"], [data-qa="login-input-password"], input[type="password"]',
+    // Primary submit («Дальше» on account-type / «Войти» on password) — text fallbacks in authorize.
     LOGIN_SUBMIT: '[data-qa="submit-button"], [data-qa="account-login-submit"]',
     OTP_CODE_INPUT: 'input[data-qa="otp-code-input"]',
     OTP_SUBMIT: '[data-qa="otp-code-submit"]',

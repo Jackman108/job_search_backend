@@ -2,9 +2,18 @@ import { SELECTORS, TIMEOUTS } from '@config';
 import { stop } from '@utils';
 import { Browser, Page } from 'puppeteer';
 import type { JobBroadcast } from '../job/broadcast.types.js';
-import { clickFirstSelector, waitForFirstSelector } from './helpers/waitForFirstSelector.js';
+import { clickByExactText } from './helpers/clickByExactText.js';
+import { clickFirstSelector } from './helpers/waitForFirstSelector.js';
 
 const HH_LOGIN_URL = 'https://hh.ru/account/login';
+
+/** Magritte RU labels (2026) — exact text; never English «LOGIN». */
+const LABEL = {
+    EMAIL_TAB: 'Почта',
+    NEXT: 'Дальше',
+    LOGIN_WITH_PASSWORD: 'Войти с паролем',
+    SUBMIT: 'Войти',
+} as const;
 
 async function settle(ms = TIMEOUTS.SHORT): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, ms));
@@ -29,46 +38,25 @@ async function passAccountTypeGate(page: Page): Promise<void> {
     const applicantCard = await page.$(SELECTORS.ACCOUNT_TYPE_APPLICANT);
     if (!form || !applicantCard) return;
 
-    // Already past account-type (email field or credential pills).
     if ((await page.$(SELECTORS.EMAIL_INPUT)) || (await page.$(SELECTORS.EMAIL_BUTTON))) return;
 
     await applicantCard.click();
     await settle(400);
 
-    const submit = await requireVisible(page, SELECTORS.LOGIN_SUBMIT, 'account-type SUBMIT');
-    await submit.click();
+    const submit =
+        (await clickFirstSelector(page, [SELECTORS.LOGIN_SUBMIT], {
+            timeout: TIMEOUTS.SEARCH,
+            visible: true,
+        })) || (await clickByExactText(page, LABEL.NEXT, { timeout: TIMEOUTS.SHORT }));
+    if (!submit) {
+        throw new Error('HH login: account-type SUBMIT not found');
+    }
     await settle();
 }
 
-/**
- * Search/serp may expose a header LOGIN; Magritte authorize lives on /account/login.
- * Prefer Magritte form if present; else CTA; else direct navigation.
- */
+/** Always Magritte /account/login — do not wait for serp English/header LOGIN. */
 async function ensureLoginForm(page: Page): Promise<void> {
     if (await page.$(SELECTORS.ACCOUNT_LOGIN_FORM)) return;
-
-    const loginMatch = await waitForFirstSelector(page, [SELECTORS.LOGIN], {
-        timeout: TIMEOUTS.SEARCH,
-        visible: true,
-    });
-
-    if (loginMatch) {
-        await loginMatch.handle.click();
-        const region = await page
-            .waitForSelector(SELECTORS.REGION_BUTTON, { timeout: TIMEOUTS.SHORT })
-            .catch(() => null);
-        if (region) {
-            await region.click();
-            await settle();
-            const again = await waitForFirstSelector(page, [SELECTORS.LOGIN], {
-                timeout: TIMEOUTS.SEARCH,
-                visible: true,
-            });
-            if (again) await again.handle.click();
-        }
-        await settle();
-        if (await page.$(SELECTORS.ACCOUNT_LOGIN_FORM)) return;
-    }
 
     await page.goto(HH_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
     await settle(TIMEOUTS.SHORT * 2);
@@ -84,18 +72,52 @@ async function ensureLoginForm(page: Page): Promise<void> {
 async function chooseEmailCredential(page: Page): Promise<void> {
     if (await page.$(SELECTORS.EMAIL_INPUT)) return;
 
-    // Magritte defaults to phone — switch to email before typing.
     const emailType = await clickFirstSelector(page, [SELECTORS.EMAIL_BUTTON], {
         timeout: TIMEOUTS.SEARCH,
         visible: true,
     });
     if (!emailType) {
-        const inputPeek = await page.$(SELECTORS.EMAIL_INPUT);
-        if (!inputPeek) {
-            throw new Error('HH login: credential-type-email control not found');
+        const byText = await clickByExactText(page, LABEL.EMAIL_TAB, { timeout: TIMEOUTS.SHORT });
+        if (!byText && !(await page.$(SELECTORS.EMAIL_INPUT))) {
+            throw new Error('HH login: credential-type-email / Почта control not found');
         }
     }
     await settle();
+}
+
+async function openPasswordStep(page: Page): Promise<void> {
+    // Prefer «Войти с паролем» (password screen). Fallback: «Дальше» then password if present.
+    const byQa = await clickFirstSelector(page, [SELECTORS.PASSWORD_BUTTON], {
+        timeout: TIMEOUTS.SEARCH,
+        visible: true,
+    });
+    if (byQa) {
+        await settle();
+        return;
+    }
+
+    const byPasswordText = await clickByExactText(page, LABEL.LOGIN_WITH_PASSWORD, {
+        timeout: TIMEOUTS.SHORT,
+    });
+    if (byPasswordText) {
+        await settle();
+        return;
+    }
+
+    const byNext = await clickByExactText(page, LABEL.NEXT, { timeout: TIMEOUTS.SHORT });
+    if (byNext) {
+        await settle();
+        if (await page.$(SELECTORS.PASSWORD_INPUT)) return;
+        const again = await clickByExactText(page, LABEL.LOGIN_WITH_PASSWORD, {
+            timeout: TIMEOUTS.SHORT,
+        });
+        if (again) {
+            await settle();
+            return;
+        }
+    }
+
+    throw new Error('HH login: Войти с паролем / expand-login-by-password not found');
 }
 
 async function fillEmailAndPassword(page: Page, email: string, password: string): Promise<void> {
@@ -103,29 +125,28 @@ async function fillEmailAndPassword(page: Page, email: string, password: string)
     await emailHandle.click({ clickCount: 3 }).catch(() => undefined);
     await emailHandle.type(email);
 
-    // «Войти с паролем» swaps to password-only screen (email field disappears).
-    const expanded = await clickFirstSelector(page, [SELECTORS.PASSWORD_BUTTON], {
-        timeout: TIMEOUTS.SEARCH,
-        visible: true,
-    });
-    if (!expanded) {
-        throw new Error('HH login: expand-login-by-password not found');
-    }
-    await settle();
+    await openPasswordStep(page);
 
-    const passwordHandle = await requireVisible(
-        page,
-        SELECTORS.PASSWORD_INPUT,
-        'password input',
-        TIMEOUTS.MODAL,
-    );
+    const passwordHandle = await requireVisible(page, SELECTORS.PASSWORD_INPUT, 'password input', TIMEOUTS.MODAL);
     await passwordHandle.click({ clickCount: 3 }).catch(() => undefined);
     await passwordHandle.type(password);
 }
 
+async function clickLoginSubmit(page: Page): Promise<void> {
+    const byQa = await clickFirstSelector(page, [SELECTORS.LOGIN_SUBMIT], {
+        timeout: TIMEOUTS.SEARCH,
+        visible: true,
+    });
+    if (byQa) return;
+
+    const byText = await clickByExactText(page, LABEL.SUBMIT, { timeout: TIMEOUTS.SEARCH });
+    if (!byText) {
+        throw new Error('HH login: login submit / Войти not found');
+    }
+}
+
 async function submitAndDetectBlockers(page: Page, browser: Browser, broadcast: JobBroadcast): Promise<void> {
-    const submit = await requireVisible(page, SELECTORS.LOGIN_SUBMIT, 'login submit');
-    await submit.click();
+    await clickLoginSubmit(page);
     await settle(TIMEOUTS.SHORT * 2);
     await page.screenshot({ path: 'screenshot-authorize1.png' }).catch(() => null);
 
@@ -175,7 +196,6 @@ async function submitAndDetectBlockers(page: Page, browser: Browser, broadcast: 
         throw new Error(`CAPTCHA detected restart ${captchaSrc || ''}`.trim());
     }
 
-    // Timed out still on login — fail loud instead of applying logged-out.
     const stillPassword = await page.$(SELECTORS.PASSWORD_INPUT);
     const stillForm = await page.$(SELECTORS.ACCOUNT_LOGIN_FORM);
     if (stillForm && stillPassword) {
