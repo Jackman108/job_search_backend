@@ -2,7 +2,8 @@
 /**
  * Stable public entry for the detached HH worker.
  * API queue mode spawns this file (or HH_WORKER_ENTRY) so Chrome crashes
- * stay out of the Express process. Implementation remains in src/worker/.
+ * stay out of the Express process. Puppeteer scenarios live in src/run/;
+ * job claim loop remains src/worker/processJob.ts (API package).
  *
  * Usage: node packages/hh-worker/bin/run.mjs <jobId>
  *    or: yarn workspace @market-hunter/hh-worker start <jobId>

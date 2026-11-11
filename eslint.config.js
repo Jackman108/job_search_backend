@@ -8,7 +8,7 @@ export default [
         ignores: ['dist/**', 'node_modules/**', 'eslint.config.js', '.eslintrc.cjs'],
     },
     {
-        files: ['src/**/*.ts'],
+        files: ['src/**/*.ts', 'packages/hh-worker/src/**/*.ts'],
         languageOptions: {
             parser: tsParser,
             ecmaVersion: 2022,

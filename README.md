@@ -43,7 +43,7 @@ npm start
 
 ## Puppeteer / HH
 
-Сценарии в `src/run/`: login HH, поиск, отклик, cover letter, feedback/chats.
+Сценарии в `packages/hh-worker/src/run/` (import alias `@run`): login HH, поиск, отклик, cover letter, feedback/chats.
 
 Селекторы централизованы в `src/config/constants.config.ts` (`data-qa` атрибуты HH). При поломке UI HH правьте только этот файл.
 
