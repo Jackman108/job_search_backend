@@ -44,6 +44,8 @@ export interface VacancySubmitData {
     search_field: string;
     experience: string;
     search_period: string;
+    /** Linked HH credentials row (`vacancy_auth.id`); optional for legacy rows. */
+    vacancy_auth_id?: number | null;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -66,4 +68,5 @@ export interface UpdateVacancySubmitData {
     search_field?: string;
     experience?: string;
     search_period?: string;
+    vacancy_auth_id?: number | null;
 }
