@@ -4,20 +4,32 @@ import { scrollToElementIfNotFound } from '../../helpers/scrollToElementIfNotFou
 
 /**
  * Prefer Magritte «без вопросов» link, then popup/page RESPONSE_SUBMIT variants.
- * Quick `$` for optional no-questions so missing control does not burn SEARCH timeout.
+ * Prefer DOM evaluate clicks — ElementHandle.click often hits detached Magritte nodes.
  */
 export async function submitApplyResponse(page: Page): Promise<boolean> {
-    const noQuestions = await page.$(SELECTORS.RESPONSE_LINK_NO_QUESTIONS);
-    if (noQuestions) {
-        await noQuestions.click();
-        return true;
-    }
+    const viaNoQuestions = await page
+        .evaluate((sel) => {
+            const el = document.querySelector(sel) as HTMLElement | null;
+            if (!el) return false;
+            el.click();
+            return true;
+        }, SELECTORS.RESPONSE_LINK_NO_QUESTIONS)
+        .catch(() => false);
+    if (viaNoQuestions) return true;
 
     const submit = await scrollToElementIfNotFound(page, SELECTORS.RESPONSE_SUBMIT);
-    if (submit) {
-        await submit.click();
-        return true;
-    }
+    if (!submit) return false;
 
-    return false;
+    const viaEvaluate = await page
+        .evaluate((sel) => {
+            const el = document.querySelector(sel) as HTMLElement | null;
+            if (!el) return false;
+            el.click();
+            return true;
+        }, SELECTORS.RESPONSE_SUBMIT)
+        .catch(() => false);
+    if (viaEvaluate) return true;
+
+    await submit.click().catch(() => undefined);
+    return true;
 }

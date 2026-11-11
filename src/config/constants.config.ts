@@ -41,7 +41,7 @@ export const SELECTORS = {
     VACANCY_INPUT: '[data-qa="search-input"]',
     // Response control is often an <a role="button">; span child may be absent — prefer the button itself in callers when possible.
     RESPONSE_BUTTON_SPAN: '[data-qa="vacancy-serp__vacancy_response"]',
-    PAGER_NEXT: '[data-qa="pager-next"]',
+    PAGER_NEXT: '[data-qa="pager-next"], a[data-qa="pager-next"], button[data-qa="pager-next"]',
     RELOCATION_MODAL_TITLE: '[data-qa="relocation-warning-title"]',
     RELOCATION_CONFIRM: '[data-qa="relocation-warning-confirm"]',
     // Popup (`add-cover-letter` / *-popup-*) + vacancy-page Magritte letter toggle/submit/input.
