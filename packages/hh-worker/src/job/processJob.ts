@@ -24,8 +24,19 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
 
     try {
         if (job.kind === 'sendFeedback') {
+            const vacancyRepo = {
+                ...deps.vacancyRepo,
+                saveVacancy: async (data: Parameters<typeof deps.vacancyRepo.saveVacancy>[0], userId: string) => {
+                    await deps.vacancyRepo.saveVacancy(data, userId);
+                    // Drive client table refresh via poll lastEventAt (no cross-process WS).
+                    updateJob(id, {
+                        lastEvent: `Vacancy saved ${data.id}`,
+                        lastEventAt: new Date().toISOString(),
+                    });
+                },
+            };
             await sendFeedback(job.payload, {
-                vacancyRepo: deps.vacancyRepo,
+                vacancyRepo,
                 broadcast,
                 jobId: id,
             });

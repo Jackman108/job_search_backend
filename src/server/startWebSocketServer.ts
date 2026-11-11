@@ -87,6 +87,12 @@ export const broadcast = (data: string): void => {
     if (!wss) {
         return;
     }
+    // Log only when vacancy table rows change — not every progress/heartbeat line.
+    if (/Vacancy has been successfully (saved|deleted)/i.test(data)) {
+        logger.info('WS table update', { data, clients: wss.clients.size });
+    } else {
+        logger.debug('WS broadcast', { data, clients: wss.clients.size });
+    }
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(data);
