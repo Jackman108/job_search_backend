@@ -1,11 +1,12 @@
 //getFeedback.ts
 import * as dotenv from 'dotenv';
-import puppeteer, { Browser, Page } from 'puppeteer';
-import { ENV, ENV_BROWSER_CONFIG, SELECTORS_CHAT } from '@config';
+import { Browser, Page } from 'puppeteer';
+import { SELECTORS_CHAT } from '@config';
 import { GetFeedbackParams } from '@interface';
 import type { ScenarioDeps } from '../job/processJob.deps.js';
 import { isStopped, stop } from '@utils';
 import { authorize, navigateAndProcessChats, initializeBrowser } from '@run';
+import { launchHhBrowser } from './helpers/launchHhBrowser.js';
 import { stage } from './helpers/stageLog.js';
 
 dotenv.config();
@@ -19,10 +20,8 @@ export async function getFeedback(
 
     try {
         stage('start feedback', `user=${userId}`);
-        browser = await puppeteer.launch(ENV_BROWSER_CONFIG[ENV.NODE_ENV]);
-        page = await browser.newPage();
+        ({ browser, page } = await launchHhBrowser());
 
-        stage('browser open');
         const isInitialized = await initializeBrowser(SELECTORS_CHAT.CHAT_URL, browser, page, deps.broadcast);
         if (!isInitialized) return;
 

@@ -11,10 +11,13 @@ export const HH_SCRAPE = {
 };
 
 export const SELECTORS = {
-    COOKIE_ACCEPT: '[data-qa="cookies-policy-informer-accept"]',
+    COOKIE_ACCEPT:
+        '[data-qa="cookies-policy-informer-accept"], [data-qa="cookie-policy-informer-accept"], [data-qa*="cookies-policy"] button, [data-qa*="cookie"][data-qa*="accept"]',
     // Legacy serp header CTA — authorize does NOT wait on this (no English LOGIN).
     LOGIN: '[data-qa^="login "], [data-qa="login"], [data-qa*="mainmenu_loginButton"]',
-    REGION_BUTTON: '.supernova-overlay-closer',
+    /** Region / city chooser overlay closer (pre-login). */
+    REGION_BUTTON:
+        '.supernova-overlay-closer, [data-qa="region-clarification-confirm"], [data-qa="mainmenu_areaSwitch"]',
     // Magritte 2026: applicant → Почта → email → «Войти с паролем» → password → «Войти».
     ACCOUNT_TYPE_APPLICANT: '[data-qa="account-type-card-APPLICANT"]',
     ACCOUNT_TYPE_APPLICANT_RADIO:
