@@ -98,7 +98,7 @@ export const VACANCY_STATUS = {
 
 /** Body-text success markers after Magritte submit (toast / dialog / SERP). */
 export const APPLY_SUCCESS_RE =
-    /Вы\s+откликнулись|Отклик\s+отправлен|Резюме\s+отправлено|уже\s+откликались|Откликнулись/i;
+    /Вы\s+откликнулись|Отклик\s+отправлен|Отклик\s+доставлен|Ваш\s+отклик|Резюме\s+отправлено|Мы\s+отправили\s+ваше\s+резюме|уже\s+откликались|Откликнулись|отклик\s+на\s+вакансию\s+отправлен/i;
 
 export const SELECTORS_CHAT = {
     CHAT_URL: 'https://chatik.hh.ru/?hhtmSource=chat_page&hhtmFrom=chat',
