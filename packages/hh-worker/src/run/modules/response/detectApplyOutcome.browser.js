@@ -12,8 +12,10 @@ module.exports = function detectApplyOutcomeInPage(selectors, successReSource) {
         toastBits += ' ' + (toastNodes[t].innerText || '');
     }
     var haystack = body + '\n' + dialog + '\n' + toastBits;
+    // Magritte controls only — never scan full body for /капч/ (false mid-apply on vacancy pages).
     var captchaImg = !!document.querySelector(selectors.CAPTCHA_IMAGE);
-    var captcha = captchaImg || /капч/i.test(dialog) || /капч/i.test(body);
+    var captchaInput = !!document.querySelector(selectors.CAPTCHA_INPUT);
+    var captcha = captchaImg || captchaInput;
 
     var formInvalid = [
         document.querySelector(selectors.BLOK_TEXTAREA) &&
