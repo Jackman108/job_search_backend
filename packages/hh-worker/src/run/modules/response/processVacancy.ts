@@ -77,10 +77,15 @@ export async function processVacancy({
         stage('vacancy', `${data.id} ${data.title_vacancy ?? ''}`.trim());
         await ensureSerpReady(page, serpUrl);
 
-        let opened = await clickVacancyApply(page, data.id);
-        if (!opened && data.url_vacancy) {
-            stage('apply fallback', `vacancy page · ${data.id}`);
+        // Magritte SERP virtualizes cards (card_missing) — prefer vacancy-page CTA when URL known.
+        let opened = false;
+        if (data.url_vacancy) {
+            stage('apply page', String(data.id));
             opened = await clickVacancyPageApply(page, data.url_vacancy);
+        }
+        if (!opened) {
+            stage('apply serp', String(data.id));
+            opened = await clickVacancyApply(page, data.id);
         }
         if (!opened) {
             await saveFail(data, userId, counters, vacancyRepo, 'apply_control_missing');

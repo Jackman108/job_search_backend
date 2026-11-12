@@ -18,9 +18,11 @@ export async function getVacancies(page: Page): Promise<VacancyWithResponse[]> {
                     (card.querySelector(selectors.VACANCY_LINK) as HTMLAnchorElement | null) ||
                     (card.querySelector('a[href*="/vacancy/"]') as HTMLAnchorElement | null);
                 const responseEl = card.querySelector(selectors.VACANCY_RESPONSE) as HTMLElement | null;
-                const responseByText = Array.from(card.querySelectorAll('a, button, [role="button"]')).find((el) =>
-                    /Откликнуться/i.test(el.textContent || ''),
-                );
+                // Prefer data-qa response control — loose text match inflated applyable counts (50).
+                const responseByText = Array.from(card.querySelectorAll('a, button')).find((el) => {
+                    const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+                    return t === 'Откликнуться' || /^Откликнуться\b/i.test(t);
+                });
                 const companyEl = card.querySelector(selectors.COMPANY_LINK) as HTMLAnchorElement | null;
                 return {
                     title_vacancy: titleEl?.innerText?.trim() || '',
