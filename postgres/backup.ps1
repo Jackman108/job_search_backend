@@ -1,4 +1,4 @@
-$containerName = "postgres_container"
+$containerName = "job_search_postgres"
 $dbName = "db_vacancy"
 $backupDir = "./backups"
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"

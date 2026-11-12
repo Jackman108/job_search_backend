@@ -1,49 +1,53 @@
-# Shared Postgres for Market Hunter (dev).
-# Prefer the root helper: ..\..\dev-docker.ps1 (reuses postgres_container if already up).
-# Do NOT run `docker compose up --build` against this file while an alpine
-# postgres_container is already healthy — compose may create a Created orphan.
+# DEPRECATED for day-to-day use.
+# Prefer repo-root: docker/docker-compose.yml via .\dev-docker.ps1
+# (containers: job_search_postgres, job_search_redis, job_search_pgadmin).
 #
-# Host port :5432 — never also bind auth_postgres here (auth uses :5433).
+# Kept so older `npm run docker:up` paths still work. Same image/ports as root.
 
 services:
   postgres:
-    container_name: postgres_container
+    container_name: job_search_postgres
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: ${POSTGRES_DB:-job_search}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - job_search_postgres_data:/var/lib/postgresql/data
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - '${DB_PORT:-5432}:5432'
     networks:
-      - container-network
+      - job_search_net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-job_search}"]
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-job_search}',
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
 
   pgadmin:
-    container_name: pgadmin_container
-    build: ./pgadmin
+    container_name: job_search_pgadmin
+    image: dpage/pgadmin4:8
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
     volumes:
-      - pgadmin:/root/.pgadmin
+      - job_search_pgadmin_data:/var/lib/pgadmin
     ports:
-      - "${PGADMIN_PORT:-5050}:80"
+      - '${PGADMIN_PORT:-5050}:80'
     networks:
-      - container-network
+      - job_search_net
     restart: unless-stopped
 
 networks:
-  container-network:
+  job_search_net:
     driver: bridge
 
 volumes:
-  postgres_data:
-  pgadmin:
+  job_search_postgres_data:
+  job_search_pgadmin_data:
