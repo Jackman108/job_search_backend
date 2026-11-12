@@ -1,13 +1,20 @@
+import { createRequire } from 'node:module';
 import { Page } from 'puppeteer';
 import { SELECTORS, TIMEOUTS } from '@config';
+
+const require = createRequire(import.meta.url);
+const clickVacancyPageApplyInPage = require('./clickVacancyPageApply.browser.js') as (sels: string[]) => {
+    ok: boolean;
+    via: string;
+};
 
 async function settle(ms = TIMEOUTS.SHORT): Promise<void> {
     await new Promise((r) => setTimeout(r, ms));
 }
 
 /**
- * Fallback when SERP CTA is missing/virtualized: open vacancy page and click apply there.
- * Keep page.evaluate free of TypeScript types — Puppeteer stringifies the function body.
+ * Fallback when SERP CTA is missing/virtualized: open vacancy page and click apply.
+ * Browser logic in clickVacancyPageApply.browser.js (tsx-safe).
  */
 export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Promise<boolean> {
     if (!vacancyUrl || !/\/vacancy\//i.test(vacancyUrl)) return false;
@@ -15,11 +22,10 @@ export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Pro
     await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => undefined);
     await settle(TIMEOUTS.SHORT * 2);
 
-    // Cookie banner can sit over the CTA.
     await page
-        .evaluate((cookieSel) => {
-            const btn = document.querySelector(cookieSel);
-            if (btn) (btn as HTMLElement).click();
+        .evaluate((cookieSel: string) => {
+            const btn = document.querySelector(cookieSel) as HTMLElement | null;
+            if (btn) btn.click();
         }, SELECTORS.COOKIE_ACCEPT)
         .catch(() => undefined);
     await settle();
@@ -33,25 +39,7 @@ export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Pro
 
     let hit: { ok: boolean; via: string };
     try {
-        hit = (await page.evaluate((sels: string[]) => {
-            for (let i = 0; i < sels.length; i++) {
-                const el = document.querySelector(sels[i]) as HTMLElement | null;
-                if (!el) continue;
-                el.scrollIntoView({ block: 'center', inline: 'nearest' });
-                el.click();
-                return { ok: true, via: sels[i] };
-            }
-            const nodes = document.querySelectorAll('a, button, [role="button"]');
-            for (let i = 0; i < nodes.length; i++) {
-                const el = nodes[i] as HTMLElement;
-                const text = (el.textContent || '').trim();
-                if (text !== 'Откликнуться' && !/^Откликнуться\b/i.test(text)) continue;
-                el.scrollIntoView({ block: 'center', inline: 'nearest' });
-                el.click();
-                return { ok: true, via: 'text' };
-            }
-            return { ok: false, via: 'none' };
-        }, selectors)) as { ok: boolean; via: string };
+        hit = (await page.evaluate(clickVacancyPageApplyInPage, selectors)) as { ok: boolean; via: string };
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.log(`clickVacancyPageApply evaluate error: ${msg}`);
