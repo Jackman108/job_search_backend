@@ -61,7 +61,7 @@ async function handleCaptchaGate(page: Page, browser: Browser, broadcast: JobBro
     }
 
     await stop(browser);
-    throw new Error(`CAPTCHA detected restart ${captchaSrc || ''}`.trim());
+    throw new Error(`HH login CAPTCHA not solved (wrong answer / timeout)${captchaSrc ? ` ${captchaSrc}` : ''}`.trim());
 }
 
 export async function submitAndDetectBlockers(

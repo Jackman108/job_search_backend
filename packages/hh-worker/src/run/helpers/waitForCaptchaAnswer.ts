@@ -8,9 +8,16 @@ import { stage } from './stageLog.js';
 
 const DEFAULT_WAIT_MS = 5 * 60 * 1000;
 const POLL_MS = 1500;
+const MAX_ATTEMPTS = 5;
 
 export function captchaImagePath(jobId: string): string {
     return path.join(JOBS_DIR, `${jobId}-captcha.png`);
+}
+
+async function readCaptchaSrc(page: Page): Promise<string> {
+    const handle = await page.$(SELECTORS.CAPTCHA_IMAGE);
+    if (!handle) return '';
+    return page.evaluate((img) => (img as HTMLImageElement).src || '', handle).catch(() => '');
 }
 
 /** Snapshot CAPTCHA image for human solve (headless — no Chrome window). */
@@ -18,28 +25,32 @@ export async function saveCaptchaImage(jobId: string, page: Page, captchaSrc: st
     const out = captchaImagePath(jobId);
     if (!fs.existsSync(JOBS_DIR)) fs.mkdirSync(JOBS_DIR, { recursive: true });
 
-    const handle = await page.$(SELECTORS.CAPTCHA_IMAGE);
-    if (handle) {
-        await handle.screenshot({ path: out }).catch(() => undefined);
-    }
-
-    if ((!fs.existsSync(out) || fs.statSync(out).size < 32) && captchaSrc) {
+    // Prefer network bytes of the picture URL — element screenshots are often cropped.
+    if (captchaSrc) {
         const bytes = await page
             .evaluate(async (url) => {
-                const res = await fetch(url, { credentials: 'include' });
+                const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
                 if (!res.ok) return [];
                 return Array.from(new Uint8Array(await res.arrayBuffer()));
             }, captchaSrc)
             .catch(() => [] as number[]);
-        if (bytes.length) fs.writeFileSync(out, Buffer.from(bytes));
+        if (bytes.length > 32) {
+            fs.writeFileSync(out, Buffer.from(bytes));
+            stage('captcha image', out);
+            return out;
+        }
+    }
+
+    const handle = await page.$(SELECTORS.CAPTCHA_IMAGE);
+    if (handle) {
+        await handle.screenshot({ path: out }).catch(() => undefined);
     }
 
     stage('captcha image', out);
     return out;
 }
 
-async function pollAnswer(jobId: string, budgetMs: number): Promise<string | null> {
-    const deadline = Date.now() + budgetMs;
+async function pollAnswer(jobId: string, deadline: number): Promise<string | null> {
     while (Date.now() < deadline) {
         const job = readJob(jobId);
         if (!job || job.status === 'cancelled') return null;
@@ -58,30 +69,7 @@ async function pollAnswer(jobId: string, budgetMs: number): Promise<string | nul
     return null;
 }
 
-/**
- * Headless human-in-the-loop: expose captchaSrc + local PNG, wait for
- * POST /jobs/:id/captcha (or job.captchaAnswer), type answer, submit modal.
- */
-export async function waitAndSubmitCaptchaAnswer(jobId: string, page: Page, captchaSrc: string): Promise<boolean> {
-    const imagePath = await saveCaptchaImage(jobId, page, captchaSrc);
-    updateJob(jobId, {
-        awaitingCaptcha: true,
-        captchaSrc: captchaSrc || undefined,
-        captchaImagePath: imagePath,
-        captchaAnswer: undefined,
-        lastEvent: `CAPTCHA awaiting answer ${captchaSrc || imagePath}`,
-        lastEventAt: new Date().toISOString(),
-    });
-    stage('captcha', 'awaiting POST /jobs/:id/captcha (headless)');
-
-    const budget = Number(process.env.HH_CAPTCHA_WAIT_MS) || DEFAULT_WAIT_MS;
-    const answer = await pollAnswer(jobId, budget);
-    if (!answer) {
-        stage('captcha', 'no answer / cancelled / timeout');
-        return false;
-    }
-
-    stage('captcha', 'typing answer');
+async function typeAndSubmitAnswer(page: Page, answer: string): Promise<boolean> {
     const input = await page.waitForSelector(SELECTORS.CAPTCHA_INPUT, {
         timeout: TIMEOUTS.SEARCH,
         visible: true,
@@ -106,26 +94,82 @@ export async function waitAndSubmitCaptchaAnswer(jobId: string, page: Page, capt
     }
 
     await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT * 2));
-    const still = await page.$(SELECTORS.CAPTCHA_IMAGE).catch(() => null);
-    if (still) {
-        stage('captcha', 'still visible after submit (wrong answer?)');
-        return false;
+    return true;
+}
+
+/**
+ * Headless human-in-the-loop: expose captchaSrc + local PNG, wait for
+ * POST /jobs/:id/captcha. Retries with a fresh image if the answer was wrong.
+ */
+export async function waitAndSubmitCaptchaAnswer(jobId: string, page: Page, captchaSrc: string): Promise<boolean> {
+    const budget = Number(process.env.HH_CAPTCHA_WAIT_MS) || DEFAULT_WAIT_MS;
+    const deadline = Date.now() + budget;
+    let currentSrc = captchaSrc || (await readCaptchaSrc(page));
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS && Date.now() < deadline; attempt++) {
+        const imagePath = await saveCaptchaImage(jobId, page, currentSrc);
+        // Cache-bust so the client modal reloads when the picture key changes.
+        const displaySrc = currentSrc
+            ? `${currentSrc}${currentSrc.includes('?') ? '&' : '?'}t=${Date.now()}`
+            : undefined;
+        updateJob(jobId, {
+            awaitingCaptcha: true,
+            captchaSrc: displaySrc || currentSrc || undefined,
+            captchaImagePath: imagePath,
+            captchaAnswer: undefined,
+            lastEvent: `CAPTCHA awaiting answer (try ${attempt}/${MAX_ATTEMPTS}) ${currentSrc || imagePath}`,
+            lastEventAt: new Date().toISOString(),
+        });
+        stage('captcha', `awaiting POST /jobs/:id/captcha (try ${attempt}/${MAX_ATTEMPTS})`);
+
+        const answer = await pollAnswer(jobId, deadline);
+        if (!answer) {
+            stage('captcha', 'no answer / cancelled / timeout');
+            return false;
+        }
+
+        stage('captcha', 'typing answer');
+        if (!(await typeAndSubmitAnswer(page, answer))) {
+            return false;
+        }
+
+        const still = await page.$(SELECTORS.CAPTCHA_IMAGE).catch(() => null);
+        if (!still) {
+            await page
+                .waitForFunction(() => !location.pathname.includes('/account/login'), {
+                    timeout: TIMEOUTS.MODAL,
+                })
+                .catch(() => undefined);
+
+            stage('captcha', 'accepted');
+            updateJob(jobId, {
+                awaitingCaptcha: false,
+                captchaSrc: undefined,
+                captchaImagePath: undefined,
+                lastEvent: 'CAPTCHA accepted',
+                lastEventAt: new Date().toISOString(),
+            });
+            return true;
+        }
+
+        stage('captcha', `still visible after submit — retry (${attempt}/${MAX_ATTEMPTS})`);
+        currentSrc = await readCaptchaSrc(page);
+        // Magritte may keep the same key until refresh — nudge image reload.
+        if (currentSrc) {
+            await page
+                .evaluate((sel) => {
+                    const img = document.querySelector(sel) as HTMLImageElement | null;
+                    if (!img?.src) return;
+                    const u = new URL(img.src, location.origin);
+                    u.searchParams.set('_retry', String(Date.now()));
+                    img.src = u.toString();
+                }, SELECTORS.CAPTCHA_IMAGE)
+                .catch(() => undefined);
+            await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT));
+            currentSrc = (await readCaptchaSrc(page)) || currentSrc;
+        }
     }
 
-    // After captcha, Magritte may still be on /account/login briefly — wait to leave.
-    await page
-        .waitForFunction(() => !location.pathname.includes('/account/login'), {
-            timeout: TIMEOUTS.MODAL,
-        })
-        .catch(() => undefined);
-
-    stage('captcha', 'accepted');
-    updateJob(jobId, {
-        awaitingCaptcha: false,
-        captchaSrc: undefined,
-        captchaImagePath: undefined,
-        lastEvent: 'CAPTCHA accepted',
-        lastEventAt: new Date().toISOString(),
-    });
-    return true;
+    stage('captcha', 'exhausted retries / budget');
+    return false;
 }
