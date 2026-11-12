@@ -1,84 +1,59 @@
+import { createRequire } from 'node:module';
 import { Page } from 'puppeteer';
 import { SELECTORS, TIMEOUTS } from '@config';
+
+const require = createRequire(import.meta.url);
+/** Plain CJS browser fn — must not pass through tsx `__name` rewrite. */
+const clickVacancyApplyInPage = require('./clickVacancyApply.browser.js') as (
+    id: number,
+    cardSelector: string,
+    responseSelector: string,
+) => { ok: true; x: number; y: number; via: string } | { ok: false; reason: string };
 
 async function settle(ms = TIMEOUTS.SHORT): Promise<void> {
     await new Promise((r) => setTimeout(r, ms));
 }
 
-type ClickHit = { ok: true; x: number; y: number } | { ok: false };
-
 /**
  * Click «Откликнуться» for a vacancy id on the current SERP.
- * Always re-queries the DOM — Magritte re-renders cards after goBack / apply.
+ * Browser logic lives in clickVacancyApply.browser.js (tsx-safe).
  */
 export async function clickVacancyApply(page: Page, vacancyId: number): Promise<boolean> {
-    await page.waitForSelector(SELECTORS.VACANCY_CARD, { timeout: TIMEOUTS.LONG }).catch(() => null);
+    const cardSel = SELECTORS.VACANCY_CARD.split(',')[0].trim();
+    const responseSel = SELECTORS.VACANCY_RESPONSE.split(',')[0].trim();
 
-    for (let attempt = 1; attempt <= 5; attempt++) {
-        const hit = (await page
-            .evaluate(
-                (id, cardSel, responseSel) => {
-                    const needle = `/vacancy/${id}`;
+    await page.waitForSelector(cardSel, { timeout: TIMEOUTS.LONG }).catch(() => null);
 
-                    const tryClick = (el: HTMLElement | null): ClickHit => {
-                        if (!el) return { ok: false };
-                        el.scrollIntoView({ block: 'center', inline: 'nearest' });
-                        const rect = el.getBoundingClientRect();
-                        if (rect.width < 2 || rect.height < 2) return { ok: false };
-                        el.click();
-                        return {
-                            ok: true,
-                            x: rect.left + rect.width / 2,
-                            y: rect.top + rect.height / 2,
-                        };
-                    };
+    for (let attempt = 1; attempt <= 6; attempt++) {
+        if (attempt === 1 || attempt === 4) {
+            await page.evaluate(() => window.scrollTo(0, 0));
+        } else if (attempt % 2 === 0) {
+            await page.evaluate(() => window.scrollBy(0, Math.floor(window.innerHeight * 0.6)));
+        } else {
+            await page.evaluate(() => window.scrollBy(0, -Math.floor(window.innerHeight * 0.4)));
+        }
+        await settle(TIMEOUTS.SHORT);
 
-                    const cards = Array.from(document.querySelectorAll(cardSel));
-                    for (const card of cards) {
-                        const link = card.querySelector(`a[href*="${needle}"]`) as HTMLAnchorElement | null;
-                        if (!link) continue;
-
-                        const response = card.querySelector(responseSel) as HTMLElement | null;
-                        const viaResponse = tryClick(response);
-                        if (viaResponse.ok) return viaResponse;
-
-                        const byText = Array.from(card.querySelectorAll('a, button')).find((el) =>
-                            /Откликнуться/i.test(el.textContent || ''),
-                        ) as HTMLElement | undefined;
-                        const viaText = tryClick(byText || null);
-                        if (viaText.ok) return viaText;
-                    }
-
-                    const loose = Array.from(document.querySelectorAll(responseSel)).find((el) => {
-                        const root = el.closest(cardSel) || el.parentElement;
-                        return Boolean(root?.querySelector(`a[href*="${needle}"]`));
-                    }) as HTMLElement | undefined;
-                    const viaLoose = tryClick(loose || null);
-                    if (viaLoose.ok) return viaLoose;
-
-                    // Last resort: any Откликнуться near a matching vacancy href on the page.
-                    const near = Array.from(document.querySelectorAll('a, button')).find((el) => {
-                        if (!/Откликнуться/i.test(el.textContent || '')) return false;
-                        const root = el.closest(cardSel) || el.parentElement;
-                        return Boolean(root?.querySelector(`a[href*="${needle}"]`));
-                    }) as HTMLElement | undefined;
-                    return tryClick(near || null);
-                },
-                vacancyId,
-                SELECTORS.VACANCY_CARD,
-                SELECTORS.VACANCY_RESPONSE,
-            )
-            .catch(() => ({ ok: false }) as ClickHit)) as ClickHit;
+        let hit: ReturnType<typeof clickVacancyApplyInPage>;
+        try {
+            hit = (await page.evaluate(clickVacancyApplyInPage, vacancyId, cardSel, responseSel)) as ReturnType<
+                typeof clickVacancyApplyInPage
+            >;
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.log(`clickVacancyApply evaluate error id=${vacancyId}: ${msg}`);
+            hit = { ok: false, reason: 'evaluate_throw' };
+        }
 
         if (hit.ok) {
-            // Magritte sometimes ignores programmatic click — reinforce with CDP mouse.
             await page.mouse.click(hit.x, hit.y).catch(() => undefined);
             await settle();
             return true;
         }
 
-        await page.evaluate(() => window.scrollBy(0, Math.floor(window.innerHeight * 0.75)));
-        await settle(TIMEOUTS.SHORT);
+        if (attempt === 6) {
+            console.log(`clickVacancyApply miss id=${vacancyId} reason=${hit.reason}`);
+        }
     }
 
     return false;

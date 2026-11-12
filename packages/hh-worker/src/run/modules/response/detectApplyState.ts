@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { Page } from 'puppeteer';
 import { APPLY_SUCCESS_RE, SELECTORS } from '@config';
 
@@ -8,6 +9,12 @@ export type ApplyDetectResult = {
     captcha: boolean;
     formInvalid: boolean;
 };
+
+const require = createRequire(import.meta.url);
+const detectEarlyPreflightInPage = require('./detectEarlyPreflight.browser.js') as (
+    selectors: typeof SELECTORS,
+    successReSource: string,
+) => ApplyPreflightReason;
 
 /** Primary success signal used by live Magritte applies. */
 export function isApplySuccessText(bodyText: string): boolean {
@@ -20,27 +27,7 @@ export function isCaptchaText(text: string): boolean {
 
 /** Early gates before cover fill — do not treat empty letter as a skip. */
 export async function detectEarlyPreflight(page: Page): Promise<ApplyPreflightReason> {
-    return page.evaluate(
-        (selectors, successReSource) => {
-            const body = document.body?.innerText || '';
-            if (new RegExp(successReSource).test(body)) return 'already';
-
-            if (document.querySelector(selectors.HIDDEN_RESUME_WARNING)) {
-                return 'hidden_resume';
-            }
-
-            const question = document.querySelector(selectors.EMPLOYER_QUESTION) as
-                HTMLTextAreaElement | HTMLInputElement | null;
-            // Unanswered screening field → skip (no personal templates in product code).
-            if (question && !String(question.value || '').trim()) {
-                return 'employer_questions';
-            }
-
-            return null;
-        },
-        SELECTORS,
-        APPLY_SUCCESS_RE.source,
-    );
+    return page.evaluate(detectEarlyPreflightInPage, SELECTORS, APPLY_SUCCESS_RE.source);
 }
 
 export async function isSubmitDisabled(page: Page): Promise<boolean> {
