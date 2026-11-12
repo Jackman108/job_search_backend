@@ -7,9 +7,12 @@ import { dismissPreLoginOverlays } from './helpers/dismissPreLoginOverlays.js';
 import { stage } from './helpers/stageLog.js';
 
 async function gotoWithRetry(page: Page, vacancyUrl: string): Promise<void> {
-    const attempts: Array<{ waitUntil: 'domcontentloaded' | 'load'; timeout: number }> = [
-        { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG },
-        { waitUntil: 'load', timeout: TIMEOUTS.LONG },
+    // HH sometimes stalls past 60s under headless even when curl/IWR returns 200.
+    const long = Math.max(TIMEOUTS.LONG, 120_000);
+    const attempts: Array<{ waitUntil: 'commit' | 'domcontentloaded' | 'load'; timeout: number }> = [
+        { waitUntil: 'commit', timeout: long },
+        { waitUntil: 'domcontentloaded', timeout: long },
+        { waitUntil: 'load', timeout: long },
     ];
     let lastErr: unknown;
     for (let i = 0; i < attempts.length; i++) {
