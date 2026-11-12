@@ -11,5 +11,6 @@ export * from './listResult.js';
 export * from './logger.js';
 export * from './queryHelpers.js';
 export * from './resumeCacheQuery.js';
+export * from './routeParamId.utils.js';
 export * from './stopManager.js';
 export * from './vacancyUtils.js';

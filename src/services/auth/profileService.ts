@@ -62,7 +62,7 @@ export async function incrementSpinCount(userId: string): Promise<void> {
 export async function updateSuccessfulResponsesCount(userId: string): Promise<void> {
     const tableName = `"${userId}_vacancy"`;
     const countQuery = `
-        SELECT COUNT(*)
+        SELECT COUNT(*)::int AS successful_responses_count
         FROM ${tableName}
         WHERE vacancy_status = 'true';
     `;
@@ -73,7 +73,7 @@ export async function updateSuccessfulResponsesCount(userId: string): Promise<vo
         WHERE user_id = $2;
     `;
 
-    const result = await executeQuery(countQuery);
-    const successfulResponsesCount = parseInt(result[0]?.successful_responses_count || 0, 10);
+    const result = await executeQuery<{ successful_responses_count: number | string }>(countQuery);
+    const successfulResponsesCount = parseInt(String(result[0]?.successful_responses_count ?? 0), 10);
     await executeQuery(updateQuery, [successfulResponsesCount, userId]);
 }

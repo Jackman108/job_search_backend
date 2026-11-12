@@ -6,10 +6,19 @@ export const handleSuccess = (res: Response, message: string = 'Success', data?:
 };
 
 export const handleErrors = (res: Response, error: unknown, defaultMessage: string) => {
-    logger.error(defaultMessage, {
-        error: error instanceof Error ? error.message : String(error),
+    const status =
+        typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        typeof (error as { status?: unknown }).status === 'number'
+            ? (error as { status: number }).status
+            : 500;
+    const detail = error instanceof Error ? error.message : String(error);
+    logger.error(defaultMessage, { error: detail, status });
+    res.status(status).json({
+        success: false,
+        message: status >= 500 ? defaultMessage : detail || defaultMessage,
     });
-    res.status(500).json({ success: false, message: defaultMessage });
 };
 
 /**
