@@ -182,4 +182,26 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *         description: Job not awaiting CAPTCHA
      */
     registerRoute(app, 'post', '/jobs/:jobId/captcha', ScriptController, 'submitCaptchaAnswer');
+
+    /**
+     * @swagger
+     * /jobs/{jobId}/captcha-image:
+     *   get:
+     *     summary: CAPTCHA PNG captured by the headless worker
+     *     tags: [HH]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: jobId
+     *         required: true
+     *         schema:
+     *           type: string
+     *     responses:
+     *       200:
+     *         description: image/png
+     *       404:
+     *         description: Image not ready
+     */
+    registerRoute(app, 'get', '/jobs/:jobId/captcha-image', ScriptController, 'getCaptchaImage');
 };

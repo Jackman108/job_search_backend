@@ -55,8 +55,10 @@ export interface HhJobStatusResponse {
     /** Latest worker progress line for poll SoT (CAPTCHA / errors). */
     lastEvent?: string;
     lastEventAt?: string;
-    /** CAPTCHA image URL when detected. */
+    /** CAPTCHA image URL when detected (may be unusable in browser — prefer hasCaptchaImage). */
     captchaSrc?: string;
+    /** Worker saved a local PNG — GET /jobs/{jobId}/captcha-image. */
+    hasCaptchaImage?: boolean;
     /** Worker blocked on CAPTCHA — submit via POST /jobs/{jobId}/captcha. */
     awaitingCaptcha?: boolean;
 }
