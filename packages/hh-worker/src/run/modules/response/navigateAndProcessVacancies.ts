@@ -7,6 +7,10 @@ import { getVacancies } from './getVacancies.js';
 import { goToNextSerpPage } from './goToNextSerpPage.js';
 import { processVacancy } from './processVacancy.js';
 
+export type ApplyLoopStats = {
+    pages: number;
+};
+
 export async function navigateAndProcessVacancies({
     userId,
     page,
@@ -17,12 +21,13 @@ export async function navigateAndProcessVacancies({
     broadcast,
     jobId,
     serpUrl,
-}: NavigateAndProcessVacanciesParams): Promise<void> {
+}: NavigateAndProcessVacanciesParams): Promise<ApplyLoopStats> {
     let currentPage = 0;
     let consecutiveApplyFailures = 0;
-    const totalPages = HH_SCRAPE.TOTAL_PAGES;
+    const maxPages = HH_SCRAPE.TOTAL_PAGES;
     const processedIds = new Set<number>();
     let liveSerpUrl = serpUrl || page.url();
+    let pagesVisited = 0;
 
     try {
         const vacanciesFromDb = await vacancyRepo.getVacanciesUser(userId);
@@ -36,14 +41,15 @@ export async function navigateAndProcessVacancies({
 
     stage('apply loop');
 
-    while (currentPage < totalPages) {
+    while (currentPage < maxPages) {
         if (isStopped()) {
             await stop(browser);
-            return;
+            return { pages: pagesVisited };
         }
 
         try {
-            stage('page', `${currentPage + 1}/${totalPages}`);
+            pagesVisited = currentPage + 1;
+            stage('page', `${pagesVisited}/${maxPages}`);
             await ensureSerpReady(page, liveSerpUrl);
             liveSerpUrl = page.url();
 
@@ -62,7 +68,7 @@ export async function navigateAndProcessVacancies({
 
                 stage(
                     'queue',
-                    `${processedIds.size} · left=${remaining.length} · ok=${counters.successfullySubmittedCount} fail=${counters.unsuccessfullySubmittedCount}`,
+                    `${processedIds.size} · left=${remaining.length} · ok=${counters.successfullySubmittedCount} skip=${counters.skippedCount} fail=${counters.failedCount}`,
                 );
 
                 const waitedMs = await delayBeforeApply(consecutiveApplyFailures);
@@ -101,11 +107,14 @@ export async function navigateAndProcessVacancies({
 
             if (isStopped()) {
                 await stop(browser);
-                return;
+                return { pages: pagesVisited };
             }
 
             const moved = await goToNextSerpPage(page);
-            if (!moved) break;
+            if (!moved) {
+                stage('pager end', `last page reached (${pagesVisited})`);
+                break;
+            }
             currentPage++;
             liveSerpUrl = page.url();
         } catch (err) {
@@ -113,8 +122,17 @@ export async function navigateAndProcessVacancies({
                 throw err;
             }
             console.error('Error during page processing:', err);
+            const moved = await goToNextSerpPage(page).catch(() => false);
+            if (!moved) break;
             currentPage++;
+            liveSerpUrl = page.url();
             await ensureSerpReady(page, liveSerpUrl).catch(() => undefined);
         }
     }
+
+    if (currentPage >= maxPages) {
+        stage('pager cap', `reached HH_TOTAL_PAGES=${maxPages}`);
+    }
+
+    return { pages: pagesVisited || currentPage + 1 };
 }

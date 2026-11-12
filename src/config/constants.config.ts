@@ -5,9 +5,12 @@ export const TIMEOUTS = {
     SEARCH: 10000,
 };
 
-/** HH scrape pagination — was hardcoded in secrets.ts; not a credential. */
+/**
+ * HH SERP pagination safety cap — loop still stops earlier when pager-next is gone/disabled.
+ * Override with HH_TOTAL_PAGES.
+ */
 export const HH_SCRAPE = {
-    TOTAL_PAGES: Number(process.env.HH_TOTAL_PAGES) || 3,
+    TOTAL_PAGES: Number(process.env.HH_TOTAL_PAGES) || 40,
 };
 
 export const SELECTORS = {
@@ -86,8 +89,9 @@ export const VACANCY_STATUS = {
     SKIP: 'N',
 } as const;
 
-/** Body-text success marker after Magritte submit (primary). */
-export const APPLY_SUCCESS_RE = /Вы\s+откликнулись/;
+/** Body-text success markers after Magritte submit (toast / dialog / SERP). */
+export const APPLY_SUCCESS_RE =
+    /Вы\s+откликнулись|Отклик\s+отправлен|Резюме\s+отправлено|уже\s+откликались|Откликнулись/i;
 
 export const SELECTORS_CHAT = {
     CHAT_URL: 'https://chatik.hh.ru/?hhtmSource=chat_page&hhtmFrom=chat',

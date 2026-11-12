@@ -125,6 +125,18 @@
  *         captchaSrc:
  *           type: string
  *           description: CAPTCHA image URL when detected (login or mid-apply)
+ *         summary:
+ *           type: object
+ *           description: Apply-run totals for completion modal (sendFeedback)
+ *           properties:
+ *             success:
+ *               type: integer
+ *             skipped:
+ *               type: integer
+ *             failed:
+ *               type: integer
+ *             pages:
+ *               type: integer
  *
  *     ErrorMessage:
  *       type: object

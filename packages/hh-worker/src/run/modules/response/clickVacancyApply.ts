@@ -12,14 +12,35 @@ async function settle(ms = TIMEOUTS.SHORT): Promise<void> {
 export async function clickVacancyApply(page: Page, vacancyId: number): Promise<boolean> {
     await page.waitForSelector(SELECTORS.VACANCY_CARD, { timeout: TIMEOUTS.LONG }).catch(() => null);
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 4; attempt++) {
+        // Bring the card into the virtualized viewport before querying the CTA.
+        await page
+            .evaluate(
+                (id, cardSel) => {
+                    const cards = Array.from(document.querySelectorAll(cardSel));
+                    for (const card of cards) {
+                        const link = card.querySelector(`a[href*="/vacancy/${id}"]`) as HTMLAnchorElement | null;
+                        if (!link) continue;
+                        card.scrollIntoView({ block: 'center', inline: 'nearest' });
+                        return true;
+                    }
+                    return false;
+                },
+                vacancyId,
+                SELECTORS.VACANCY_CARD,
+            )
+            .catch(() => false);
+
+        await settle(TIMEOUTS.SHORT);
+
         const clicked = await page
             .evaluate(
                 (id, cardSel, responseSel) => {
+                    const needle = `/vacancy/${id}`;
                     const cards = Array.from(document.querySelectorAll(cardSel));
                     for (const card of cards) {
-                        const link = card.querySelector('a[href*="/vacancy/"]') as HTMLAnchorElement | null;
-                        if (!link?.href?.includes(`/vacancy/${id}`)) continue;
+                        const link = card.querySelector(`a[href*="${needle}"]`) as HTMLAnchorElement | null;
+                        if (!link) continue;
 
                         const response = card.querySelector(responseSel) as HTMLElement | null;
                         if (response) {
@@ -37,6 +58,18 @@ export async function clickVacancyApply(page: Page, vacancyId: number): Promise<
                             return true;
                         }
                     }
+
+                    // Fallback: response control keyed by vacancy href anywhere on SERP.
+                    const loose = Array.from(document.querySelectorAll(responseSel)).find((el) => {
+                        const root = el.closest(cardSel) || el.parentElement;
+                        return Boolean(root?.querySelector(`a[href*="${needle}"]`));
+                    }) as HTMLElement | undefined;
+                    if (loose) {
+                        loose.scrollIntoView({ block: 'center', inline: 'nearest' });
+                        loose.click();
+                        return true;
+                    }
+
                     return false;
                 },
                 vacancyId,
@@ -50,7 +83,7 @@ export async function clickVacancyApply(page: Page, vacancyId: number): Promise<
             return true;
         }
 
-        await page.evaluate(() => window.scrollBy(0, Math.floor(window.innerHeight * 0.6)));
+        await page.evaluate(() => window.scrollBy(0, Math.floor(window.innerHeight * 0.7)));
         await settle(TIMEOUTS.SHORT);
     }
 

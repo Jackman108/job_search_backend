@@ -7,7 +7,8 @@ export async function extractVacancyData({
     title_company,
     url_company,
 }: ExtractVacancyDataParams): Promise<VacancyData> {
-    const id = Number(url_vacancy.match(/\/(\d+)\?/)?.[1]) || 0;
+    // Magritte links may be `/vacancy/123?...` or `/vacancy/123` without query.
+    const id = Number(url_vacancy.match(/\/vacancy\/(\d+)/)?.[1]) || 0;
 
     const responseDate = new Date();
     responseDate.setHours(responseDate.getHours() + 6);

@@ -46,12 +46,17 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             if (readJob(id)?.status === 'cancelled') {
                 return;
             }
+            const finished = readJob(id);
             updateJob(id, {
                 status: 'done',
                 finishedAt: new Date().toISOString(),
                 countersUpdated: true,
+                // Keep worker summary / «Поиск вакансий окончен…» if already written.
+                lastEvent: finished?.lastEvent || `HH job ${id} done (sendFeedback)`,
+                lastEventAt: finished?.lastEventAt || new Date().toISOString(),
+                summary: finished?.summary,
             });
-            broadcast.broadcast(`HH job ${id} done (sendFeedback)`);
+            broadcast.broadcast(finished?.lastEvent || `HH job ${id} done (sendFeedback)`);
         } else {
             await getFeedback(job.payload, {
                 feedbackRepo: deps.feedbackRepo,

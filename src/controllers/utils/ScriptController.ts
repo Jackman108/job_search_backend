@@ -120,6 +120,7 @@ export class ScriptController {
                 captchaSrc: job.captchaSrc,
                 hasCaptchaImage,
                 awaitingCaptcha: job.awaitingCaptcha === true,
+                summary: job.summary,
             };
             res.status(200).json(body);
         } catch (error) {
