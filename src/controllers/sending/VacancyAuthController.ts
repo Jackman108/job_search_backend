@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { handleErrors } from '@middlewares';
 import { AuthenticatedRequest } from '@interface';
 import { createVacancyAuth, deleteVacancyAuth, getVacancyAuthByUserId, updateVacancyAuth } from '@services';
+import { resolveRouteParamId } from '@utils';
 
 export class VacancyAuthController {
     async getVacancyAuth(req: AuthenticatedRequest, res: Response) {
@@ -25,7 +26,8 @@ export class VacancyAuthController {
 
     async updateVacancyAuth(req: AuthenticatedRequest, res: Response) {
         try {
-            await updateVacancyAuth(req.userId!, req.body);
+            const authId = resolveRouteParamId(req.params.authId, req.body?.id, 'authId');
+            await updateVacancyAuth(req.userId!, { ...req.body, id: authId });
             res.status(200).json({ message: 'Vacancy auth data updated successfully.' });
         } catch (error) {
             handleErrors(res, error, 'Error updating vacancy auth data.');

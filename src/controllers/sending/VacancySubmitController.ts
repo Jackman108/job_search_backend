@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { handleErrors } from '@middlewares';
 import { AuthenticatedRequest } from '@interface';
 import { createVacancySubmit, deleteVacancySubmit, getVacancySubmitByUserId, updateVacancySubmit } from '@services';
+import { resolveRouteParamId } from '@utils';
 
 export class VacancySubmitController {
     async getVacancySubmit(req: AuthenticatedRequest, res: Response) {
@@ -25,7 +26,8 @@ export class VacancySubmitController {
 
     async updateVacancySubmit(req: AuthenticatedRequest, res: Response) {
         try {
-            await updateVacancySubmit(req.userId!, req.body);
+            const fieldId = resolveRouteParamId(req.params.fieldId, req.body?.id, 'fieldId');
+            await updateVacancySubmit(req.userId!, { ...req.body, id: fieldId });
             res.status(200).json({ message: 'Vacancy submit data updated successfully.' });
         } catch (error) {
             handleErrors(res, error, 'Error updating vacancy submit data.');

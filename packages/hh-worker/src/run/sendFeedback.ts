@@ -17,19 +17,24 @@ function persistApplySummary(
     pages: number,
     broadcast: ScenarioDeps['broadcast'],
     found = 0,
+    aborted = false,
 ): void {
     const success = counters.successfullySubmittedCount;
-    const skipped = counters.skippedCount + counters.failedCount;
+    const skipped = counters.skippedCount;
+    const failed = counters.failedCount;
     const existingFound = readJob(jobId)?.summary?.found ?? 0;
     const summary = {
         found: found || existingFound || undefined,
         success,
         skipped,
-        failed: counters.failedCount,
+        failed,
         pages,
     };
     const foundBit = summary.found ? `, найдено было ${summary.found}` : '';
-    const lastEvent = `Поиск вакансий окончен: откликов ${success}, пропущено ${skipped}${foundBit}`;
+    const failBit = failed > 0 ? `, ошибки ${failed}` : '';
+    const lastEvent = aborted
+        ? `Поиск прерван: откликов ${success}, пропущено ${skipped}${failBit}${foundBit}`
+        : `Поиск вакансий окончен: откликов ${success}, пропущено ${skipped}${failBit}${foundBit}`;
     updateJob(jobId, {
         summary,
         lastEvent,
@@ -37,8 +42,8 @@ function persistApplySummary(
     });
     broadcast.broadcast(lastEvent);
     stage(
-        'done',
-        `ok=${success} skip=${counters.skippedCount} fail=${counters.failedCount} pages=${pages} found=${summary.found ?? 0}`,
+        aborted ? 'aborted' : 'done',
+        `ok=${success} skip=${skipped} fail=${failed} pages=${pages} found=${summary.found ?? 0}`,
     );
 }
 
@@ -101,7 +106,7 @@ export async function sendFeedback(
     } catch (err) {
         // Still expose partial totals when the run aborts mid-way.
         try {
-            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found);
+            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found, true);
         } catch (persistErr) {
             console.error('Failed to persist apply summary:', persistErr);
         }

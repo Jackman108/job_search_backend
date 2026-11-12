@@ -26,7 +26,8 @@ export class ProfileController {
             }
 
             await updateUserProfile({ avatar, ...updateFields }, req.userId!);
-            res.status(200).json(updateUserProfile);
+            const profile = await getUserProfile(req.userId!);
+            res.status(200).json(profile);
         } catch (error) {
             handleErrors(res, error, 'Error updating a user profile.');
         }

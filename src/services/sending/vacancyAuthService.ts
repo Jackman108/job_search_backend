@@ -73,9 +73,15 @@ export const getVacancyAuthByUserId = async (userId: string): Promise<VacancyAut
 export const updateVacancyAuth = async (userId: string, updates: UpdateVacancyAuthData): Promise<void> => {
     await ensureVacancyAuthTable();
 
-    const { query, values } = generateUpdateQueryWithConditions('vacancy_auth', updates, {
+    // Blank password must not wipe the stored secret (COALESCE('', password) would).
+    const patch: UpdateVacancyAuthData = { ...updates };
+    if (typeof patch.password === 'string' && patch.password.trim() === '') {
+        delete patch.password;
+    }
+
+    const { query, values } = generateUpdateQueryWithConditions('vacancy_auth', patch, {
         user_id: userId,
-        id: updates.id,
+        id: patch.id,
     });
 
     await executeQuery(query, values);

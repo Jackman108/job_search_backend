@@ -43,6 +43,9 @@ export function assertJwtSecret(secret: string | undefined): string {
         throw new Error(`[boot] ${message}. Set a strong JWT_SECRET (≥${MIN_JWT_SECRET_LENGTH} chars).`);
     }
 
-    logger.warn(`[boot] ${message}. Continuing in ${ENV.NODE_ENV} — do not use this in production.`);
-    return (secret || '').trim() || 'dev-only-insecure-jwt-secret-replace-me!!';
+    const fallback = (secret || '').trim() || 'dev-only-insecure-jwt-secret-replace-me!!';
+    logger.warn(
+        `[boot] ${message}. Continuing in ${ENV.NODE_ENV} with fallback JWT — must match auth service or Bearer calls 401. Do not use in production.`,
+    );
+    return fallback;
 }

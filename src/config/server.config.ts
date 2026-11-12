@@ -11,8 +11,9 @@ export const PORTS = {
 };
 
 // URL конфигурация
+// CORS origin: ALLOWED_ORIGIN (shared with auth) wins over DOMAIN_URL.
 export const URLS = {
-    domain: process.env.DOMAIN_URL || `${PROTOCOL}://${HOST}:${PORTS.domain}`,
+    domain: process.env.ALLOWED_ORIGIN || process.env.DOMAIN_URL || `${PROTOCOL}://${HOST}:${PORTS.domain}`,
     api: process.env.API_URL || `${PROTOCOL}://${HOST}:${PORTS.api}`,
     ws: process.env.WS_URL || `${PROTOCOL_WS}://${HOST}:${PORTS.ws}`,
 };
