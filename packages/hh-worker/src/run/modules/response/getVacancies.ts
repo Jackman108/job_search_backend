@@ -14,13 +14,18 @@ export async function getVacancies(page: Page): Promise<VacancyWithResponse[]> {
             const cards = Array.from(document.querySelectorAll(selectors.VACANCY_CARD));
             return cards.map((card) => {
                 const titleEl = card.querySelector(selectors.VACANCY_TITLE) as HTMLElement | null;
-                const linkEl = card.querySelector(selectors.VACANCY_LINK) as HTMLAnchorElement | null;
+                const linkEl =
+                    (card.querySelector(selectors.VACANCY_LINK) as HTMLAnchorElement | null) ||
+                    (card.querySelector('a[href*="/vacancy/"]') as HTMLAnchorElement | null);
                 const responseEl = card.querySelector(selectors.VACANCY_RESPONSE) as HTMLElement | null;
+                const responseByText = Array.from(card.querySelectorAll('a, button, [role="button"]')).find((el) =>
+                    /Откликнуться/i.test(el.textContent || ''),
+                );
                 const companyEl = card.querySelector(selectors.COMPANY_LINK) as HTMLAnchorElement | null;
                 return {
                     title_vacancy: titleEl?.innerText?.trim() || '',
                     url_vacancy: linkEl?.href || '',
-                    responseText: responseEl?.textContent || '',
+                    responseText: responseEl?.textContent || responseByText?.textContent || '',
                     title_company: companyEl?.textContent?.trim() || 'Компания не указана',
                     url_company: companyEl?.href || '#',
                 };

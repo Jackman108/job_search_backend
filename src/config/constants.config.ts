@@ -39,11 +39,12 @@ export const SELECTORS = {
     OTP_CODE_INPUT: 'input[data-qa="otp-code-input"]',
     OTP_SUBMIT: '[data-qa="otp-code-submit"]',
     // Prefer stable data-qa; class*=vacancy-card still matches Magritte CSS-module wrappers but is fragile.
-    VACANCY_CARD: '[data-qa="vacancy-serp__vacancy"]',
-    VACANCY_RESPONSE: '[data-qa="vacancy-serp__vacancy_response"]',
+    VACANCY_CARD: '[data-qa="vacancy-serp__vacancy"], [data-qa="serp-item__vacancy"]',
+    // Magritte may suffix " checked"/variants — prefer ^= / contains over exact match.
+    VACANCY_RESPONSE: '[data-qa="vacancy-serp__vacancy_response"], [data-qa^="vacancy-serp__vacancy_response"]',
     VACANCY_INPUT: '[data-qa="search-input"]',
     // Response control is often an <a role="button">; span child may be absent — prefer the button itself in callers when possible.
-    RESPONSE_BUTTON_SPAN: '[data-qa="vacancy-serp__vacancy_response"]',
+    RESPONSE_BUTTON_SPAN: '[data-qa="vacancy-serp__vacancy_response"], [data-qa^="vacancy-serp__vacancy_response"]',
     PAGER_NEXT: '[data-qa="pager-next"], a[data-qa="pager-next"], button[data-qa="pager-next"]',
     RELOCATION_MODAL_TITLE: '[data-qa="relocation-warning-title"]',
     RELOCATION_CONFIRM: '[data-qa="relocation-warning-confirm"]',

@@ -5,6 +5,7 @@ import { scrollToElementIfNotFound } from '../../helpers/scrollToElementIfNotFou
 import { stage } from '../../helpers/stageLog.js';
 import { readCaptchaSrc, waitAndSubmitCaptchaAnswer } from '../../helpers/waitForCaptchaAnswer.js';
 import { clickVacancyApply } from './clickVacancyApply.js';
+import { clickVacancyPageApply } from './clickVacancyPageApply.js';
 import { detectApplyOutcome, detectEarlyPreflight, isSubmitDisabled } from './detectApplyState.js';
 import { dismissApplyExtras } from './dismissApplyExtras.js';
 import { ensureSerpReady } from './ensureSerpReady.js';
@@ -76,7 +77,11 @@ export async function processVacancy({
         stage('vacancy', `${data.id} ${data.title_vacancy ?? ''}`.trim());
         await ensureSerpReady(page, serpUrl);
 
-        const opened = await clickVacancyApply(page, data.id);
+        let opened = await clickVacancyApply(page, data.id);
+        if (!opened && data.url_vacancy) {
+            stage('apply fallback', `vacancy page · ${data.id}`);
+            opened = await clickVacancyPageApply(page, data.url_vacancy);
+        }
         if (!opened) {
             await saveFail(data, userId, counters, vacancyRepo, 'apply_control_missing');
             await ensureSerpReady(page, serpUrl);
