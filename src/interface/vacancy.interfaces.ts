@@ -14,7 +14,8 @@ export interface VacancyData {
 
 export interface VacancyWithResponse {
     data: VacancyData;
-    vacancyResponse: ElementHandle | null;
+    /** Deprecated: Magritte re-renders SERP — prefer click by vacancy id. */
+    vacancyResponse?: ElementHandle | null;
 }
 
 export interface ExtractVacancyDataParams {

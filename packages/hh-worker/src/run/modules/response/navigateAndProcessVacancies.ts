@@ -1,9 +1,10 @@
-// src/navigateAndProcessVacancies.ts
-import { HH_SCRAPE, SELECTORS } from '@config';
-import { NavigateAndProcessVacanciesParams, VacancyWithResponse } from '@interface';
-import { delayBeforeApply, delayBetweenPages, isStopped, stop } from '@utils';
+import { HH_SCRAPE } from '@config';
+import { NavigateAndProcessVacanciesParams } from '@interface';
+import { delayBeforeApply, isStopped, stop } from '@utils';
 import { stage } from '../../helpers/stageLog.js';
+import { ensureSerpReady } from './ensureSerpReady.js';
 import { getVacancies } from './getVacancies.js';
+import { goToNextSerpPage } from './goToNextSerpPage.js';
 import { processVacancy } from './processVacancy.js';
 
 export async function navigateAndProcessVacancies({
@@ -16,103 +17,96 @@ export async function navigateAndProcessVacancies({
     broadcast,
 }: NavigateAndProcessVacanciesParams): Promise<void> {
     let currentPage = 0;
-    let existingVacanciesIds: Set<number>;
     let consecutiveApplyFailures = 0;
     const totalPages = HH_SCRAPE.TOTAL_PAGES;
+    const processedIds = new Set<number>();
 
     try {
         const vacanciesFromDb = await vacancyRepo.getVacanciesUser(userId);
-        existingVacanciesIds = new Set(vacanciesFromDb.map((vacancy) => vacancy.id));
+        for (const vacancy of vacanciesFromDb) {
+            if (vacancy.id) processedIds.add(vacancy.id);
+        }
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
         return;
     }
+
+    stage('apply loop');
 
     while (currentPage < totalPages) {
         if (isStopped()) {
             await stop(browser);
             return;
         }
+
         try {
             stage('page', `${currentPage + 1}/${totalPages}`);
+            await ensureSerpReady(page);
 
-            let pageVacancies: VacancyWithResponse[] = await getVacancies(page);
-            pageVacancies = pageVacancies.filter(({ data }) => data.id && !existingVacanciesIds.has(data.id));
-            if (pageVacancies.length === 0) {
-                stage('page empty');
-                break;
-            }
-
-            for (let i = 0; i < pageVacancies.length; i++) {
-                const { data, vacancyResponse } = pageVacancies[i];
-                await page.screenshot({ path: 'vacancies_length.png' });
-                if (isStopped()) {
-                    await stop(browser);
-                    return;
+            // Always take the next live card — never iterate stale ElementHandles.
+            while (!isStopped()) {
+                const remaining = (await getVacancies(page)).filter(
+                    ({ data }) => data.id && !processedIds.has(data.id),
+                );
+                if (remaining.length === 0) {
+                    stage('page empty');
+                    break;
                 }
+
+                const { data } = remaining[0];
+                processedIds.add(data.id);
 
                 stage(
                     'queue',
-                    `${i + 1}/${pageVacancies.length} · ok=${counters.successfullySubmittedCount} fail=${counters.unsuccessfullySubmittedCount}`,
+                    `${processedIds.size} · left=${remaining.length} · ok=${counters.successfullySubmittedCount} fail=${counters.unsuccessfullySubmittedCount}`,
                 );
 
-                // HH pacing: base + jitter (+ stepped backoff after outer failures)
                 const waitedMs = await delayBeforeApply(consecutiveApplyFailures);
                 stage('pace', `${waitedMs}ms (failures=${consecutiveApplyFailures})`);
+
                 try {
-                    existingVacanciesIds.add(data.id);
-                    if (vacancyResponse) {
-                        const result = await processVacancy({
-                            page,
-                            vacancyResponse,
-                            data,
-                            counters,
-                            message,
-                            userId,
-                            vacancyRepo,
-                            broadcast,
-                        });
-                        if (result === 'captcha') {
-                            broadcast.broadcast('CAPTCHA mid-apply — stopping browser');
-                            await stop(browser);
-                            throw new Error('CAPTCHA mid-apply — stopping browser');
-                        }
-                        consecutiveApplyFailures = result === 'fail' ? consecutiveApplyFailures + 1 : 0;
-                        pageVacancies = (await getVacancies(page)).filter(
-                            ({ data }) => data.id && !existingVacanciesIds.has(data.id),
-                        );
-                    } else {
-                        console.error(`Vacancy response for ID ${data.id} is null.`);
+                    const result = await processVacancy({
+                        page,
+                        data,
+                        counters,
+                        message,
+                        userId,
+                        vacancyRepo,
+                        broadcast,
+                    });
+
+                    if (result === 'captcha') {
+                        broadcast.broadcast('CAPTCHA mid-apply — stopping browser');
+                        await stop(browser);
+                        throw new Error('CAPTCHA mid-apply — stopping browser');
                     }
+
+                    consecutiveApplyFailures = result === 'fail' ? consecutiveApplyFailures + 1 : 0;
                 } catch (err) {
                     consecutiveApplyFailures += 1;
                     console.error(`Error processing vacancy with ID ${data.id}:`, err);
-                    // CAPTCHA / hard abort must surface to processJob for poll SoT.
                     if (err instanceof Error && /CAPTCHA/i.test(err.message)) {
                         throw err;
                     }
+                    await ensureSerpReady(page).catch(() => undefined);
                 }
-            }
-
-            const nextPageButtonHandle = await page.$(SELECTORS.PAGER_NEXT);
-            if (nextPageButtonHandle) {
-                stage('next page');
-                await page.screenshot({ path: 'next_ page.png' });
-
-                await nextPageButtonHandle.click();
-                const pageWaitMs = await delayBetweenPages();
-                stage('pace', `${pageWaitMs}ms after pager`);
-                currentPage++;
-            } else {
-                break;
             }
 
             if (isStopped()) {
                 await stop(browser);
                 return;
             }
+
+            const moved = await goToNextSerpPage(page);
+            if (!moved) break;
+            currentPage++;
         } catch (err) {
+            if (err instanceof Error && /CAPTCHA/i.test(err.message)) {
+                throw err;
+            }
             console.error('Error during page processing:', err);
+            currentPage++;
+            await ensureSerpReady(page).catch(() => undefined);
         }
     }
 }

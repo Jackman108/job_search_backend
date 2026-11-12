@@ -2,11 +2,13 @@ import { SELECTORS, TIMEOUTS, VACANCY_STATUS } from '@config';
 import { ProcessVacancyParams } from '@interface';
 import type { VacancyRepo } from '../../../job/vacancyRepo.types.js';
 import { scrollToElementIfNotFound } from '../../helpers/scrollToElementIfNotFound.js';
+import { stage } from '../../helpers/stageLog.js';
+import { clickVacancyApply } from './clickVacancyApply.js';
 import { detectApplyOutcome, detectEarlyPreflight, isSubmitDisabled } from './detectApplyState.js';
 import { dismissApplyExtras } from './dismissApplyExtras.js';
+import { ensureSerpReady } from './ensureSerpReady.js';
 import { fillNativeValue } from './fillNativeValue.js';
 import { submitApplyResponse } from './submitApplyResponse.js';
-import { stage } from '../../helpers/stageLog.js';
 
 export type ProcessVacancyResult = 'success' | 'fail' | 'skip' | 'captcha';
 
@@ -52,9 +54,14 @@ async function saveSuccess(
     console.log(`Vacancy ${data.id} saved as success · ${data.title_vacancy}`);
 }
 
+async function leaveApplySurface(page: ProcessVacancyParams['page']): Promise<void> {
+    await dismissApplyExtras(page);
+    await settle();
+    await ensureSerpReady(page);
+}
+
 export async function processVacancy({
     page,
-    vacancyResponse,
     data,
     counters,
     message,
@@ -64,23 +71,26 @@ export async function processVacancy({
 }: ProcessVacancyParams): Promise<ProcessVacancyResult> {
     try {
         stage('vacancy', `${data.id} ${data.title_vacancy ?? ''}`.trim());
-        await settle();
-        await vacancyResponse.click();
+        await ensureSerpReady(page);
+
+        const opened = await clickVacancyApply(page, data.id);
+        if (!opened) {
+            await saveFail(data, userId, counters, vacancyRepo, 'apply_control_missing');
+            await ensureSerpReady(page);
+            return 'fail';
+        }
 
         const relocationModal = await page
-            .waitForSelector(SELECTORS.RELOCATION_MODAL_TITLE, {
-                timeout: TIMEOUTS.MODAL,
-            })
+            .waitForSelector(SELECTORS.RELOCATION_MODAL_TITLE, { timeout: TIMEOUTS.MODAL })
             .catch(() => null);
 
         if (relocationModal) {
             const modalText = await page.evaluate((el) => el.textContent, relocationModal);
             if (modalText?.includes('Вы откликаетесь на вакансию в другой стране')) {
-                await page.click(SELECTORS.RELOCATION_CONFIRM);
+                await page.click(SELECTORS.RELOCATION_CONFIRM).catch(() => undefined);
             }
         }
 
-        // Optional vacancy-page top CTA when popup submit is not yet mounted.
         await page.evaluate((selectors) => {
             const hasPopup = document.querySelector(selectors.RESPONSE_SUBMIT);
             const top = document.querySelector(selectors.RESPONSE_LINK_TOP) as HTMLElement | null;
@@ -91,19 +101,20 @@ export async function processVacancy({
         const early = await detectEarlyPreflight(page);
         if (early === 'already') {
             await saveSuccess(data, userId, counters, vacancyRepo);
-            await dismissApplyExtras(page);
+            await leaveApplySurface(page);
             return 'success';
         }
         if (early === 'hidden_resume' || early === 'employer_questions') {
-            await dismissApplyExtras(page);
-            await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
+            await leaveApplySurface(page);
             await saveSkip(data, userId, counters, vacancyRepo, early);
             return 'skip';
         }
 
         stage('cover letter', String(data.id));
         const coverToggle = await scrollToElementIfNotFound(page, SELECTORS.COVER_LETTER_TOGGLE);
-        if (coverToggle) await coverToggle.click();
+        if (coverToggle) {
+            await coverToggle.click().catch(() => undefined);
+        }
 
         await page.waitForSelector(SELECTORS.COVER_LETTER_INPUT, { timeout: TIMEOUTS.SEARCH }).catch(() => null);
         const coverFilled = await fillNativeValue(page, SELECTORS.COVER_LETTER_INPUT, message);
@@ -112,8 +123,7 @@ export async function processVacancy({
         }
 
         if (await isSubmitDisabled(page)) {
-            await dismissApplyExtras(page);
-            await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
+            await leaveApplySurface(page);
             await saveSkip(data, userId, counters, vacancyRepo, 'disabled_submit');
             return 'skip';
         }
@@ -121,8 +131,7 @@ export async function processVacancy({
         stage('submit', String(data.id));
         const submitted = await submitApplyResponse(page);
         if (!submitted) {
-            await dismissApplyExtras(page);
-            await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
+            await leaveApplySurface(page);
             await saveFail(data, userId, counters, vacancyRepo, 'no_submit_control');
             return 'fail';
         }
@@ -141,16 +150,18 @@ export async function processVacancy({
 
         if (outcome.success) {
             await saveSuccess(data, userId, counters, vacancyRepo);
+            await leaveApplySurface(page);
             return 'success';
         }
 
-        // Secondary: invalid Bloko/Magritte field CSS — never mark true without body success.
-        await page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
+        await leaveApplySurface(page);
         await saveFail(data, userId, counters, vacancyRepo, outcome.formInvalid ? 'form_invalid' : 'no_success_marker');
         return 'fail';
     } catch (error) {
         await page.screenshot({ path: 'screenshot-during.png' }).catch(() => null);
         console.error('An error during the processing of a vacancy:', error);
+        await leaveApplySurface(page).catch(() => undefined);
+        await saveFail(data, userId, counters, vacancyRepo, 'exception').catch(() => undefined);
         return 'fail';
     }
 }

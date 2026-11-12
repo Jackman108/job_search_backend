@@ -5,7 +5,6 @@ import { VacancyData } from './vacancy.interfaces';
 
 export interface ProcessVacancyParams {
     page: Page;
-    vacancyResponse: ElementHandle;
     data: VacancyData;
     counters: Counters;
     message: string;

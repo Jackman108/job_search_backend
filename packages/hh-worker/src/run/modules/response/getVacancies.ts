@@ -1,53 +1,46 @@
-// src/getVacancies.ts
 import { Page } from 'puppeteer';
 import { SELECTORS, TIMEOUTS } from '@config';
 import { VacancyWithResponse } from '@interface';
 import { extractVacancyData } from '@utils';
 
+/**
+ * Collect applyable SERP cards. Does not keep ElementHandles — Magritte re-renders
+ * and stale handles cause «Node is detached from document».
+ */
 export async function getVacancies(page: Page): Promise<VacancyWithResponse[]> {
     try {
-        await page.screenshot({ path: 'VACANCY_CARD.png' });
-
         await page.waitForSelector(SELECTORS.VACANCY_CARD, { timeout: TIMEOUTS.LONG });
-        const vacancies = await page.$$(SELECTORS.VACANCY_CARD);
+        const rows = await page.evaluate((selectors) => {
+            const cards = Array.from(document.querySelectorAll(selectors.VACANCY_CARD));
+            return cards.map((card) => {
+                const titleEl = card.querySelector(selectors.VACANCY_TITLE) as HTMLElement | null;
+                const linkEl = card.querySelector(selectors.VACANCY_LINK) as HTMLAnchorElement | null;
+                const responseEl = card.querySelector(selectors.VACANCY_RESPONSE) as HTMLElement | null;
+                const companyEl = card.querySelector(selectors.COMPANY_LINK) as HTMLAnchorElement | null;
+                return {
+                    title_vacancy: titleEl?.innerText?.trim() || '',
+                    url_vacancy: linkEl?.href || '',
+                    responseText: responseEl?.textContent || '',
+                    title_company: companyEl?.textContent?.trim() || 'Компания не указана',
+                    url_company: companyEl?.href || '#',
+                };
+            });
+        }, SELECTORS);
+
         const vacanciesWithResponse: VacancyWithResponse[] = [];
         const visitedIds = new Set<number>();
 
-        for (const vacancyHandle of vacancies) {
-            const vacancyTitleHandle = await vacancyHandle.$(SELECTORS.VACANCY_TITLE);
-            const vacancyLinkHandle = await vacancyHandle.$(SELECTORS.VACANCY_LINK);
-            const vacancyResponseHandle = await vacancyHandle.$(SELECTORS.RESPONSE_BUTTON_SPAN);
-            const companyLinkHandle = await vacancyHandle.$(SELECTORS.COMPANY_LINK);
-
-            const title_vacancy = vacancyTitleHandle
-                ? await page.evaluate((el) => (el as HTMLAnchorElement).innerText.trim(), vacancyTitleHandle)
-                : '';
-            const url_vacancy = vacancyLinkHandle
-                ? await page.evaluate((el) => (el as HTMLAnchorElement).href, vacancyLinkHandle)
-                : '';
-            const responseText = vacancyResponseHandle
-                ? await page.evaluate((el) => el.textContent, vacancyResponseHandle)
-                : '';
-
-            let title_company = 'Компания не указана';
-            let url_company = '#';
-
-            if (companyLinkHandle) {
-                title_company = await page.evaluate(
-                    (el) => (el as HTMLAnchorElement).textContent?.trim() ?? '',
-                    companyLinkHandle,
-                );
-                url_company = await page.evaluate((el) => (el as HTMLAnchorElement).href, companyLinkHandle);
-            }
-
-            if (responseText?.includes('Откликнуться')) {
-                const data = await extractVacancyData({ title_vacancy, url_vacancy, title_company, url_company });
-
-                if (!visitedIds.has(data.id)) {
-                    visitedIds.add(data.id);
-                    vacanciesWithResponse.push({ data, vacancyResponse: vacancyResponseHandle });
-                }
-            }
+        for (const row of rows) {
+            if (!row.responseText?.includes('Откликнуться') || !row.url_vacancy) continue;
+            const data = await extractVacancyData({
+                title_vacancy: row.title_vacancy,
+                url_vacancy: row.url_vacancy,
+                title_company: row.title_company,
+                url_company: row.url_company,
+            });
+            if (!data.id || visitedIds.has(data.id)) continue;
+            visitedIds.add(data.id);
+            vacanciesWithResponse.push({ data, vacancyResponse: null });
         }
 
         return vacanciesWithResponse;
