@@ -11,6 +11,12 @@ export type ApplyLoopStats = {
     pages: number;
 };
 
+/** pg BIGINT / JSON often arrive as string — normalize so the skip Set matches SERP ids. */
+function toVacancyId(raw: unknown): number | null {
+    const id = typeof raw === 'number' ? raw : Number(raw);
+    return Number.isFinite(id) && id > 0 ? id : null;
+}
+
 export async function navigateAndProcessVacancies({
     userId,
     page,
@@ -25,6 +31,7 @@ export async function navigateAndProcessVacancies({
     let currentPage = 0;
     let consecutiveApplyFailures = 0;
     const maxPages = HH_SCRAPE.TOTAL_PAGES;
+    /** Already handled (DB + this run) — meet again on SERP → skip, do not re-apply. */
     const processedIds = new Set<number>();
     let liveSerpUrl = serpUrl || page.url();
     let pagesVisited = 0;
@@ -32,8 +39,10 @@ export async function navigateAndProcessVacancies({
     try {
         const vacanciesFromDb = await vacancyRepo.getVacanciesUser(userId);
         for (const vacancy of vacanciesFromDb) {
-            if (vacancy.id) processedIds.add(vacancy.id);
+            const id = toVacancyId(vacancy.id);
+            if (id) processedIds.add(id);
         }
+        stage('skip set', `${processedIds.size} already in DB`);
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
         throw err instanceof Error ? err : new Error(String(err));
@@ -55,16 +64,21 @@ export async function navigateAndProcessVacancies({
 
             // Always take the next live card — never iterate stale ElementHandles.
             while (!isStopped()) {
-                const remaining = (await getVacancies(page)).filter(
-                    ({ data }) => data.id && !processedIds.has(data.id),
-                );
+                const remaining = (await getVacancies(page)).filter(({ data }) => {
+                    const id = toVacancyId(data.id);
+                    return id !== null && !processedIds.has(id);
+                });
                 if (remaining.length === 0) {
                     stage('page empty');
                     break;
                 }
 
                 const { data } = remaining[0];
-                processedIds.add(data.id);
+                const vacancyId = toVacancyId(data.id);
+                if (!vacancyId) continue;
+                // Mark before apply so a retry/re-scrape in the same run cannot re-queue it.
+                processedIds.add(vacancyId);
+                data.id = vacancyId;
 
                 stage(
                     'queue',
