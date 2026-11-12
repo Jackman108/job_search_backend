@@ -64,6 +64,13 @@ export async function saveCaptchaImage(jobId: string, page: Page, captchaSrc: st
         }
     }
 
+    // Last resort: full-page shot so GET /jobs/:id/captcha-image is never empty while waiting.
+    await page.screenshot({ path: out, fullPage: false }).catch(() => undefined);
+    if (fs.existsSync(out) && fs.statSync(out).size > 64) {
+        stage('captcha image', `${out} (page shot fallback)`);
+        return out;
+    }
+
     stage('captcha image', 'capture failed');
     return out;
 }
