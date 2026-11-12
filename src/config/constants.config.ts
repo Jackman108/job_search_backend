@@ -1,6 +1,7 @@
 export const TIMEOUTS = {
     SHORT: 1000,
-    LONG: 60000,
+    /** HH headless nav often exceeds 60s even when plain HTTPS is fine. */
+    LONG: 120_000,
     MODAL: 20000,
     SEARCH: 10000,
 };
