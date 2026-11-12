@@ -68,6 +68,7 @@ export interface HhJobStatusResponse {
         skipped: number;
         failed: number;
         pages: number;
+        endReason?: 'last_page' | 'page_cap' | 'stopped' | 'aborted';
     };
 }
 
