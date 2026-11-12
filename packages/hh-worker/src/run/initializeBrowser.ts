@@ -9,8 +9,7 @@ import { stage } from './helpers/stageLog.js';
 async function gotoWithRetry(page: Page, vacancyUrl: string): Promise<void> {
     // HH sometimes stalls past 60s under headless even when curl/IWR returns 200.
     const long = Math.max(TIMEOUTS.LONG, 120_000);
-    const attempts: Array<{ waitUntil: 'commit' | 'domcontentloaded' | 'load'; timeout: number }> = [
-        { waitUntil: 'commit', timeout: long },
+    const attempts: Array<{ waitUntil: 'domcontentloaded' | 'load'; timeout: number }> = [
         { waitUntil: 'domcontentloaded', timeout: long },
         { waitUntil: 'load', timeout: long },
     ];
