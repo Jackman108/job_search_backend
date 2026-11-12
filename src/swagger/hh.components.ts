@@ -131,7 +131,16 @@
  *           properties:
  *             found:
  *               type: integer
- *               description: SERP total after search/filters (announced at start)
+ *               description: Alias of foundListed (legacy)
+ *             foundListed:
+ *               type: integer
+ *               description: SERP header total after filters
+ *             applyablePage1:
+ *               type: integer
+ *               description: Page-1 cards not already in DB at announce
+ *             alreadyInDb:
+ *               type: integer
+ *               description: Skip-set size at announce
  *             success:
  *               type: integer
  *             skipped:

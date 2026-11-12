@@ -12,6 +12,9 @@ import { readSerpFoundCount } from './readSerpFoundCount.js';
 export type ApplyLoopStats = {
     pages: number;
     found: number;
+    foundListed?: number;
+    applyablePage1?: number;
+    alreadyInDb?: number;
     endReason: 'last_page' | 'page_cap' | 'stopped';
 };
 
@@ -40,6 +43,9 @@ export async function navigateAndProcessVacancies({
     let liveSerpUrl = serpUrl || page.url();
     let pagesVisited = 0;
     let found = 0;
+    let foundListed = 0;
+    let applyablePage1 = 0;
+    let alreadyInDb = 0;
     let announcedFound = false;
 
     try {
@@ -59,7 +65,7 @@ export async function navigateAndProcessVacancies({
     while (currentPage < maxPages) {
         if (isStopped()) {
             await stop(browser);
-            return { pages: pagesVisited, found, endReason: 'stopped' };
+            return packStats('stopped');
         }
 
         try {
@@ -74,6 +80,9 @@ export async function navigateAndProcessVacancies({
                     const id = toVacancyId(data.id);
                     return id !== null && !processedIds.has(id);
                 }).length;
+                foundListed = listed;
+                applyablePage1 = applyableNow;
+                alreadyInDb = processedIds.size;
                 found = listed > 0 ? listed : applyableNow;
                 const lastEvent =
                     listed > 0
@@ -84,6 +93,9 @@ export async function navigateAndProcessVacancies({
                     lastEventAt: new Date().toISOString(),
                     summary: {
                         found,
+                        foundListed: listed > 0 ? listed : undefined,
+                        applyablePage1: applyableNow,
+                        alreadyInDb: processedIds.size,
                         success: 0,
                         skipped: 0,
                         failed: 0,
@@ -154,13 +166,13 @@ export async function navigateAndProcessVacancies({
 
             if (isStopped()) {
                 await stop(browser);
-                return { pages: pagesVisited, found, endReason: 'stopped' };
+                return packStats('stopped');
             }
 
             const moved = await goToNextSerpPage(page);
             if (!moved) {
                 stage('pager end', `last page reached (${pagesVisited})`);
-                return { pages: pagesVisited, found, endReason: 'last_page' };
+                return packStats('last_page');
             }
             currentPage++;
             liveSerpUrl = page.url();
@@ -171,7 +183,7 @@ export async function navigateAndProcessVacancies({
             console.error('Error during page processing:', err);
             const moved = await goToNextSerpPage(page).catch(() => false);
             if (!moved) {
-                return { pages: pagesVisited || currentPage + 1, found, endReason: 'last_page' };
+                return packStats('last_page', pagesVisited || currentPage + 1);
             }
             currentPage++;
             liveSerpUrl = page.url();
@@ -180,5 +192,16 @@ export async function navigateAndProcessVacancies({
     }
 
     stage('pager cap', `reached HH_TOTAL_PAGES=${maxPages}`);
-    return { pages: pagesVisited || currentPage + 1, found, endReason: 'page_cap' };
+    return packStats('page_cap', pagesVisited || currentPage + 1);
+
+    function packStats(endReason: 'last_page' | 'page_cap' | 'stopped', pages = pagesVisited): ApplyLoopStats {
+        return {
+            pages,
+            found,
+            foundListed: foundListed || undefined,
+            applyablePage1: announcedFound ? applyablePage1 : undefined,
+            alreadyInDb: announcedFound ? alreadyInDb : undefined,
+            endReason,
+        };
+    }
 }

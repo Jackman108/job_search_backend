@@ -64,6 +64,9 @@ export interface HhJobStatusResponse {
     /** Present when sendFeedback finished (or partial run before error). */
     summary?: {
         found?: number;
+        foundListed?: number;
+        applyablePage1?: number;
+        alreadyInDb?: number;
         success: number;
         skipped: number;
         failed: number;

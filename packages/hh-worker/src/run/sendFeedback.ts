@@ -18,13 +18,24 @@ function persistApplySummary(
     broadcast: ScenarioDeps['broadcast'],
     found = 0,
     endReason: HhApplyEndReason = 'last_page',
+    foundExtra?: {
+        foundListed?: number;
+        applyablePage1?: number;
+        alreadyInDb?: number;
+    },
 ): void {
     const success = counters.successfullySubmittedCount;
     const skipped = counters.skippedCount;
     const failed = counters.failedCount;
-    const existingFound = readJob(jobId)?.summary?.found ?? 0;
+    const prev = readJob(jobId)?.summary;
+    const foundListed = foundExtra?.foundListed ?? prev?.foundListed;
+    const applyablePage1 = foundExtra?.applyablePage1 ?? prev?.applyablePage1;
+    const alreadyInDb = foundExtra?.alreadyInDb ?? prev?.alreadyInDb;
     const summary = {
-        found: found || existingFound || undefined,
+        found: found || prev?.found || foundListed || undefined,
+        foundListed: foundListed || undefined,
+        applyablePage1,
+        alreadyInDb,
         success,
         skipped,
         failed,
@@ -108,8 +119,13 @@ export async function sendFeedback(
         pages = stats.pages;
         found = stats.found;
         endReason = stats.endReason;
+        const foundExtra = {
+            foundListed: stats.foundListed,
+            applyablePage1: stats.applyablePage1,
+            alreadyInDb: stats.alreadyInDb,
+        };
         await page.screenshot({ path: 'screenshot-navigate.png' }).catch(() => null);
-        persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found, endReason);
+        persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found, endReason, foundExtra);
     } catch (err) {
         // Still expose partial totals when the run aborts mid-way.
         try {
