@@ -6,6 +6,7 @@ import { dismissPreLoginOverlays } from './helpers/dismissPreLoginOverlays.js';
 import { fillControlledInput } from './helpers/fillControlledInput.js';
 import { submitAndDetectBlockers } from './helpers/loginBlockers.js';
 import { clickFirstSelector } from './helpers/waitForFirstSelector.js';
+import { waitLoginCredentialStep, waitMagritteLoaderGone } from './helpers/waitMagritteReady.js';
 
 const HH_LOGIN_URL = 'https://hh.ru/account/login';
 
@@ -13,6 +14,7 @@ const HH_LOGIN_URL = 'https://hh.ru/account/login';
 const LABEL = {
     EMAIL_TAB: 'Почта',
     NEXT: 'Дальше',
+    ENTER: 'Войти',
     LOGIN_WITH_PASSWORD: 'Войти с паролем',
 } as const;
 
@@ -41,18 +43,27 @@ async function passAccountTypeGate(page: Page): Promise<void> {
 
     if ((await page.$(SELECTORS.EMAIL_INPUT)) || (await page.$(SELECTORS.EMAIL_BUTTON))) return;
 
+    await waitMagritteLoaderGone(page);
     await applicantCard.click();
     await settle(400);
+    await waitMagritteLoaderGone(page);
 
     const submit =
         (await clickFirstSelector(page, [SELECTORS.LOGIN_SUBMIT], {
             timeout: TIMEOUTS.SEARCH,
             visible: true,
-        })) || (await clickByExactText(page, LABEL.NEXT, { timeout: TIMEOUTS.SHORT }));
+        })) ||
+        (await clickByExactText(page, LABEL.ENTER, { timeout: TIMEOUTS.SHORT })) ||
+        (await clickByExactText(page, LABEL.NEXT, { timeout: TIMEOUTS.SHORT }));
     if (!submit) {
         throw new Error('HH login: account-type SUBMIT not found');
     }
-    await settle();
+    await waitMagritteLoaderGone(page, TIMEOUTS.LONG);
+    const ready = await waitLoginCredentialStep(page, TIMEOUTS.MODAL);
+    if (!ready) {
+        await page.screenshot({ path: 'screenshot-authorize-account-type.png' }).catch(() => null);
+        throw new Error('HH login: credential step did not appear after account-type submit');
+    }
 }
 
 /** Always Magritte /account/login — do not wait for serp English/header LOGIN. */
@@ -76,18 +87,22 @@ async function ensureLoginForm(page: Page): Promise<void> {
 
 async function chooseEmailCredential(page: Page): Promise<void> {
     if (await page.$(SELECTORS.EMAIL_INPUT)) return;
+    // Password-only step (returning session) — skip email tab.
+    if ((await page.$(SELECTORS.PASSWORD_INPUT)) || (await page.$(SELECTORS.PASSWORD_BUTTON))) return;
 
     const emailType = await clickFirstSelector(page, [SELECTORS.EMAIL_BUTTON], {
-        timeout: TIMEOUTS.SEARCH,
+        timeout: TIMEOUTS.MODAL,
         visible: true,
     });
     if (!emailType) {
-        const byText = await clickByExactText(page, LABEL.EMAIL_TAB, { timeout: TIMEOUTS.SHORT });
+        const byText = await clickByExactText(page, LABEL.EMAIL_TAB, { timeout: TIMEOUTS.SEARCH });
         if (!byText && !(await page.$(SELECTORS.EMAIL_INPUT))) {
+            await page.screenshot({ path: 'screenshot-authorize-email-tab.png' }).catch(() => null);
             throw new Error('HH login: credential-type-email / Почта control not found');
         }
     }
     await settle();
+    await waitMagritteLoaderGone(page);
 }
 
 async function openPasswordStep(page: Page): Promise<void> {
@@ -125,10 +140,16 @@ async function openPasswordStep(page: Page): Promise<void> {
 }
 
 async function fillEmailAndPassword(page: Page, email: string, password: string): Promise<void> {
-    const emailHandle = await requireVisible(page, SELECTORS.EMAIL_INPUT, 'email input');
-    await fillControlledInput(page, emailHandle, email);
-
-    await openPasswordStep(page);
+    const emailReady = await page.$(SELECTORS.EMAIL_INPUT);
+    if (emailReady) {
+        const emailHandle = await requireVisible(page, SELECTORS.EMAIL_INPUT, 'email input');
+        await fillControlledInput(page, emailHandle, email);
+        await openPasswordStep(page);
+    } else if (await page.$(SELECTORS.PASSWORD_BUTTON)) {
+        await openPasswordStep(page);
+    } else if (!(await page.$(SELECTORS.PASSWORD_INPUT))) {
+        throw new Error('HH login: neither email nor password input after credential step');
+    }
 
     const passwordHandle = await requireVisible(page, SELECTORS.PASSWORD_INPUT, 'password input', TIMEOUTS.MODAL);
     await fillControlledInput(page, passwordHandle, password);
@@ -150,6 +171,7 @@ export async function authorize(
         await submitAndDetectBlockers(page, browser, broadcast, jobId);
     } catch (error) {
         console.error('Error during authorization:', error);
+        await page.screenshot({ path: 'screenshot-authorize-fail.png' }).catch(() => null);
         throw error;
     }
 }
