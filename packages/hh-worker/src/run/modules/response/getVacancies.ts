@@ -38,8 +38,11 @@ export async function getVacancies(page: Page): Promise<VacancyWithResponse[]> {
                 title_company: row.title_company,
                 url_company: row.url_company,
             });
-            if (!data.id || visitedIds.has(data.id)) continue;
-            visitedIds.add(data.id);
+            // Normalize — callers keep a numeric Set of already-processed ids.
+            const id = Number(data.id);
+            if (!Number.isFinite(id) || id <= 0 || visitedIds.has(id)) continue;
+            data.id = id;
+            visitedIds.add(id);
             vacanciesWithResponse.push({ data, vacancyResponse: null });
         }
 
