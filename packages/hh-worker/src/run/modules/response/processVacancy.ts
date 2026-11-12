@@ -159,13 +159,17 @@ export async function processVacancy({
         }
 
         await settle(TIMEOUTS.SHORT * 2);
+
+        // Detect success BEFORE dismissApplyExtras — Magritte toasts are the marker and get closed.
+        let outcome = await detectApplyOutcome(page);
+        for (let i = 0; i < 8 && !outcome.success && !outcome.captcha && !outcome.formInvalid; i++) {
+            await settle(TIMEOUTS.SHORT);
+            outcome = await detectApplyOutcome(page);
+        }
+
         await dismissApplyExtras(page);
         await settle();
-
-        // Magritte toasts appear briefly — poll a few times before failing.
-        let outcome = await detectApplyOutcome(page);
-        for (let i = 0; i < 4 && !outcome.success && !outcome.captcha && !outcome.formInvalid; i++) {
-            await settle(TIMEOUTS.SHORT);
+        if (!outcome.success && !outcome.captcha && !outcome.formInvalid) {
             outcome = await detectApplyOutcome(page);
         }
 

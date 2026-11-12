@@ -15,6 +15,10 @@ const detectEarlyPreflightInPage = require('./detectEarlyPreflight.browser.js') 
     selectors: typeof SELECTORS,
     successReSource: string,
 ) => ApplyPreflightReason;
+const detectApplyOutcomeInPage = require('./detectApplyOutcome.browser.js') as (
+    selectors: typeof SELECTORS,
+    successReSource: string,
+) => ApplyDetectResult;
 
 /** Primary success signal used by live Magritte applies. */
 export function isApplySuccessText(bodyText: string): boolean {
@@ -47,26 +51,5 @@ export async function isSubmitDisabled(page: Page): Promise<boolean> {
 }
 
 export async function detectApplyOutcome(page: Page): Promise<ApplyDetectResult> {
-    return page.evaluate(
-        (selectors, successReSource) => {
-            const body = document.body?.innerText || '';
-            const dialog = (document.querySelector('[role=dialog]') as HTMLElement | null)?.innerText || '';
-            const captchaImg = !!document.querySelector(selectors.CAPTCHA_IMAGE);
-            const captcha = captchaImg || /капч/i.test(dialog) || /капч/i.test(body);
-
-            const formInvalid = [
-                document.querySelector(selectors.BLOK_TEXTAREA)?.classList.contains(selectors.TEXTAREA_INVALID),
-                document.querySelector(selectors.BLOK_RADIO)?.classList.contains(selectors.RADIO_INVALID),
-                document.querySelector(selectors.BLOCK_CHECKBOX)?.classList.contains(selectors.BLOCK_CHECKBOX_INVALID),
-            ].some(Boolean);
-
-            return {
-                success: new RegExp(successReSource).test(body),
-                captcha,
-                formInvalid: !!formInvalid,
-            };
-        },
-        SELECTORS,
-        APPLY_SUCCESS_RE.source,
-    );
+    return page.evaluate(detectApplyOutcomeInPage, SELECTORS, APPLY_SUCCESS_RE.source);
 }

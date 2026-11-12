@@ -8,6 +8,8 @@ describe('detectApplyState helpers', () => {
         assert.equal(isApplySuccessText('Вы  откликнулись'), true);
         assert.equal(isApplySuccessText('Отклик отправлен'), true);
         assert.equal(isApplySuccessText('Резюме отправлено работодателю'), true);
+        assert.equal(isApplySuccessText('Ваш отклик отправлен'), true);
+        assert.equal(isApplySuccessText('Мы отправили ваше резюме'), true);
         assert.equal(isApplySuccessText('что-то другое'), false);
     });
 
