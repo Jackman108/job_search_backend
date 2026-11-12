@@ -5,10 +5,9 @@ async function settle(ms = TIMEOUTS.SHORT): Promise<void> {
     await new Promise((r) => setTimeout(r, ms));
 }
 
-const APPLY_TEXT_RE = /Откликнуться/i;
-
 /**
  * Fallback when SERP CTA is missing/virtualized: open vacancy page and click apply there.
+ * Keep page.evaluate free of TypeScript types — Puppeteer stringifies the function body.
  */
 export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Promise<boolean> {
     if (!vacancyUrl || !/\/vacancy\//i.test(vacancyUrl)) return false;
@@ -16,42 +15,55 @@ export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Pro
     await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => undefined);
     await settle(TIMEOUTS.SHORT * 2);
 
+    // Cookie banner can sit over the CTA.
+    await page
+        .evaluate((cookieSel) => {
+            const btn = document.querySelector(cookieSel);
+            if (btn) (btn as HTMLElement).click();
+        }, SELECTORS.COOKIE_ACCEPT)
+        .catch(() => undefined);
+    await settle();
+
     const selectors = [
         SELECTORS.RESPONSE_LINK_NO_QUESTIONS,
         SELECTORS.RESPONSE_LINK_TOP,
-        SELECTORS.VACANCY_RESPONSE,
+        SELECTORS.VACANCY_RESPONSE.split(',')[0].trim(),
         SELECTORS.RESPONSE_SUBMIT,
     ];
 
-    const hit = await page
-        .evaluate(
-            (sels, applyReSource) => {
-                const applyRe = new RegExp(applyReSource, 'i');
-                for (const sel of sels) {
-                    const el = document.querySelector(sel) as HTMLElement | null;
-                    if (!el) continue;
-                    el.scrollIntoView({ block: 'center', inline: 'nearest' });
-                    el.click();
-                    return { ok: true, via: sel };
-                }
-                const byText = Array.from(document.querySelectorAll('a, button, [role="button"]')).find((el) =>
-                    applyRe.test(el.textContent || ''),
-                ) as HTMLElement | undefined;
-                if (!byText) return { ok: false, via: 'none' };
-                byText.scrollIntoView({ block: 'center', inline: 'nearest' });
-                byText.click();
+    let hit: { ok: boolean; via: string };
+    try {
+        hit = (await page.evaluate((sels: string[]) => {
+            for (let i = 0; i < sels.length; i++) {
+                const el = document.querySelector(sels[i]) as HTMLElement | null;
+                if (!el) continue;
+                el.scrollIntoView({ block: 'center', inline: 'nearest' });
+                el.click();
+                return { ok: true, via: sels[i] };
+            }
+            const nodes = document.querySelectorAll('a, button, [role="button"]');
+            for (let i = 0; i < nodes.length; i++) {
+                const el = nodes[i] as HTMLElement;
+                const text = (el.textContent || '').trim();
+                if (text !== 'Откликнуться' && !/^Откликнуться\b/i.test(text)) continue;
+                el.scrollIntoView({ block: 'center', inline: 'nearest' });
+                el.click();
                 return { ok: true, via: 'text' };
-            },
-            selectors,
-            APPLY_TEXT_RE.source,
-        )
-        .catch(() => ({ ok: false, via: 'throw' }));
-
-    if (!hit?.ok) {
-        console.log(`clickVacancyPageApply miss via=${hit?.via ?? 'unknown'}`);
+            }
+            return { ok: false, via: 'none' };
+        }, selectors)) as { ok: boolean; via: string };
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(`clickVacancyPageApply evaluate error: ${msg}`);
         return false;
     }
 
-    await settle();
+    if (!hit?.ok) {
+        console.log(`clickVacancyPageApply miss via=${hit?.via ?? 'unknown'}`);
+        await page.screenshot({ path: 'screenshot-vacancy-page-no-apply.png' }).catch(() => null);
+        return false;
+    }
+
+    await settle(TIMEOUTS.SHORT * 2);
     return true;
 }

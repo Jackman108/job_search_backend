@@ -25,8 +25,16 @@ export async function detectEarlyPreflight(page: Page): Promise<ApplyPreflightRe
             const body = document.body?.innerText || '';
             if (new RegExp(successReSource).test(body)) return 'already';
 
-            if (document.querySelector(selectors.HIDDEN_RESUME_WARNING)) {
-                return 'hidden_resume';
+            const hidden = document.querySelector(selectors.HIDDEN_RESUME_WARNING) as HTMLElement | null;
+            // Magritte may keep the node in DOM while hidden — only skip when visible.
+            if (hidden) {
+                const style = window.getComputedStyle(hidden);
+                const visible =
+                    style.display !== 'none' &&
+                    style.visibility !== 'hidden' &&
+                    style.opacity !== '0' &&
+                    hidden.getClientRects().length > 0;
+                if (visible) return 'hidden_resume';
             }
 
             const question = document.querySelector(selectors.EMPLOYER_QUESTION) as
