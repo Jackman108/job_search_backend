@@ -6,6 +6,26 @@ import { clearBrowserSession } from './helpers/clearBrowserSession.js';
 import { dismissPreLoginOverlays } from './helpers/dismissPreLoginOverlays.js';
 import { stage } from './helpers/stageLog.js';
 
+async function gotoWithRetry(page: Page, vacancyUrl: string): Promise<void> {
+    const attempts: Array<{ waitUntil: 'domcontentloaded' | 'load'; timeout: number }> = [
+        { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG },
+        { waitUntil: 'load', timeout: TIMEOUTS.LONG },
+    ];
+    let lastErr: unknown;
+    for (let i = 0; i < attempts.length; i++) {
+        const opts = attempts[i];
+        try {
+            await page.goto(vacancyUrl, opts);
+            return;
+        } catch (err) {
+            lastErr = err;
+            stage('browser open retry', `${i + 1}/${attempts.length}: ${String(err).slice(0, 120)}`);
+            await new Promise((r) => setTimeout(r, 1500));
+        }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
 export async function initializeBrowser(vacancyUrl: string, browser: Browser, page: Page, broadcast: JobBroadcast) {
     try {
         reset();
@@ -17,7 +37,7 @@ export async function initializeBrowser(vacancyUrl: string, browser: Browser, pa
             await clearBrowserSession(page);
         }
 
-        await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
+        await gotoWithRetry(page, vacancyUrl);
         stage('browser open', vacancyUrl.slice(0, 80));
 
         // Cookie accept + region/promo closers — missing banner must NOT abort the job.
@@ -29,13 +49,13 @@ export async function initializeBrowser(vacancyUrl: string, browser: Browser, pa
             broadcast.broadcast('hh closed');
             await page.screenshot({ path: 'screenshot-closed.png' }).catch(() => null);
             await stop(browser);
-            return false;
+            throw new Error(`HH page unavailable (title=${title || 'empty'})`);
         }
 
         return { browser, page };
     } catch (error) {
-        await stop(browser);
+        await stop(browser).catch(() => undefined);
         console.error('Error initializing browser page:', error);
-        return false;
+        throw error instanceof Error ? error : new Error(String(error));
     }
 }

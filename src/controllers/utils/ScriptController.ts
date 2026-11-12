@@ -13,7 +13,7 @@ import {
 } from '@interface';
 import { cancelJobsForUser } from '../../worker/cancelJobs.js';
 import { queueGetFeedback, queueSendFeedback } from '../../worker/enqueue.js';
-import { readJob, updateJob } from '../../worker/jobStore.js';
+import { readJob, updateJob, writeCaptchaAnswer } from '../../worker/jobStore.js';
 
 export class ScriptController {
     async startScript(req: AuthenticatedRequest, res: Response) {
@@ -181,6 +181,8 @@ export class ScriptController {
                 return;
             }
 
+            // Side-channel file avoids JSON RMW races with the worker poll loop.
+            writeCaptchaAnswer(jobId, trimmed);
             updateJob(jobId, {
                 captchaAnswer: trimmed,
                 lastEvent: 'CAPTCHA answer submitted',

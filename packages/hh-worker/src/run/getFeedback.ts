@@ -22,8 +22,7 @@ export async function getFeedback(
         stage('start feedback', `user=${userId}`);
         ({ browser, page } = await launchHhBrowser());
 
-        const isInitialized = await initializeBrowser(SELECTORS_CHAT.CHAT_URL, browser, page, deps.broadcast);
-        if (!isInitialized) return;
+        await initializeBrowser(SELECTORS_CHAT.CHAT_URL, browser, page, deps.broadcast);
 
         stage('login');
         await authorize(page, email, password, browser, deps.broadcast, deps.jobId);

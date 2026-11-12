@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { Page } from 'puppeteer';
 import { SELECTORS, TIMEOUTS } from '@config';
-import { JOBS_DIR, readJob, updateJob } from '../../job/store.js';
+import { JOBS_DIR, readJob, takeCaptchaAnswer, updateJob } from '../../job/store.js';
 import { clickByExactText } from './clickByExactText.js';
 import { stage } from './stageLog.js';
 
@@ -72,14 +72,21 @@ async function pollAnswer(jobId: string, deadline: number): Promise<string | nul
     while (Date.now() < deadline) {
         const job = readJob(jobId);
         if (!job || job.status === 'cancelled') return null;
-        const answer = job.captchaAnswer?.trim();
+
+        // Prefer side-channel file (survives concurrent JSON updates).
+        const fromFile = takeCaptchaAnswer(jobId);
+        const answer = fromFile || job.captchaAnswer?.trim() || '';
         if (answer) {
-            updateJob(jobId, {
-                captchaAnswer: undefined,
-                awaitingCaptcha: false,
-                lastEvent: 'CAPTCHA answer received',
-                lastEventAt: new Date().toISOString(),
-            });
+            try {
+                updateJob(jobId, {
+                    captchaAnswer: undefined,
+                    awaitingCaptcha: false,
+                    lastEvent: 'CAPTCHA answer received',
+                    lastEventAt: new Date().toISOString(),
+                });
+            } catch (err) {
+                console.error(`pollAnswer(${jobId}): updateJob after answer failed`, err);
+            }
             return answer;
         }
         await new Promise((r) => setTimeout(r, POLL_MS));

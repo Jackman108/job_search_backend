@@ -3,6 +3,7 @@ import { ProcessVacancyParams } from '@interface';
 import type { VacancyRepo } from '../../../job/vacancyRepo.types.js';
 import { scrollToElementIfNotFound } from '../../helpers/scrollToElementIfNotFound.js';
 import { stage } from '../../helpers/stageLog.js';
+import { readCaptchaSrc, waitAndSubmitCaptchaAnswer } from '../../helpers/waitForCaptchaAnswer.js';
 import { clickVacancyApply } from './clickVacancyApply.js';
 import { detectApplyOutcome, detectEarlyPreflight, isSubmitDisabled } from './detectApplyState.js';
 import { dismissApplyExtras } from './dismissApplyExtras.js';
@@ -54,10 +55,10 @@ async function saveSuccess(
     console.log(`Vacancy ${data.id} saved as success · ${data.title_vacancy}`);
 }
 
-async function leaveApplySurface(page: ProcessVacancyParams['page']): Promise<void> {
+async function leaveApplySurface(page: ProcessVacancyParams['page'], serpUrl?: string): Promise<void> {
     await dismissApplyExtras(page);
     await settle();
-    await ensureSerpReady(page);
+    await ensureSerpReady(page, serpUrl);
 }
 
 export async function processVacancy({
@@ -68,15 +69,17 @@ export async function processVacancy({
     userId,
     vacancyRepo,
     broadcast,
+    jobId,
+    serpUrl,
 }: ProcessVacancyParams): Promise<ProcessVacancyResult> {
     try {
         stage('vacancy', `${data.id} ${data.title_vacancy ?? ''}`.trim());
-        await ensureSerpReady(page);
+        await ensureSerpReady(page, serpUrl);
 
         const opened = await clickVacancyApply(page, data.id);
         if (!opened) {
             await saveFail(data, userId, counters, vacancyRepo, 'apply_control_missing');
-            await ensureSerpReady(page);
+            await ensureSerpReady(page, serpUrl);
             return 'fail';
         }
 
@@ -101,11 +104,11 @@ export async function processVacancy({
         const early = await detectEarlyPreflight(page);
         if (early === 'already') {
             await saveSuccess(data, userId, counters, vacancyRepo);
-            await leaveApplySurface(page);
+            await leaveApplySurface(page, serpUrl);
             return 'success';
         }
         if (early === 'hidden_resume' || early === 'employer_questions') {
-            await leaveApplySurface(page);
+            await leaveApplySurface(page, serpUrl);
             await saveSkip(data, userId, counters, vacancyRepo, early);
             return 'skip';
         }
@@ -123,7 +126,7 @@ export async function processVacancy({
         }
 
         if (await isSubmitDisabled(page)) {
-            await leaveApplySurface(page);
+            await leaveApplySurface(page, serpUrl);
             await saveSkip(data, userId, counters, vacancyRepo, 'disabled_submit');
             return 'skip';
         }
@@ -131,7 +134,7 @@ export async function processVacancy({
         stage('submit', String(data.id));
         const submitted = await submitApplyResponse(page);
         if (!submitted) {
-            await leaveApplySurface(page);
+            await leaveApplySurface(page, serpUrl);
             await saveFail(data, userId, counters, vacancyRepo, 'no_submit_control');
             return 'fail';
         }
@@ -140,27 +143,39 @@ export async function processVacancy({
         await dismissApplyExtras(page);
         await settle();
 
-        const outcome = await detectApplyOutcome(page);
+        let outcome = await detectApplyOutcome(page);
         if (outcome.captcha) {
-            broadcast.broadcast('CAPTCHA detected mid-apply — aborting HH run');
+            broadcast.broadcast('CAPTCHA mid-apply — waiting for POST /jobs/:id/captcha');
             await page.screenshot({ path: 'screenshot-CAPTCHA-apply.png' }).catch(() => null);
-            await saveFail(data, userId, counters, vacancyRepo, 'captcha');
-            return 'captcha';
+            const src = await readCaptchaSrc(page);
+            const solved = await waitAndSubmitCaptchaAnswer(jobId, page, src);
+            if (!solved) {
+                await saveFail(data, userId, counters, vacancyRepo, 'captcha');
+                await leaveApplySurface(page, serpUrl).catch(() => undefined);
+                return 'captcha';
+            }
+            await settle(TIMEOUTS.SHORT * 2);
+            outcome = await detectApplyOutcome(page);
+            if (outcome.captcha) {
+                await saveFail(data, userId, counters, vacancyRepo, 'captcha_still');
+                await leaveApplySurface(page, serpUrl).catch(() => undefined);
+                return 'captcha';
+            }
         }
 
         if (outcome.success) {
             await saveSuccess(data, userId, counters, vacancyRepo);
-            await leaveApplySurface(page);
+            await leaveApplySurface(page, serpUrl);
             return 'success';
         }
 
-        await leaveApplySurface(page);
+        await leaveApplySurface(page, serpUrl);
         await saveFail(data, userId, counters, vacancyRepo, outcome.formInvalid ? 'form_invalid' : 'no_success_marker');
         return 'fail';
     } catch (error) {
         await page.screenshot({ path: 'screenshot-during.png' }).catch(() => null);
         console.error('An error during the processing of a vacancy:', error);
-        await leaveApplySurface(page).catch(() => undefined);
+        await leaveApplySurface(page, serpUrl).catch(() => undefined);
         await saveFail(data, userId, counters, vacancyRepo, 'exception').catch(() => undefined);
         return 'fail';
     }
