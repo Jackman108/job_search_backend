@@ -1,7 +1,7 @@
 //index.ts
 import * as dotenv from 'dotenv';
 import { Browser, Page } from 'puppeteer';
-import { Counters, SendFeedbackParams } from '@interface';
+import { Counters, HhApplyEndReason, SendFeedbackParams } from '@interface';
 import type { ScenarioDeps } from '../job/processJob.deps.js';
 import { readJob, updateJob } from '../job/store.js';
 import { isStopped, stop } from '@utils';
@@ -17,7 +17,7 @@ function persistApplySummary(
     pages: number,
     broadcast: ScenarioDeps['broadcast'],
     found = 0,
-    aborted = false,
+    endReason: HhApplyEndReason = 'last_page',
 ): void {
     const success = counters.successfullySubmittedCount;
     const skipped = counters.skippedCount;
@@ -29,12 +29,17 @@ function persistApplySummary(
         skipped,
         failed,
         pages,
+        endReason,
     };
     const foundBit = summary.found ? `, найдено было ${summary.found}` : '';
     const failBit = failed > 0 ? `, ошибки ${failed}` : '';
-    const lastEvent = aborted
-        ? `Поиск прерван: откликов ${success}, пропущено ${skipped}${failBit}${foundBit}`
-        : `Поиск вакансий окончен: откликов ${success}, пропущено ${skipped}${failBit}${foundBit}`;
+    const head =
+        endReason === 'aborted' || endReason === 'stopped'
+            ? 'Поиск прерван'
+            : endReason === 'page_cap'
+              ? 'Поиск остановлен по лимиту страниц'
+              : 'Поиск вакансий окончен';
+    const lastEvent = `${head}: откликов ${success}, пропущено ${skipped}${failBit}${foundBit}`;
     updateJob(jobId, {
         summary,
         lastEvent,
@@ -42,8 +47,8 @@ function persistApplySummary(
     });
     broadcast.broadcast(lastEvent);
     stage(
-        aborted ? 'aborted' : 'done',
-        `ok=${success} skip=${skipped} fail=${failed} pages=${pages} found=${summary.found ?? 0}`,
+        endReason === 'aborted' ? 'aborted' : 'done',
+        `reason=${endReason} ok=${success} skip=${skipped} fail=${failed} pages=${pages} found=${summary.found ?? 0}`,
     );
 }
 
@@ -61,6 +66,7 @@ export async function sendFeedback(
     };
     let pages = 0;
     let found = 0;
+    let endReason: HhApplyEndReason = 'last_page';
 
     try {
         stage('start', `user=${userId}`);
@@ -72,7 +78,7 @@ export async function sendFeedback(
         await authorize(page, email, password, browser, deps.broadcast, deps.jobId);
         if (isStopped()) {
             stage('stopped', 'before search');
-            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found);
+            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found, 'stopped');
             await stop(browser);
             return;
         }
@@ -82,7 +88,7 @@ export async function sendFeedback(
         const serpUrl = await searchForVacancy({ page, position, vacancyUrl });
         if (isStopped()) {
             stage('stopped', 'before apply loop');
-            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found);
+            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found, 'stopped');
             await stop(browser);
             return;
         }
@@ -101,12 +107,13 @@ export async function sendFeedback(
         });
         pages = stats.pages;
         found = stats.found;
+        endReason = stats.endReason;
         await page.screenshot({ path: 'screenshot-navigate.png' }).catch(() => null);
-        persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found);
+        persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found, endReason);
     } catch (err) {
         // Still expose partial totals when the run aborts mid-way.
         try {
-            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found, true);
+            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found, 'aborted');
         } catch (persistErr) {
             console.error('Failed to persist apply summary:', persistErr);
         }

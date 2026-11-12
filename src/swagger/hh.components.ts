@@ -140,6 +140,10 @@
  *               type: integer
  *             pages:
  *               type: integer
+ *             endReason:
+ *               type: string
+ *               enum: [last_page, page_cap, stopped, aborted]
+ *               description: Why the apply loop ended (done-modal copy)
  *
  *     ErrorMessage:
  *       type: object

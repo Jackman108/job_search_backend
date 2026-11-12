@@ -12,6 +12,7 @@ import { readSerpFoundCount } from './readSerpFoundCount.js';
 export type ApplyLoopStats = {
     pages: number;
     found: number;
+    endReason: 'last_page' | 'page_cap' | 'stopped';
 };
 
 /** pg BIGINT / JSON often arrive as string — normalize so the skip Set matches SERP ids. */
@@ -58,7 +59,7 @@ export async function navigateAndProcessVacancies({
     while (currentPage < maxPages) {
         if (isStopped()) {
             await stop(browser);
-            return { pages: pagesVisited, found };
+            return { pages: pagesVisited, found, endReason: 'stopped' };
         }
 
         try {
@@ -153,13 +154,13 @@ export async function navigateAndProcessVacancies({
 
             if (isStopped()) {
                 await stop(browser);
-                return { pages: pagesVisited, found };
+                return { pages: pagesVisited, found, endReason: 'stopped' };
             }
 
             const moved = await goToNextSerpPage(page);
             if (!moved) {
                 stage('pager end', `last page reached (${pagesVisited})`);
-                break;
+                return { pages: pagesVisited, found, endReason: 'last_page' };
             }
             currentPage++;
             liveSerpUrl = page.url();
@@ -169,16 +170,15 @@ export async function navigateAndProcessVacancies({
             }
             console.error('Error during page processing:', err);
             const moved = await goToNextSerpPage(page).catch(() => false);
-            if (!moved) break;
+            if (!moved) {
+                return { pages: pagesVisited || currentPage + 1, found, endReason: 'last_page' };
+            }
             currentPage++;
             liveSerpUrl = page.url();
             await ensureSerpReady(page, liveSerpUrl).catch(() => undefined);
         }
     }
 
-    if (currentPage >= maxPages) {
-        stage('pager cap', `reached HH_TOTAL_PAGES=${maxPages}`);
-    }
-
-    return { pages: pagesVisited || currentPage + 1, found };
+    stage('pager cap', `reached HH_TOTAL_PAGES=${maxPages}`);
+    return { pages: pagesVisited || currentPage + 1, found, endReason: 'page_cap' };
 }
