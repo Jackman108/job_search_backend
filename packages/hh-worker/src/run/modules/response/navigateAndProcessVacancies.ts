@@ -2,6 +2,7 @@ import { HH_SCRAPE } from '@config';
 import { NavigateAndProcessVacanciesParams } from '@interface';
 import { delayBeforeApply, isStopped, stop } from '@utils';
 import { updateJob } from '../../../job/store.js';
+import { patchLiveApplySummary } from '../../helpers/patchLiveApplySummary.js';
 import { stage } from '../../helpers/stageLog.js';
 import { ensureSerpReady } from './ensureSerpReady.js';
 import { getVacancies } from './getVacancies.js';
@@ -154,9 +155,11 @@ export async function navigateAndProcessVacancies({
 
                     consecutiveApplyFailures = result === 'fail' ? consecutiveApplyFailures + 1 : 0;
                     liveSerpUrl = page.url();
+                    patchLiveApplySummary(jobId, counters, pagesVisited);
                 } catch (err) {
                     consecutiveApplyFailures += 1;
                     console.error(`Error processing vacancy with ID ${data.id}:`, err);
+                    patchLiveApplySummary(jobId, counters, pagesVisited);
                     if (err instanceof Error && /CAPTCHA/i.test(err.message)) {
                         throw err;
                     }

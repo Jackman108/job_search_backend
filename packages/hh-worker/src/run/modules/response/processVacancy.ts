@@ -82,6 +82,15 @@ export async function processVacancy({
         if (data.url_vacancy) {
             stage('apply page', String(data.id));
             opened = await clickVacancyPageApply(page, data.url_vacancy);
+            if (!data.title_vacancy || data.title_vacancy === 'Заголовок не найден') {
+                const pageTitle = await page
+                    .evaluate((sel) => {
+                        const el = document.querySelector(sel) as HTMLElement | null;
+                        return (el?.innerText || document.title || '').replace(/\s+/g, ' ').trim();
+                    }, SELECTORS.VACANCY_PAGE_TITLE)
+                    .catch(() => '');
+                if (pageTitle) data.title_vacancy = pageTitle.slice(0, 240);
+            }
         }
         if (!opened) {
             stage('apply serp', String(data.id));

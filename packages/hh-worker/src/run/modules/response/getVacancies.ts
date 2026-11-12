@@ -13,10 +13,11 @@ export async function getVacancies(page: Page): Promise<VacancyWithResponse[]> {
         const rows = await page.evaluate((selectors) => {
             const cards = Array.from(document.querySelectorAll(selectors.VACANCY_CARD));
             return cards.map((card) => {
-                const titleEl = card.querySelector(selectors.VACANCY_TITLE) as HTMLElement | null;
                 const linkEl =
-                    (card.querySelector(selectors.VACANCY_LINK) as HTMLAnchorElement | null) ||
+                    (card.querySelector('[data-qa="serp-item__title"]') as HTMLAnchorElement | null) ||
                     (card.querySelector('a[href*="/vacancy/"]') as HTMLAnchorElement | null);
+                const titleEl = card.querySelector(selectors.VACANCY_TITLE) as HTMLElement | null;
+                const titleFromLink = (linkEl?.innerText || linkEl?.getAttribute('title') || '').trim();
                 const responseEl = card.querySelector(selectors.VACANCY_RESPONSE) as HTMLElement | null;
                 // Prefer data-qa response control — loose text match inflated applyable counts (50).
                 const responseByText = Array.from(card.querySelectorAll('a, button')).find((el) => {
@@ -25,7 +26,7 @@ export async function getVacancies(page: Page): Promise<VacancyWithResponse[]> {
                 });
                 const companyEl = card.querySelector(selectors.COMPANY_LINK) as HTMLAnchorElement | null;
                 return {
-                    title_vacancy: titleEl?.innerText?.trim() || '',
+                    title_vacancy: (titleEl?.innerText || titleFromLink || '').trim(),
                     url_vacancy: linkEl?.href || '',
                     responseText: responseEl?.textContent || responseByText?.textContent || '',
                     title_company: companyEl?.textContent?.trim() || 'Компания не указана',

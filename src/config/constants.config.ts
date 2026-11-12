@@ -71,9 +71,14 @@ export const SELECTORS = {
     RADIO_INVALID: 'bloko-radio_invalid',
     BLOCK_CHECKBOX: 'label.bloko-checkbox',
     BLOCK_CHECKBOX_INVALID: 'bloko-checkbox_invalid',
-    VACANCY_TITLE: '[data-qa="serp-item__title-text"]',
-    VACANCY_LINK: '[data-qa="serp-item__title"]',
-    COMPANY_LINK: 'a[data-qa="vacancy-serp__vacancy-employer"]',
+    // Magritte 2026: title text may sit on the link itself; keep legacy serp-item_* fallbacks.
+    VACANCY_TITLE:
+        '[data-qa="serp-item__title-text"], [data-qa="serp-item__title"] span, [data-qa="vacancy-serp__vacancy-title"], [data-qa="vacancy-title"]',
+    VACANCY_LINK: '[data-qa="serp-item__title"], a[data-qa="vacancy-serp__vacancy-title"], a[href*="/vacancy/"]',
+    /** Vacancy page H1 — used when SERP title scrape missed. */
+    VACANCY_PAGE_TITLE: '[data-qa="vacancy-title"], h1[data-qa="vacancy-title"], h1',
+    COMPANY_LINK:
+        'a[data-qa="vacancy-serp__vacancy-employer"], a[data-qa="vacancy-company-name"], [data-qa="vacancy-serp__vacancy-employer"]',
     LOGIN_ERROR:
         '[data-qa="account-login-error"], [data-qa="account-login-form-error"], [data-qa*="login-error"], [class*="login-error"]',
     // Prefer picture URL — avoid matching decorative imgs under loose [data-qa*="captcha"].
