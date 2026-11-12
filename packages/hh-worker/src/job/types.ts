@@ -1,4 +1,4 @@
-import type { GetFeedbackParams, SendFeedbackParams } from '@interface';
+import type { GetFeedbackParams, HhApplySummary, SendFeedbackParams } from '@interface';
 
 export type HhJobKind = 'sendFeedback' | 'getFeedback';
 
@@ -26,6 +26,8 @@ export interface HhJobBase {
     awaitingCaptcha?: boolean;
     /** One-shot answer written by API; cleared when worker consumes it. */
     captchaAnswer?: string;
+    /** Apply-run totals for client completion modal (sendFeedback). */
+    summary?: HhApplySummary;
 }
 
 export interface SendFeedbackJob extends HhJobBase {

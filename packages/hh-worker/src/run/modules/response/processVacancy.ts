@@ -24,7 +24,7 @@ async function saveSkip(
     vacancyRepo: VacancyRepo,
     reason: string,
 ): Promise<void> {
-    counters.unsuccessfullySubmittedCount++;
+    counters.skippedCount++;
     data.vacancy_status = VACANCY_STATUS.SKIP;
     await vacancyRepo.saveVacancy(data, userId);
     console.log(`Vacancy ${data.id} skipped (${reason}) → status ${VACANCY_STATUS.SKIP} · ${data.title_vacancy}`);
@@ -37,7 +37,7 @@ async function saveFail(
     vacancyRepo: VacancyRepo,
     reason: string,
 ): Promise<void> {
-    counters.unsuccessfullySubmittedCount++;
+    counters.failedCount++;
     data.vacancy_status = VACANCY_STATUS.SKIP;
     await vacancyRepo.saveVacancy(data, userId);
     console.log(`Vacancy ${data.id} failed (${reason}) → status ${VACANCY_STATUS.SKIP} · ${data.title_vacancy}`);
@@ -143,7 +143,13 @@ export async function processVacancy({
         await dismissApplyExtras(page);
         await settle();
 
+        // Magritte toasts appear briefly — poll a few times before failing.
         let outcome = await detectApplyOutcome(page);
+        for (let i = 0; i < 4 && !outcome.success && !outcome.captcha && !outcome.formInvalid; i++) {
+            await settle(TIMEOUTS.SHORT);
+            outcome = await detectApplyOutcome(page);
+        }
+
         if (outcome.captcha) {
             broadcast.broadcast('CAPTCHA mid-apply — waiting for POST /jobs/:id/captcha');
             await page.screenshot({ path: 'screenshot-CAPTCHA-apply.png' }).catch(() => null);
@@ -168,6 +174,12 @@ export async function processVacancy({
             await leaveApplySurface(page, serpUrl);
             return 'success';
         }
+
+        const bodyHint = await page
+            .evaluate(() => (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 220))
+            .catch(() => '');
+        stage('outcome miss', bodyHint || 'empty body');
+        await page.screenshot({ path: `screenshot-no-success-${data.id}.png` }).catch(() => null);
 
         await leaveApplySurface(page, serpUrl);
         await saveFail(data, userId, counters, vacancyRepo, outcome.formInvalid ? 'form_invalid' : 'no_success_marker');

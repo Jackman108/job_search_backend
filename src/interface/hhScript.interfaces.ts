@@ -61,6 +61,13 @@ export interface HhJobStatusResponse {
     hasCaptchaImage?: boolean;
     /** Worker blocked on CAPTCHA — submit via POST /jobs/{jobId}/captcha. */
     awaitingCaptcha?: boolean;
+    /** Present when sendFeedback finished (or partial run before error). */
+    summary?: {
+        success: number;
+        skipped: number;
+        failed: number;
+        pages: number;
+    };
 }
 
 export interface CaptchaAnswerBody {
