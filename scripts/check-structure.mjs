@@ -10,13 +10,7 @@ const MAX_LINES = Number(process.env.MAX_FILE_LINES || 300);
 const ROOTS = ['src', path.join('packages', 'hh-worker', 'src')];
 const SKIP_DIR = new Set(['node_modules', 'dist', 'coverage', '.hh-jobs']);
 /** Known debt (QUALITY-MATRIX) — warn only; new offenders still fail. */
-const ALLOWLIST = new Set([
-    'src/routes/integration.routes.ts',
-    'src/routes/user.routes.ts',
-    'src/services/integrations/crypto/cryptoIntegrationService.ts',
-    'src/services/integrations/webpay/webpayIntegrationService.ts',
-    'src/services/integrations/common/signatureValidator.ts',
-]);
+const ALLOWLIST = new Set([]);
 
 function walk(dir, out = []) {
     if (!fs.existsSync(dir)) return out;
