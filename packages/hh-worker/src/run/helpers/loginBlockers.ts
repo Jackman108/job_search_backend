@@ -49,22 +49,40 @@ async function handleCaptchaGate(page: Page, browser: Browser, broadcast: JobBro
     await page.screenshot({ path: 'screenshot-CAPTCHA.png' }).catch(() => null);
 
     const solved = await waitAndSubmitCaptchaAnswer(jobId, page, captchaSrc || '');
-    if (solved) {
-        if (await page.$(SELECTORS.PASSWORD_INPUT)) {
-            await clickLoginSubmit(page).catch(() => undefined);
-            await settle(TIMEOUTS.SHORT * 2);
-        }
-        await page
-            .waitForFunction(() => !location.pathname.includes('/account/login'), {
-                timeout: TIMEOUTS.MODAL,
-            })
-            .catch(() => undefined);
+    if (!solved) {
+        await stop(browser);
+        throw new Error(
+            `HH login CAPTCHA not solved (wrong answer / timeout)${captchaSrc ? ` ${captchaSrc}` : ''}`.trim(),
+        );
+    }
+
+    if (await page.$(SELECTORS.PASSWORD_INPUT)) {
+        await clickLoginSubmit(page).catch(() => undefined);
+        await settle(TIMEOUTS.SHORT * 2);
+    }
+
+    const leftLogin = await page
+        .waitForFunction(() => !location.pathname.includes('/account/login'), {
+            timeout: TIMEOUTS.MODAL,
+        })
+        .then(() => true)
+        .catch(() => false);
+
+    if (leftLogin) {
         stage('login', 'continued after captcha answer');
         return;
     }
 
+    if (await pageHasBadCredentials(page)) {
+        await stop(browser);
+        throw new Error('HH login failed: invalid email or password');
+    }
+    if (await page.$(SELECTORS.CAPTCHA_IMAGE)) {
+        await stop(browser);
+        throw new Error('HH login CAPTCHA still present after answer');
+    }
     await stop(browser);
-    throw new Error(`HH login CAPTCHA not solved (wrong answer / timeout)${captchaSrc ? ` ${captchaSrc}` : ''}`.trim());
+    throw new Error('HH login did not complete after CAPTCHA (still on login form)');
 }
 
 export async function submitAndDetectBlockers(

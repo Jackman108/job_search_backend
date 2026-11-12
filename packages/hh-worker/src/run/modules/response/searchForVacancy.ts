@@ -19,7 +19,8 @@ interface SearchForVacancyParams {
     vacancyUrl?: string;
 }
 
-export async function searchForVacancy({ page, position, vacancyUrl }: SearchForVacancyParams): Promise<void> {
+/** Returns the live SERP URL after search results render. */
+export async function searchForVacancy({ page, position, vacancyUrl }: SearchForVacancyParams): Promise<string> {
     await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT));
 
     try {
@@ -43,7 +44,21 @@ export async function searchForVacancy({ page, position, vacancyUrl }: SearchFor
         await vacancyInputSelector.type(position);
         await page.keyboard.press('Enter');
         stage('search submitted', position);
-        await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT * 2));
+
+        await Promise.race([
+            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null),
+            page.waitForSelector(SELECTORS.VACANCY_CARD, { timeout: TIMEOUTS.LONG }).catch(() => null),
+        ]);
+
+        const cards = await page.waitForSelector(SELECTORS.VACANCY_CARD, { timeout: TIMEOUTS.LONG }).catch(() => null);
+        if (!cards) {
+            throw new Error('HH search returned no vacancy cards');
+        }
+
+        await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT));
+        const serpUrl = page.url();
+        stage('search ready', serpUrl.slice(0, 100));
+        return serpUrl;
     } catch (error) {
         console.error('Error when searching for a vacancy:', error);
         await page.screenshot({ path: 'screenshot-search-fail.png' }).catch(() => null);

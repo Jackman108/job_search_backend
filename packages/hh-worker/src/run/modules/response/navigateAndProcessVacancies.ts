@@ -15,11 +15,14 @@ export async function navigateAndProcessVacancies({
     browser,
     vacancyRepo,
     broadcast,
+    jobId,
+    serpUrl,
 }: NavigateAndProcessVacanciesParams): Promise<void> {
     let currentPage = 0;
     let consecutiveApplyFailures = 0;
     const totalPages = HH_SCRAPE.TOTAL_PAGES;
     const processedIds = new Set<number>();
+    let liveSerpUrl = serpUrl || page.url();
 
     try {
         const vacanciesFromDb = await vacancyRepo.getVacanciesUser(userId);
@@ -28,7 +31,7 @@ export async function navigateAndProcessVacancies({
         }
     } catch (err) {
         console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
-        return;
+        throw err instanceof Error ? err : new Error(String(err));
     }
 
     stage('apply loop');
@@ -41,7 +44,8 @@ export async function navigateAndProcessVacancies({
 
         try {
             stage('page', `${currentPage + 1}/${totalPages}`);
-            await ensureSerpReady(page);
+            await ensureSerpReady(page, liveSerpUrl);
+            liveSerpUrl = page.url();
 
             // Always take the next live card — never iterate stale ElementHandles.
             while (!isStopped()) {
@@ -73,22 +77,25 @@ export async function navigateAndProcessVacancies({
                         userId,
                         vacancyRepo,
                         broadcast,
+                        jobId,
+                        serpUrl: liveSerpUrl,
                     });
 
                     if (result === 'captcha') {
-                        broadcast.broadcast('CAPTCHA mid-apply — stopping browser');
+                        broadcast.broadcast('CAPTCHA mid-apply unsolved — stopping browser');
                         await stop(browser);
-                        throw new Error('CAPTCHA mid-apply — stopping browser');
+                        throw new Error('CAPTCHA mid-apply unsolved — stopping browser');
                     }
 
                     consecutiveApplyFailures = result === 'fail' ? consecutiveApplyFailures + 1 : 0;
+                    liveSerpUrl = page.url();
                 } catch (err) {
                     consecutiveApplyFailures += 1;
                     console.error(`Error processing vacancy with ID ${data.id}:`, err);
                     if (err instanceof Error && /CAPTCHA/i.test(err.message)) {
                         throw err;
                     }
-                    await ensureSerpReady(page).catch(() => undefined);
+                    await ensureSerpReady(page, liveSerpUrl).catch(() => undefined);
                 }
             }
 
@@ -100,13 +107,14 @@ export async function navigateAndProcessVacancies({
             const moved = await goToNextSerpPage(page);
             if (!moved) break;
             currentPage++;
+            liveSerpUrl = page.url();
         } catch (err) {
             if (err instanceof Error && /CAPTCHA/i.test(err.message)) {
                 throw err;
             }
             console.error('Error during page processing:', err);
             currentPage++;
-            await ensureSerpReady(page).catch(() => undefined);
+            await ensureSerpReady(page, liveSerpUrl).catch(() => undefined);
         }
     }
 }

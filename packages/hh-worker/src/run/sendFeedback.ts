@@ -26,8 +26,7 @@ export async function sendFeedback(
         stage('start', `user=${userId}`);
         ({ browser, page } = await launchHhBrowser());
 
-        const isInitialized = await initializeBrowser(vacancyUrl, browser, page, deps.broadcast);
-        if (!isInitialized) return;
+        await initializeBrowser(vacancyUrl, browser, page, deps.broadcast);
 
         stage('login');
         await authorize(page, email, password, browser, deps.broadcast, deps.jobId);
@@ -39,7 +38,7 @@ export async function sendFeedback(
 
         // Login leaves applicant home /account — reopen the form SERP before typing.
         stage('search', position);
-        await searchForVacancy({ page, position, vacancyUrl });
+        const serpUrl = await searchForVacancy({ page, position, vacancyUrl });
         if (isStopped()) {
             stage('stopped', 'before apply loop');
             await stop(browser);
@@ -55,8 +54,10 @@ export async function sendFeedback(
             browser,
             vacancyRepo: deps.vacancyRepo,
             broadcast: deps.broadcast,
+            jobId: deps.jobId,
+            serpUrl,
         });
-        await page.screenshot({ path: 'screenshot-navigate.png' });
+        await page.screenshot({ path: 'screenshot-navigate.png' }).catch(() => null);
         stage('done', `ok=${counters.successfullySubmittedCount} fail=${counters.unsuccessfullySubmittedCount}`);
     } catch (err) {
         console.error('Error during script execution:', err);

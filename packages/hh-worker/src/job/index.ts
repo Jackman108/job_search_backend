@@ -8,11 +8,14 @@ export { createJobStoreBroadcast, extractCaptchaSrc } from './jobStoreBroadcast.
 export { processJob } from './processJob.js';
 export {
     JOBS_DIR,
+    captchaAnswerPath,
     claimQueuedJob,
     enqueueGetFeedback,
     enqueueSendFeedback,
     listJobs,
     readJob,
+    takeCaptchaAnswer,
     updateJob,
+    writeCaptchaAnswer,
     writeJob,
 } from './store.js';

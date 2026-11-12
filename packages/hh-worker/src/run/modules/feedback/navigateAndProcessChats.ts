@@ -18,8 +18,8 @@ export async function navigateAndProcessChats({
         const ChatsFromDb = await feedbackRepo.getChatFeedback(userId);
         existingChatsIds = new Set(ChatsFromDb.map((chat) => chat.id));
     } catch (err) {
-        console.error(`Error retrieving vacancies for user ${userId}: ${err}`);
-        return;
+        console.error(`Error retrieving chats for user ${userId}: ${err}`);
+        throw err instanceof Error ? err : new Error(String(err));
     }
 
     while (currentPage < totalPages) {

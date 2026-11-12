@@ -11,6 +11,10 @@ export interface ProcessVacancyParams {
     userId: string;
     vacancyRepo: VacancyRepo;
     broadcast: JobBroadcast;
+    /** Job file id — CAPTCHA mid-apply uses the same POST /jobs/:id/captcha channel. */
+    jobId: string;
+    /** Live SERP URL after search — used when goBack leaves apply/account surfaces. */
+    serpUrl?: string;
 }
 
 export interface ProcessChatParams {
@@ -30,6 +34,8 @@ export interface NavigateAndProcessVacanciesParams {
     browser: Browser;
     vacancyRepo: VacancyRepo;
     broadcast: JobBroadcast;
+    jobId: string;
+    serpUrl?: string;
 }
 
 export interface navigateAndProcessChats {
