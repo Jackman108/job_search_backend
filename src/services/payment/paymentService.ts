@@ -1,7 +1,7 @@
 import { CreatePaymentParams, PaymentBase, PaymentStatus } from '@interface';
 import { getSubscriptionIdByUserId, withErrorHandling } from '@integrations';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
-import { isPaymentsKeyedByUserId } from '../integrations/common/paymentSchema.utils';
+import { isPaymentsKeyedByUserId, resetPaymentsSchemaCache } from '../integrations/common/paymentSchema.utils';
 
 /**
  * @module PaymentService
@@ -13,7 +13,9 @@ import { isPaymentsKeyedByUserId } from '../integrations/common/paymentSchema.ut
  */
 
 /**
- * Создание таблицы payments с необходимыми полями
+ * Safety-net DDL for empty local DBs only.
+ * Must match auth Prisma `Payment` (`user_id`), not legacy `subscription_id`.
+ * Prefer `yarn prisma migrate` on shared job_search — do not invent a second schema.
  */
 export const createTablePayments = async (): Promise<void> => {
     const exists = await checkTableExists('payments');
@@ -21,14 +23,16 @@ export const createTablePayments = async (): Promise<void> => {
     const query = `
     CREATE TABLE IF NOT EXISTS payments (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       amount DECIMAL NOT NULL,
       payment_status VARCHAR(20) DEFAULT 'pending',
-      payment_method VARCHAR(50) NOT NULL,
+      payment_method VARCHAR(50),
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     );`;
     await executeQuery(query);
+    // Schema probe cache may have run before create — force re-detect user_id.
+    resetPaymentsSchemaCache();
 };
 
 /**
