@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 import { Browser, Page } from 'puppeteer';
 import { Counters, SendFeedbackParams } from '@interface';
 import type { ScenarioDeps } from '../job/processJob.deps.js';
-import { updateJob } from '../job/store.js';
+import { readJob, updateJob } from '../job/store.js';
 import { isStopped, stop } from '@utils';
 import { authorize, initializeBrowser, navigateAndProcessVacancies, searchForVacancy } from '@run';
 import { launchHhBrowser } from './helpers/launchHhBrowser.js';
@@ -16,23 +16,30 @@ function persistApplySummary(
     counters: Counters,
     pages: number,
     broadcast: ScenarioDeps['broadcast'],
+    found = 0,
 ): void {
     const success = counters.successfullySubmittedCount;
     const skipped = counters.skippedCount + counters.failedCount;
+    const existingFound = readJob(jobId)?.summary?.found ?? 0;
     const summary = {
+        found: found || existingFound || undefined,
         success,
         skipped,
         failed: counters.failedCount,
         pages,
     };
-    const lastEvent = `Поиск вакансий окончен: откликов ${success}, пропущено ${skipped}`;
+    const foundBit = summary.found ? `, найдено было ${summary.found}` : '';
+    const lastEvent = `Поиск вакансий окончен: откликов ${success}, пропущено ${skipped}${foundBit}`;
     updateJob(jobId, {
         summary,
         lastEvent,
         lastEventAt: new Date().toISOString(),
     });
     broadcast.broadcast(lastEvent);
-    stage('done', `ok=${success} skip=${counters.skippedCount} fail=${counters.failedCount} pages=${pages}`);
+    stage(
+        'done',
+        `ok=${success} skip=${counters.skippedCount} fail=${counters.failedCount} pages=${pages} found=${summary.found ?? 0}`,
+    );
 }
 
 export async function sendFeedback(
@@ -48,6 +55,7 @@ export async function sendFeedback(
         failedCount: 0,
     };
     let pages = 0;
+    let found = 0;
 
     try {
         stage('start', `user=${userId}`);
@@ -59,7 +67,7 @@ export async function sendFeedback(
         await authorize(page, email, password, browser, deps.broadcast, deps.jobId);
         if (isStopped()) {
             stage('stopped', 'before search');
-            persistApplySummary(deps.jobId, counters, pages, deps.broadcast);
+            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found);
             await stop(browser);
             return;
         }
@@ -69,7 +77,7 @@ export async function sendFeedback(
         const serpUrl = await searchForVacancy({ page, position, vacancyUrl });
         if (isStopped()) {
             stage('stopped', 'before apply loop');
-            persistApplySummary(deps.jobId, counters, pages, deps.broadcast);
+            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found);
             await stop(browser);
             return;
         }
@@ -87,12 +95,13 @@ export async function sendFeedback(
             serpUrl,
         });
         pages = stats.pages;
+        found = stats.found;
         await page.screenshot({ path: 'screenshot-navigate.png' }).catch(() => null);
-        persistApplySummary(deps.jobId, counters, pages, deps.broadcast);
+        persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found);
     } catch (err) {
         // Still expose partial totals when the run aborts mid-way.
         try {
-            persistApplySummary(deps.jobId, counters, pages, deps.broadcast);
+            persistApplySummary(deps.jobId, counters, pages, deps.broadcast, found);
         } catch (persistErr) {
             console.error('Failed to persist apply summary:', persistErr);
         }

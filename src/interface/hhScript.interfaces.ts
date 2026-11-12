@@ -63,6 +63,7 @@ export interface HhJobStatusResponse {
     awaitingCaptcha?: boolean;
     /** Present when sendFeedback finished (or partial run before error). */
     summary?: {
+        found?: number;
         success: number;
         skipped: number;
         failed: number;

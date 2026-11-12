@@ -129,6 +129,9 @@
  *           type: object
  *           description: Apply-run totals for completion modal (sendFeedback)
  *           properties:
+ *             found:
+ *               type: integer
+ *               description: SERP total after search/filters (announced at start)
  *             success:
  *               type: integer
  *             skipped:

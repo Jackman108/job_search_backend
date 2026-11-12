@@ -7,8 +7,10 @@ export interface Counters {
     failedCount: number;
 }
 
-/** Final apply-run totals persisted on the job file for the client modal. */
+/** Apply-run totals persisted on the job file (start found + finish modal). */
 export interface HhApplySummary {
+    /** HH SERP «Найдено N» after search/filters (set at apply start). */
+    found?: number;
     success: number;
     skipped: number;
     failed: number;

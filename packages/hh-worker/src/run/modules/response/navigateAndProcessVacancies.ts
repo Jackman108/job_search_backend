@@ -1,14 +1,17 @@
 import { HH_SCRAPE } from '@config';
 import { NavigateAndProcessVacanciesParams } from '@interface';
 import { delayBeforeApply, isStopped, stop } from '@utils';
+import { updateJob } from '../../../job/store.js';
 import { stage } from '../../helpers/stageLog.js';
 import { ensureSerpReady } from './ensureSerpReady.js';
 import { getVacancies } from './getVacancies.js';
 import { goToNextSerpPage } from './goToNextSerpPage.js';
 import { processVacancy } from './processVacancy.js';
+import { readSerpFoundCount } from './readSerpFoundCount.js';
 
 export type ApplyLoopStats = {
     pages: number;
+    found: number;
 };
 
 /** pg BIGINT / JSON often arrive as string — normalize so the skip Set matches SERP ids. */
@@ -35,6 +38,8 @@ export async function navigateAndProcessVacancies({
     const processedIds = new Set<number>();
     let liveSerpUrl = serpUrl || page.url();
     let pagesVisited = 0;
+    let found = 0;
+    let announcedFound = false;
 
     try {
         const vacanciesFromDb = await vacancyRepo.getVacanciesUser(userId);
@@ -53,7 +58,7 @@ export async function navigateAndProcessVacancies({
     while (currentPage < maxPages) {
         if (isStopped()) {
             await stop(browser);
-            return { pages: pagesVisited };
+            return { pages: pagesVisited, found };
         }
 
         try {
@@ -61,6 +66,33 @@ export async function navigateAndProcessVacancies({
             stage('page', `${pagesVisited}/${maxPages}`);
             await ensureSerpReady(page, liveSerpUrl);
             liveSerpUrl = page.url();
+
+            if (!announcedFound) {
+                const listed = await readSerpFoundCount(page);
+                const applyableNow = (await getVacancies(page)).filter(({ data }) => {
+                    const id = toVacancyId(data.id);
+                    return id !== null && !processedIds.has(id);
+                }).length;
+                found = listed > 0 ? listed : applyableNow;
+                const lastEvent =
+                    listed > 0
+                        ? `Найдено ${listed} вакансий (к отклику на стр.1: ${applyableNow}, уже в базе: ${processedIds.size})`
+                        : `Найдено ${applyableNow} вакансий к отклику на стр.1 (уже в базе: ${processedIds.size})`;
+                updateJob(jobId, {
+                    lastEvent,
+                    lastEventAt: new Date().toISOString(),
+                    summary: {
+                        found,
+                        success: 0,
+                        skipped: 0,
+                        failed: 0,
+                        pages: 0,
+                    },
+                });
+                broadcast.broadcast(lastEvent);
+                stage('found', lastEvent);
+                announcedFound = true;
+            }
 
             // Always take the next live card — never iterate stale ElementHandles.
             while (!isStopped()) {
@@ -121,7 +153,7 @@ export async function navigateAndProcessVacancies({
 
             if (isStopped()) {
                 await stop(browser);
-                return { pages: pagesVisited };
+                return { pages: pagesVisited, found };
             }
 
             const moved = await goToNextSerpPage(page);
@@ -148,5 +180,5 @@ export async function navigateAndProcessVacancies({
         stage('pager cap', `reached HH_TOTAL_PAGES=${maxPages}`);
     }
 
-    return { pages: pagesVisited || currentPage + 1 };
+    return { pages: pagesVisited || currentPage + 1, found };
 }
