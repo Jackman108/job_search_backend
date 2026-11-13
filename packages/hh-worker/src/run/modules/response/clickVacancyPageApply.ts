@@ -1,11 +1,19 @@
 import { createRequire } from 'node:module';
 import { Page } from 'puppeteer';
 import { SELECTORS, TIMEOUTS } from '@config';
+import { readVacancyPageTitle } from '../../helpers/readVacancyPageTitle.js';
 
 const require = createRequire(import.meta.url);
 const clickVacancyPageApplyInPage = require('./clickVacancyPageApply.browser.js') as (sels: string[]) => {
     ok: boolean;
     via: string;
+};
+
+export type ClickVacancyPageApplyResult = {
+    ok: boolean;
+    /** Captured before apply click — Magritte often drops H1 after response CTA. */
+    title?: string;
+    via?: string;
 };
 
 async function settle(ms = TIMEOUTS.SHORT): Promise<void> {
@@ -16,8 +24,8 @@ async function settle(ms = TIMEOUTS.SHORT): Promise<void> {
  * Fallback when SERP CTA is missing/virtualized: open vacancy page and click apply.
  * Browser logic in clickVacancyPageApply.browser.js (tsx-safe).
  */
-export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Promise<boolean> {
-    if (!vacancyUrl || !/\/vacancy\//i.test(vacancyUrl)) return false;
+export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Promise<ClickVacancyPageApplyResult> {
+    if (!vacancyUrl || !/\/vacancy\//i.test(vacancyUrl)) return { ok: false };
 
     await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => undefined);
     await settle(TIMEOUTS.SHORT * 2);
@@ -29,6 +37,9 @@ export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Pro
         }, SELECTORS.COOKIE_ACCEPT)
         .catch(() => undefined);
     await settle();
+
+    // Title must be read before apply — response UI replaces vacancy H1 / document.title.
+    const title = await readVacancyPageTitle(page);
 
     const selectors = [
         SELECTORS.RESPONSE_LINK_NO_QUESTIONS,
@@ -43,15 +54,15 @@ export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Pro
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.log(`clickVacancyPageApply evaluate error: ${msg}`);
-        return false;
+        return { ok: false, title };
     }
 
     if (!hit?.ok) {
         console.log(`clickVacancyPageApply miss via=${hit?.via ?? 'unknown'}`);
         await page.screenshot({ path: 'screenshot-vacancy-page-no-apply.png' }).catch(() => null);
-        return false;
+        return { ok: false, title, via: hit?.via };
     }
 
     await settle(TIMEOUTS.SHORT * 2);
-    return true;
+    return { ok: true, title, via: hit.via };
 }
