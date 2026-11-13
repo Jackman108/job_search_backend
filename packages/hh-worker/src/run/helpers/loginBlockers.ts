@@ -4,15 +4,32 @@ import { Browser, Page } from 'puppeteer';
 import type { JobBroadcast } from '../../job/broadcast.types.js';
 import { clickByExactText } from './clickByExactText.js';
 import { stage } from './stageLog.js';
-import { loginErrorTextMatches } from './loginErrorText.js';
+import { loginErrorTextMatches, loginTransientReloadMatches } from './loginErrorText.js';
 import { waitAndSubmitCaptchaAnswer } from './waitForCaptchaAnswer.js';
 import { clickFirstSelector } from './waitForFirstSelector.js';
 import { waitMagritteLoaderGone } from './waitMagritteReady.js';
 
 const LABEL_SUBMIT = 'Войти';
 
+/** Magritte toast «перезагрузить страницу» — authorize retries login once. */
+export class MagritteLoginTransientError extends Error {
+    constructor() {
+        super('HH login Magritte transient error (reload)');
+        this.name = 'MagritteLoginTransientError';
+    }
+}
+
+export type SubmitLoginOptions = {
+    /** True after Magritte reload toast already triggered one full login retry. */
+    afterTransientRetry?: boolean;
+};
+
 async function settle(ms = TIMEOUTS.SHORT): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function readBodyText(page: Page): Promise<string> {
+    return page.evaluate(() => document.body?.innerText || '').catch(() => '');
 }
 
 async function clickLoginSubmit(page: Page): Promise<void> {
@@ -31,10 +48,29 @@ async function clickLoginSubmit(page: Page): Promise<void> {
 export async function pageHasBadCredentials(page: Page): Promise<boolean> {
     const bySelector = await page.$(SELECTORS.LOGIN_ERROR).catch(() => null);
     if (bySelector) return true;
-    return page
-        .evaluate(() => document.body?.innerText || '')
-        .then((text) => loginErrorTextMatches(text))
-        .catch(() => false);
+    return loginErrorTextMatches(await readBodyText(page));
+}
+
+async function throwCredentialOrTransient(
+    page: Page,
+    browser: Browser,
+    broadcast: JobBroadcast,
+    afterTransientRetry: boolean,
+): Promise<never> {
+    const body = await readBodyText(page);
+    await page.screenshot({ path: 'screenshot-ERROR.png' }).catch(() => null);
+
+    if (!afterTransientRetry && loginTransientReloadMatches(body)) {
+        broadcast.broadcast('ERROR Magritte reload toast — retry login once');
+        throw new MagritteLoginTransientError();
+    }
+
+    broadcast.broadcast('ERROR detected restart');
+    await stop(browser);
+    if (loginTransientReloadMatches(body) && !loginErrorTextMatches(body)) {
+        throw new Error('HH login Magritte error (reload) — retry headed or check CAPTCHA');
+    }
+    throw new Error('HH login failed: invalid email or password');
 }
 
 async function handleCaptchaGate(page: Page, browser: Browser, broadcast: JobBroadcast, jobId: string): Promise<void> {
@@ -90,7 +126,10 @@ export async function submitAndDetectBlockers(
     browser: Browser,
     broadcast: JobBroadcast,
     jobId: string,
+    opts: SubmitLoginOptions = {},
 ): Promise<void> {
+    const afterTransientRetry = opts.afterTransientRetry === true;
+
     await clickLoginSubmit(page);
     await settle(TIMEOUTS.SHORT * 2);
     // Magritte paints Войти as a spinner; race outcomes only after it settles.
@@ -110,16 +149,20 @@ export async function submitAndDetectBlockers(
             () => {
                 const text = document.body?.innerText || '';
                 // Inline twin of loginErrorTextMatches — page.evaluate cannot close over imports.
-                if (/Ошибка/i.test(text) && /Введите пароль|Войти с паролем|Произошла ошибка/i.test(text)) {
+                if (/Ошибка/i.test(text) && /Введите пароль|Войти с паролем/i.test(text)) {
                     return true;
                 }
-                return /Неправильные данные для входа|неверн(ый|ые|ая)\s+(пароль|логин|данные)|Произошла ошибка\.?\s*Попробуйте перезагрузить/i.test(
-                    text,
-                );
+                return /Неправильные данные для входа|неверн(ый|ые|ая)\s+(пароль|логин|данные)/i.test(text);
             },
             { timeout: TIMEOUTS.LONG },
         )
         .then(() => 'error' as const)
+        .catch(() => null);
+    const loginTransient = page
+        .waitForFunction(() => /Произошла ошибка\.?\s*Попробуйте перезагрузить/i.test(document.body?.innerText || ''), {
+            timeout: TIMEOUTS.LONG,
+        })
+        .then(() => 'transient' as const)
         .catch(() => null);
     const captcha = page
         .waitForSelector(SELECTORS.CAPTCHA_IMAGE, { timeout: TIMEOUTS.MODAL, visible: true })
@@ -130,10 +173,12 @@ export async function submitAndDetectBlockers(
         .then(() => 'otp' as const)
         .catch(() => null);
 
-    let outcome = await Promise.race([leftLogin, loginError, loginErrorText, captcha, otp]);
+    let outcome = await Promise.race([leftLogin, loginError, loginErrorText, loginTransient, captcha, otp]);
 
     if (!outcome) {
-        if (await pageHasBadCredentials(page)) outcome = 'error';
+        const body = await readBodyText(page);
+        if (loginTransientReloadMatches(body)) outcome = 'transient';
+        else if (await pageHasBadCredentials(page)) outcome = 'error';
         else if (await page.$(SELECTORS.CAPTCHA_IMAGE)) outcome = 'captcha';
         else if (await page.$(SELECTORS.OTP_CODE_INPUT)) outcome = 'otp';
     }
@@ -143,11 +188,8 @@ export async function submitAndDetectBlockers(
         return;
     }
 
-    if (outcome === 'error') {
-        broadcast.broadcast('ERROR detected restart');
-        await page.screenshot({ path: 'screenshot-ERROR.png' }).catch(() => null);
-        await stop(browser);
-        throw new Error('HH login failed: invalid email or password');
+    if (outcome === 'error' || outcome === 'transient') {
+        await throwCredentialOrTransient(page, browser, broadcast, afterTransientRetry);
     }
 
     if (outcome === 'otp') {
@@ -163,9 +205,9 @@ export async function submitAndDetectBlockers(
     const stillForm = await page.$(SELECTORS.ACCOUNT_LOGIN_FORM);
     if (stillForm && stillPassword) {
         await page.screenshot({ path: 'screenshot-authorize-stuck.png' }).catch(() => null);
-        if (await pageHasBadCredentials(page)) {
-            await stop(browser);
-            throw new Error('HH login failed: invalid email or password');
+        const body = await readBodyText(page);
+        if (loginTransientReloadMatches(body) || (await pageHasBadCredentials(page))) {
+            await throwCredentialOrTransient(page, browser, broadcast, afterTransientRetry);
         }
         if (await page.$(SELECTORS.CAPTCHA_IMAGE)) {
             await handleCaptchaGate(page, browser, broadcast, jobId);

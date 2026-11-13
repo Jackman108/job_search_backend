@@ -4,7 +4,8 @@ import type { JobBroadcast } from '../job/broadcast.types.js';
 import { clickByExactText } from './helpers/clickByExactText.js';
 import { dismissPreLoginOverlays } from './helpers/dismissPreLoginOverlays.js';
 import { fillControlledInput } from './helpers/fillControlledInput.js';
-import { submitAndDetectBlockers } from './helpers/loginBlockers.js';
+import { MagritteLoginTransientError, submitAndDetectBlockers } from './helpers/loginBlockers.js';
+import { stage } from './helpers/stageLog.js';
 import { clickFirstSelector } from './helpers/waitForFirstSelector.js';
 import { waitLoginCredentialStep, waitMagritteLoaderGone } from './helpers/waitMagritteReady.js';
 
@@ -155,6 +156,22 @@ async function fillEmailAndPassword(page: Page, email: string, password: string)
     await fillControlledInput(page, passwordHandle, password);
 }
 
+async function runLoginPass(
+    page: Page,
+    email: string,
+    password: string,
+    browser: Browser,
+    broadcast: JobBroadcast,
+    jobId: string,
+    afterTransientRetry: boolean,
+): Promise<void> {
+    await ensureLoginForm(page);
+    await passAccountTypeGate(page);
+    await chooseEmailCredential(page);
+    await fillEmailAndPassword(page, email, password);
+    await submitAndDetectBlockers(page, browser, broadcast, jobId, { afterTransientRetry });
+}
+
 export async function authorize(
     page: Page,
     email: string,
@@ -164,12 +181,23 @@ export async function authorize(
     jobId: string,
 ): Promise<void> {
     try {
-        await ensureLoginForm(page);
-        await passAccountTypeGate(page);
-        await chooseEmailCredential(page);
-        await fillEmailAndPassword(page, email, password);
-        await submitAndDetectBlockers(page, browser, broadcast, jobId);
+        await runLoginPass(page, email, password, browser, broadcast, jobId, false);
     } catch (error) {
+        if (error instanceof MagritteLoginTransientError) {
+            stage('login', 'Magritte reload toast — full login retry once');
+            await page
+                .goto(HH_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG })
+                .catch(() => undefined);
+            await settle(TIMEOUTS.SHORT * 2);
+            try {
+                await runLoginPass(page, email, password, browser, broadcast, jobId, true);
+                return;
+            } catch (retryError) {
+                console.error('Error during authorization (after Magritte reload retry):', retryError);
+                await page.screenshot({ path: 'screenshot-authorize-fail.png' }).catch(() => null);
+                throw retryError;
+            }
+        }
         console.error('Error during authorization:', error);
         await page.screenshot({ path: 'screenshot-authorize-fail.png' }).catch(() => null);
         throw error;
