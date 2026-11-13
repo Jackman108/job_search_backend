@@ -81,7 +81,7 @@ export const SELECTORS = {
     COMPANY_LINK:
         'a[data-qa="vacancy-serp__vacancy-employer"], a[data-qa="vacancy-company-name"], [data-qa="vacancy-serp__vacancy-employer"]',
     LOGIN_ERROR:
-        '[data-qa="account-login-error"], [data-qa="account-login-form-error"], [data-qa*="login-error"], [class*="login-error"]',
+        '[data-qa="account-login-error"], [data-qa="account-login-form-error"], [data-qa*="login-error"], [data-qa*="magritte-error"], [class*="login-error"], [class*="magritte-error"]',
     // Prefer picture URL — avoid matching decorative imgs under loose [data-qa*="captcha"].
     CAPTCHA_IMAGE:
         'img[src*="captcha/picture"], [data-qa="account-captcha-picture"], img[data-qa="account-captcha-picture"]',
