@@ -76,8 +76,8 @@ export const SELECTORS = {
     VACANCY_TITLE:
         '[data-qa="serp-item__title-text"], [data-qa="serp-item__title"] span, [data-qa="vacancy-serp__vacancy-title"], [data-qa="vacancy-title"]',
     VACANCY_LINK: '[data-qa="serp-item__title"], a[data-qa="vacancy-serp__vacancy-title"], a[href*="/vacancy/"]',
-    /** Vacancy page H1 — used when SERP title scrape missed. */
-    VACANCY_PAGE_TITLE: '[data-qa="vacancy-title"], h1[data-qa="vacancy-title"], h1',
+    /** Vacancy page H1 — read before apply click (Magritte drops it after response CTA). */
+    VACANCY_PAGE_TITLE: 'h1[data-qa="vacancy-title"], h1.bloko-header-section-1, [data-qa="vacancy-title"], h1',
     COMPANY_LINK:
         'a[data-qa="vacancy-serp__vacancy-employer"], a[data-qa="vacancy-company-name"], [data-qa="vacancy-serp__vacancy-employer"]',
     LOGIN_ERROR:
