@@ -4,6 +4,7 @@ import { Browser, Page } from 'puppeteer';
 import type { JobBroadcast } from '../../job/broadcast.types.js';
 import { clickByExactText } from './clickByExactText.js';
 import { stage } from './stageLog.js';
+import { loginErrorTextMatches } from './loginErrorText.js';
 import { waitAndSubmitCaptchaAnswer } from './waitForCaptchaAnswer.js';
 import { clickFirstSelector } from './waitForFirstSelector.js';
 import { waitMagritteLoaderGone } from './waitMagritteReady.js';
@@ -31,14 +32,8 @@ export async function pageHasBadCredentials(page: Page): Promise<boolean> {
     const bySelector = await page.$(SELECTORS.LOGIN_ERROR).catch(() => null);
     if (bySelector) return true;
     return page
-        .evaluate(() => {
-            const text = document.body?.innerText || '';
-            // Magritte often shows a bare «Ошибка» under the password field (2026).
-            if (/\bОшибка\b/i.test(text) && /Введите пароль|Войти с паролем/i.test(text)) {
-                return true;
-            }
-            return /Неправильные данные для входа|неверн(ый|ые|ая)\s+(пароль|логин|данные)/i.test(text);
-        })
+        .evaluate(() => document.body?.innerText || '')
+        .then((text) => loginErrorTextMatches(text))
         .catch(() => false);
 }
 
@@ -114,8 +109,13 @@ export async function submitAndDetectBlockers(
         .waitForFunction(
             () => {
                 const text = document.body?.innerText || '';
-                if (/\bОшибка\b/i.test(text) && /Введите пароль|Войти с паролем/i.test(text)) return true;
-                return /Неправильные данные для входа|неверн(ый|ые|ая)\s+(пароль|логин|данные)/i.test(text);
+                // Inline twin of loginErrorTextMatches — page.evaluate cannot close over imports.
+                if (/Ошибка/i.test(text) && /Введите пароль|Войти с паролем|Произошла ошибка/i.test(text)) {
+                    return true;
+                }
+                return /Неправильные данные для входа|неверн(ый|ые|ая)\s+(пароль|логин|данные)|Произошла ошибка\.?\s*Попробуйте перезагрузить/i.test(
+                    text,
+                );
             },
             { timeout: TIMEOUTS.LONG },
         )
