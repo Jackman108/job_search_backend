@@ -86,10 +86,55 @@ async function ensureLoginForm(page: Page): Promise<void> {
     }
 }
 
+async function pageLoginBody(page: Page): Promise<string> {
+    return page.evaluate(() => document.body?.innerText || '').catch(() => '');
+}
+
+/** Magritte may reopen password for a phone profile — back out and pick Почта. */
+async function leavePhonePasswordStep(page: Page): Promise<boolean> {
+    const body = await pageLoginBody(page);
+    if (!/От профиля с номером/i.test(body)) return false;
+
+    stage('login', 'phone password step — back to pick email');
+    const back =
+        (await clickFirstSelector(page, ['[data-qa="go-back-button"]'], {
+            timeout: TIMEOUTS.SEARCH,
+            visible: true,
+        })) || (await clickByExactText(page, 'Назад', { timeout: TIMEOUTS.SHORT }));
+    if (!back) {
+        await page.screenshot({ path: 'screenshot-authorize-phone-stuck.png' }).catch(() => null);
+        throw new Error('HH login: phone profile password step and go-back not found');
+    }
+    await settle();
+    await waitMagritteLoaderGone(page);
+    return true;
+}
+
 async function chooseEmailCredential(page: Page): Promise<void> {
+    if (await leavePhonePasswordStep(page)) {
+        // fall through to email tab / input
+    } else if (await page.$(SELECTORS.EMAIL_INPUT)) {
+        return;
+    } else {
+        const body = await pageLoginBody(page);
+        // Password for the email we want — OK to skip tab.
+        if (
+            /От профиля с почтой/i.test(body) &&
+            ((await page.$(SELECTORS.PASSWORD_INPUT)) || (await page.$(SELECTORS.PASSWORD_BUTTON)))
+        ) {
+            return;
+        }
+        // Unknown password-only — still try email tab after back if possible.
+        if ((await page.$(SELECTORS.PASSWORD_INPUT)) || (await page.$(SELECTORS.PASSWORD_BUTTON))) {
+            if (!/От профиля с почтой/i.test(body)) {
+                await leavePhonePasswordStep(page);
+            } else {
+                return;
+            }
+        }
+    }
+
     if (await page.$(SELECTORS.EMAIL_INPUT)) return;
-    // Password-only step (returning session) — skip email tab.
-    if ((await page.$(SELECTORS.PASSWORD_INPUT)) || (await page.$(SELECTORS.PASSWORD_BUTTON))) return;
 
     const emailType = await clickFirstSelector(page, [SELECTORS.EMAIL_BUTTON], {
         timeout: TIMEOUTS.MODAL,
@@ -105,7 +150,6 @@ async function chooseEmailCredential(page: Page): Promise<void> {
     await settle();
     await waitMagritteLoaderGone(page);
 }
-
 async function openPasswordStep(page: Page): Promise<void> {
     const byQa = await clickFirstSelector(page, [SELECTORS.PASSWORD_BUTTON], {
         timeout: TIMEOUTS.SEARCH,

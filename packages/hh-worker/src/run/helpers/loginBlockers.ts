@@ -67,7 +67,7 @@ async function throwCredentialOrTransient(
 
     broadcast.broadcast('ERROR detected restart');
     await stop(browser);
-    if (loginTransientReloadMatches(body) && !loginErrorTextMatches(body)) {
+    if (loginTransientReloadMatches(body)) {
         throw new Error('HH login Magritte error (reload) — retry headed or check CAPTCHA');
     }
     throw new Error('HH login failed: invalid email or password');
@@ -149,6 +149,10 @@ export async function submitAndDetectBlockers(
             () => {
                 const text = document.body?.innerText || '';
                 // Inline twin of loginErrorTextMatches — page.evaluate cannot close over imports.
+                // Reload toast wins over bare «Ошибка» (toast text contains «ошибка»).
+                if (/Произошла ошибка\.?\s*Попробуйте перезагрузить/i.test(text)) {
+                    return false;
+                }
                 if (/Ошибка/i.test(text) && /Введите пароль|Войти с паролем/i.test(text)) {
                     return true;
                 }
@@ -189,6 +193,12 @@ export async function submitAndDetectBlockers(
     }
 
     if (outcome === 'error' || outcome === 'transient') {
+        // Re-read: toast + field «Ошибка» often race; prefer Magritte transient when toast is present.
+        const body = await readBodyText(page);
+        if (!afterTransientRetry && loginTransientReloadMatches(body)) {
+            broadcast.broadcast('ERROR Magritte reload toast — retry login once');
+            throw new MagritteLoginTransientError();
+        }
         await throwCredentialOrTransient(page, browser, broadcast, afterTransientRetry);
     }
 
