@@ -64,14 +64,9 @@ export async function saveCaptchaImage(jobId: string, page: Page, captchaSrc: st
         }
     }
 
-    // Last resort: full-page shot so GET /jobs/:id/captcha-image is never empty while waiting.
-    await page.screenshot({ path: out, fullPage: false }).catch(() => undefined);
-    if (fs.existsSync(out) && fs.statSync(out).size > 64) {
-        stage('captcha image', `${out} (page shot fallback)`);
-        return out;
-    }
-
-    stage('captcha image', 'capture failed');
+    // Do NOT fall back to a full-page screenshot — that is usually the vacancy/SERP
+    // chrome (no digits) and the client modal then looks "broken" / empty of captcha.
+    stage('captcha image', 'capture failed (no Magritte picture)');
     return out;
 }
 
@@ -160,6 +155,17 @@ export async function waitAndSubmitCaptchaAnswer(jobId: string, page: Page, capt
         currentSrc = (await ensureCaptchaPicture(page, currentSrc)) || currentSrc;
         const imagePath = await saveCaptchaImage(jobId, page, currentSrc);
         const imageReady = fs.existsSync(imagePath) && fs.statSync(imagePath).size > 64;
+        if (!imageReady && !(currentSrc && isPictureUrl(currentSrc))) {
+            stage('captcha', 'no picture to show human — not a solvable CAPTCHA gate');
+            updateJob(jobId, {
+                awaitingCaptcha: false,
+                captchaSrc: undefined,
+                captchaImagePath: undefined,
+                lastEvent: 'CAPTCHA skipped — no Magritte picture',
+                lastEventAt: new Date().toISOString(),
+            });
+            return false;
+        }
 
         updateJob(jobId, {
             awaitingCaptcha: true,
