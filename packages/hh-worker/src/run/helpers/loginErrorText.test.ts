@@ -7,10 +7,10 @@ describe('loginErrorTextMatches', () => {
         assert.equal(loginErrorTextMatches('Введите пароль\nОшибка\nВойти'), true);
     });
 
-    it('detects Magritte field error even when reload toast is also present', () => {
+    it('prefers transient when reload toast is present (even with field Ошибка)', () => {
         assert.equal(
             loginErrorTextMatches('Произошла ошибка. Попробуйте перезагрузить страницу.\nВведите пароль\nОшибка'),
-            true,
+            false,
         );
     });
 

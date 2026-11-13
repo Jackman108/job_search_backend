@@ -6,10 +6,13 @@ export function loginTransientReloadMatches(text: string): boolean {
 
 /**
  * Magritte / HH login error copy (password step). Cyrillic — no JS `\b`.
- * Does not treat the reload toast alone as bad credentials.
+ * Reload toast alone (or toast + bare «Ошибка») is NOT bad credentials — prefer transient retry.
  */
 export function loginErrorTextMatches(text: string): boolean {
     if (!text) return false;
+    if (loginTransientReloadMatches(text)) {
+        return false;
+    }
     // Field-level «Ошибка» under password (wrong password / Magritte validation).
     if (/Ошибка/i.test(text) && /Введите пароль|Войти с паролем/i.test(text)) {
         return true;
