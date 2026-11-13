@@ -49,7 +49,11 @@ function persistApplySummary(
             ? 'Поиск прерван'
             : endReason === 'page_cap'
               ? 'Поиск остановлен по лимиту страниц'
-              : 'Поиск вакансий окончен';
+              : endReason === 'apply_cap'
+                ? 'Поиск остановлен по лимиту откликов'
+                : endReason === 'dry_run'
+                  ? 'Dry-run: вакансии найдены без откликов'
+                  : 'Поиск вакансий окончен';
     const lastEvent = `${head}: откликов ${success}, пропущено ${skipped}${failBit}${foundBit}`;
     updateJob(jobId, {
         summary,
@@ -64,7 +68,7 @@ function persistApplySummary(
 }
 
 export async function sendFeedback(
-    { userId, email, password, position, message, vacancyUrl }: SendFeedbackParams,
+    { userId, email, password, position, message, vacancyUrl, dryRun, applyCap }: SendFeedbackParams,
     deps: Pick<ScenarioDeps, 'vacancyRepo' | 'broadcast'> & { jobId: string },
 ): Promise<void> {
     let browser: Browser | null = null;
@@ -104,7 +108,7 @@ export async function sendFeedback(
             return;
         }
 
-        stage('apply loop');
+        stage('apply loop', dryRun ? 'dry-run' : applyCap ? `cap=${applyCap}` : 'full');
         const stats = await navigateAndProcessVacancies({
             userId,
             page,
@@ -115,10 +119,12 @@ export async function sendFeedback(
             broadcast: deps.broadcast,
             jobId: deps.jobId,
             serpUrl,
+            dryRun,
+            applyCap,
         });
         pages = stats.pages;
         found = stats.found;
-        endReason = stats.endReason;
+        endReason = dryRun && stats.endReason === 'last_page' ? 'dry_run' : stats.endReason;
         const foundExtra = {
             foundListed: stats.foundListed,
             applyablePage1: stats.applyablePage1,

@@ -78,6 +78,19 @@ async function waitForAnswerCapturing(
         const answer = consumeAnswer(jobId);
         if (answer) return answer;
 
+        if (job.captchaRefreshRequested) {
+            try {
+                updateJob(jobId, { captchaRefreshRequested: undefined });
+            } catch {
+                /* ignore */
+            }
+            state.src = (await refreshCaptchaPicture(page)) || (await readCaptchaSrc(page)) || state.src;
+            const imagePath = await saveCaptchaImage(jobId, page, state.src);
+            state.ready = await publishCaptcha(jobId, state.src, imagePath, `(manual refresh) ${state.src}`);
+            stage('captcha', `manual picture refresh image=${state.ready ? 'yes' : 'pending'}`);
+            nextCapture = Date.now() + RECAPTURE_MS;
+        }
+
         if (!state.ready && Date.now() >= nextCapture) {
             nextCapture = Date.now() + RECAPTURE_MS;
             state.src = (await readCaptchaSrc(page)) || (await refreshCaptchaPicture(page)) || state.src;

@@ -22,6 +22,8 @@ export interface SendFeedbackParams {
     position: string;
     message: string;
     vacancyUrl: string;
+    dryRun?: boolean;
+    applyCap?: number;
 }
 
 export interface FeedbackData {

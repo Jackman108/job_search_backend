@@ -44,7 +44,14 @@ export const getChatFeedback = async (userId: string): Promise<any[]> => {
         await createChatFeedbackTable(userId);
     }
 
-    const query = `SELECT * FROM ${tableName}`;
+    const vacancyTable = `"${userId}_vacancy"`;
+    const vacancyExists = await checkTableExists(vacancyTable);
+    const query = vacancyExists
+        ? `SELECT f.*, v.title_vacancy, v.title_company
+           FROM ${tableName} f
+           LEFT JOIN ${vacancyTable} v ON v.id = f.vacancy_id
+           ORDER BY f.feedback_date DESC NULLS LAST`
+        : `SELECT * FROM ${tableName} ORDER BY feedback_date DESC NULLS LAST`;
     const rows = await executeQuery(query);
 
     return rows.length > 0 ? rows : [];

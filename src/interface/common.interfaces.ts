@@ -8,7 +8,7 @@ export interface Counters {
 }
 
 /** Why the apply loop finished (done-modal copy). */
-export type HhApplyEndReason = 'last_page' | 'page_cap' | 'stopped' | 'aborted';
+export type HhApplyEndReason = 'last_page' | 'page_cap' | 'apply_cap' | 'dry_run' | 'stopped' | 'aborted';
 
 /** Apply-run totals persisted on the job file (start found + finish modal). */
 export interface HhApplySummary {

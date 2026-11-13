@@ -41,13 +41,23 @@ export function withJitter(baseMs: number, jitterMs: number): number {
  * @returns actual wait in ms (for logs / tests)
  */
 export async function delayBeforeApply(consecutiveFailures = 0): Promise<number> {
+    const envPause = Number(process.env.HH_APPLY_PAUSE_MS);
+    const base = Number.isFinite(envPause) && envPause >= 0 ? envPause : HH_RATE_LIMIT.APPLY_BASE_MS;
     const backoff = Math.min(
         Math.max(0, consecutiveFailures) * HH_RATE_LIMIT.FAILURE_BACKOFF_STEP_MS,
         HH_RATE_LIMIT.FAILURE_BACKOFF_MAX_MS,
     );
-    const ms = withJitter(HH_RATE_LIMIT.APPLY_BASE_MS + backoff, HH_RATE_LIMIT.APPLY_JITTER_MS);
+    const ms = withJitter(base + backoff, HH_RATE_LIMIT.APPLY_JITTER_MS);
     await sleep(ms);
     return ms;
+}
+
+/** Optional hard cap on successful applies per job (env HH_APPLY_CAP). */
+export function readApplyCap(override?: number): number | undefined {
+    if (typeof override === 'number' && override > 0) return Math.floor(override);
+    const envCap = Number(process.env.HH_APPLY_CAP);
+    if (Number.isFinite(envCap) && envCap > 0) return Math.floor(envCap);
+    return undefined;
 }
 
 /**
