@@ -148,9 +148,14 @@ export async function navigateAndProcessVacancies({
                     });
 
                     if (result === 'captcha') {
-                        broadcast.broadcast('CAPTCHA mid-apply unsolved — stopping browser');
-                        await stop(browser);
-                        throw new Error('CAPTCHA mid-apply unsolved — stopping browser');
+                        // No Magritte picture / unsolved — fail this card and keep the loop
+                        // (do not tear down the browser; that hid found-count UI on error).
+                        stage('captcha', 'unsolved — continue queue');
+                        consecutiveApplyFailures += 1;
+                        liveSerpUrl = page.url();
+                        patchLiveApplySummary(jobId, counters, pagesVisited);
+                        await ensureSerpReady(page, liveSerpUrl).catch(() => undefined);
+                        continue;
                     }
 
                     consecutiveApplyFailures = result === 'fail' ? consecutiveApplyFailures + 1 : 0;
@@ -160,9 +165,6 @@ export async function navigateAndProcessVacancies({
                     consecutiveApplyFailures += 1;
                     console.error(`Error processing vacancy with ID ${data.id}:`, err);
                     patchLiveApplySummary(jobId, counters, pagesVisited);
-                    if (err instanceof Error && /CAPTCHA/i.test(err.message)) {
-                        throw err;
-                    }
                     await ensureSerpReady(page, liveSerpUrl).catch(() => undefined);
                 }
             }
