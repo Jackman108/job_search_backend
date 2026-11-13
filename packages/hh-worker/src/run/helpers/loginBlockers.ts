@@ -2,10 +2,11 @@ import { SELECTORS, TIMEOUTS } from '@config';
 import { stop } from '@utils';
 import { Browser, Page } from 'puppeteer';
 import type { JobBroadcast } from '../../job/broadcast.types.js';
-import { waitAndSubmitCaptchaAnswer } from './waitForCaptchaAnswer.js';
-import { clickFirstSelector } from './waitForFirstSelector.js';
 import { clickByExactText } from './clickByExactText.js';
 import { stage } from './stageLog.js';
+import { waitAndSubmitCaptchaAnswer } from './waitForCaptchaAnswer.js';
+import { clickFirstSelector } from './waitForFirstSelector.js';
+import { waitMagritteLoaderGone } from './waitMagritteReady.js';
 
 const LABEL_SUBMIT = 'Войти';
 
@@ -32,6 +33,10 @@ export async function pageHasBadCredentials(page: Page): Promise<boolean> {
     return page
         .evaluate(() => {
             const text = document.body?.innerText || '';
+            // Magritte often shows a bare «Ошибка» under the password field (2026).
+            if (/\bОшибка\b/i.test(text) && /Введите пароль|Войти с паролем/i.test(text)) {
+                return true;
+            }
             return /Неправильные данные для входа|неверн(ый|ые|ая)\s+(пароль|логин|данные)/i.test(text);
         })
         .catch(() => false);
@@ -93,10 +98,12 @@ export async function submitAndDetectBlockers(
 ): Promise<void> {
     await clickLoginSubmit(page);
     await settle(TIMEOUTS.SHORT * 2);
+    // Magritte paints Войти as a spinner; race outcomes only after it settles.
+    await waitMagritteLoaderGone(page, TIMEOUTS.LONG);
     await page.screenshot({ path: 'screenshot-authorize1.png' }).catch(() => null);
 
     const leftLogin = page
-        .waitForFunction(() => !location.pathname.includes('/account/login'), { timeout: TIMEOUTS.MODAL })
+        .waitForFunction(() => !location.pathname.includes('/account/login'), { timeout: TIMEOUTS.LONG })
         .then(() => 'ok' as const)
         .catch(() => null);
     const loginError = page
@@ -105,11 +112,12 @@ export async function submitAndDetectBlockers(
         .catch(() => null);
     const loginErrorText = page
         .waitForFunction(
-            () =>
-                /Неправильные данные для входа|неверн(ый|ые|ая)\s+(пароль|логин|данные)/i.test(
-                    document.body?.innerText || '',
-                ),
-            { timeout: TIMEOUTS.MODAL },
+            () => {
+                const text = document.body?.innerText || '';
+                if (/\bОшибка\b/i.test(text) && /Введите пароль|Войти с паролем/i.test(text)) return true;
+                return /Неправильные данные для входа|неверн(ый|ые|ая)\s+(пароль|логин|данные)/i.test(text);
+            },
+            { timeout: TIMEOUTS.LONG },
         )
         .then(() => 'error' as const)
         .catch(() => null);
