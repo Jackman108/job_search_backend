@@ -36,6 +36,8 @@ export interface NavigateAndProcessVacanciesParams {
     broadcast: JobBroadcast;
     jobId: string;
     serpUrl?: string;
+    dryRun?: boolean;
+    applyCap?: number;
 }
 
 export interface navigateAndProcessChats {

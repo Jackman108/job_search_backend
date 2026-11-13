@@ -1,6 +1,6 @@
 import { HH_SCRAPE } from '@config';
 import { NavigateAndProcessVacanciesParams } from '@interface';
-import { delayBeforeApply, isStopped, stop } from '@utils';
+import { delayBeforeApply, isStopped, readApplyCap, stop } from '@utils';
 import { updateJob } from '../../../job/store.js';
 import { patchLiveApplySummary } from '../../helpers/patchLiveApplySummary.js';
 import { stage } from '../../helpers/stageLog.js';
@@ -16,7 +16,7 @@ export type ApplyLoopStats = {
     foundListed?: number;
     applyablePage1?: number;
     alreadyInDb?: number;
-    endReason: 'last_page' | 'page_cap' | 'stopped';
+    endReason: 'last_page' | 'page_cap' | 'apply_cap' | 'dry_run' | 'stopped';
 };
 
 /** pg BIGINT / JSON often arrive as string — normalize so the skip Set matches SERP ids. */
@@ -35,7 +35,10 @@ export async function navigateAndProcessVacancies({
     broadcast,
     jobId,
     serpUrl,
+    dryRun = false,
+    applyCap,
 }: NavigateAndProcessVacanciesParams): Promise<ApplyLoopStats> {
+    const successCap = readApplyCap(applyCap);
     let currentPage = 0;
     let consecutiveApplyFailures = 0;
     const maxPages = HH_SCRAPE.TOTAL_PAGES;
@@ -131,6 +134,18 @@ export async function navigateAndProcessVacancies({
                     `${processedIds.size} · left=${remaining.length} · ok=${counters.successfullySubmittedCount} skip=${counters.skippedCount} fail=${counters.failedCount}`,
                 );
 
+                if (successCap && counters.successfullySubmittedCount >= successCap) {
+                    stage('apply cap', `ok=${counters.successfullySubmittedCount} cap=${successCap}`);
+                    return packStats('apply_cap');
+                }
+
+                if (dryRun) {
+                    stage('dry-run', `list-only ${vacancyId}`);
+                    counters.skippedCount++;
+                    patchLiveApplySummary(jobId, counters, pagesVisited);
+                    continue;
+                }
+
                 const waitedMs = await delayBeforeApply(consecutiveApplyFailures);
                 stage('pace', `${waitedMs}ms (failures=${consecutiveApplyFailures})`);
 
@@ -199,7 +214,10 @@ export async function navigateAndProcessVacancies({
     stage('pager cap', `reached HH_TOTAL_PAGES=${maxPages}`);
     return packStats('page_cap', pagesVisited || currentPage + 1);
 
-    function packStats(endReason: 'last_page' | 'page_cap' | 'stopped', pages = pagesVisited): ApplyLoopStats {
+    function packStats(
+        endReason: 'last_page' | 'page_cap' | 'apply_cap' | 'dry_run' | 'stopped',
+        pages = pagesVisited,
+    ): ApplyLoopStats {
         return {
             pages,
             found,

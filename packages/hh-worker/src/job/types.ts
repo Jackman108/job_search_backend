@@ -26,6 +26,8 @@ export interface HhJobBase {
     awaitingCaptcha?: boolean;
     /** One-shot answer written by API; cleared when worker consumes it. */
     captchaAnswer?: string;
+    /** API asked worker to Magritte-refresh the CAPTCHA picture. */
+    captchaRefreshRequested?: boolean;
     /** Apply-run totals for client completion modal (sendFeedback). */
     summary?: HhApplySummary;
 }

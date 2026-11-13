@@ -9,6 +9,10 @@ export interface StartScriptBody {
     position: string;
     message: string;
     vacancyUrl: string;
+    /** SERP-only: discover/count vacancies, do not click apply. */
+    dryRun?: boolean;
+    /** Stop after N successful applies (optional). */
+    applyCap?: number;
 }
 
 export interface RefreshScriptBody {
@@ -71,7 +75,7 @@ export interface HhJobStatusResponse {
         skipped: number;
         failed: number;
         pages: number;
-        endReason?: 'last_page' | 'page_cap' | 'stopped' | 'aborted';
+        endReason?: 'last_page' | 'page_cap' | 'apply_cap' | 'dry_run' | 'stopped' | 'aborted';
     };
 }
 

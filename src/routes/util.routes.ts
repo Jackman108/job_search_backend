@@ -146,7 +146,9 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *             schema:
      *               $ref: '#/components/schemas/ErrorMessage'
      */
+    registerRoute(app, 'get', '/jobs', ScriptController, 'listJobs');
     registerRoute(app, 'get', '/jobs/:jobId', ScriptController, 'getJobStatus');
+    registerRoute(app, 'post', '/jobs/:jobId/captcha-refresh', ScriptController, 'requestCaptchaRefresh');
 
     /**
      * @swagger
