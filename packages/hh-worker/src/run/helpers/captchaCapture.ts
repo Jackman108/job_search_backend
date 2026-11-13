@@ -113,7 +113,14 @@ export async function saveCaptchaImage(jobId: string, page: Page, captchaSrc: st
         return out;
     }
 
-    // No full-page fallback: it is usually vacancy/SERP chrome without digits.
+    // Last resort: viewport shot so the human modal always has *something*
+    // when Magritte picture URL/element is late (login CAPTCHA is usually on-screen).
+    await page.screenshot({ path: out as `${string}.png`, type: 'png' }).catch(() => undefined);
+    if (isCaptchaImageReady(out)) {
+        stage('captcha image', `${out} (viewport shot fallback)`);
+        return out;
+    }
+
     stage('captcha image', 'capture failed — will keep waiting / refreshing');
     return out;
 }
