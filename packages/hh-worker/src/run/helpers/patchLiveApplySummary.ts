@@ -15,6 +15,7 @@ export function patchLiveApplySummary(jobId: string, counters: Counters, pagesVi
             failed: counters.failedCount,
             pages: pagesVisited,
             endReason: prev?.endReason,
+            failReasons: counters.failReasons ?? prev?.failReasons,
         },
         lastEventAt: new Date().toISOString(),
     });

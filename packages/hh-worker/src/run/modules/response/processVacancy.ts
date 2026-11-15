@@ -39,6 +39,8 @@ async function saveFail(
     reason: string,
 ): Promise<void> {
     counters.failedCount++;
+    if (!counters.failReasons) counters.failReasons = {};
+    counters.failReasons[reason] = (counters.failReasons[reason] ?? 0) + 1;
     data.vacancy_status = VACANCY_STATUS.SKIP;
     await vacancyRepo.saveVacancy(data, userId);
     console.log(`Vacancy ${data.id} failed (${reason}) → status ${VACANCY_STATUS.SKIP} · ${data.title_vacancy}`);
