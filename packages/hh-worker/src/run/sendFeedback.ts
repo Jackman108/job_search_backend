@@ -41,6 +41,7 @@ function persistApplySummary(
         failed,
         pages,
         endReason,
+        failReasons: counters.failReasons ?? prev?.failReasons,
     };
     const foundBit = summary.found ? `, найдено было ${summary.found}` : '';
     const failBit = failed > 0 ? `, ошибки ${failed}` : '';
@@ -78,6 +79,7 @@ export async function sendFeedback(
         successfullySubmittedCount: 0,
         skippedCount: 0,
         failedCount: 0,
+        failReasons: {},
     };
     let pages = 0;
     let found = 0;

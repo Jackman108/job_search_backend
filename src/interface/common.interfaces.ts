@@ -5,6 +5,8 @@ export interface Counters {
     skippedCount: number;
     /** Apply attempts that opened but did not confirm success. */
     failedCount: number;
+    /** Per-reason tallies for done-modal (e.g. no_success_marker). */
+    failReasons?: Record<string, number>;
 }
 
 /** Why the apply loop finished (done-modal copy). */
@@ -25,4 +27,6 @@ export interface HhApplySummary {
     failed: number;
     pages: number;
     endReason?: HhApplyEndReason;
+    /** Aggregated apply-fail reasons → counts (done-modal). */
+    failReasons?: Record<string, number>;
 }
