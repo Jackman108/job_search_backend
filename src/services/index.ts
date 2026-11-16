@@ -1,5 +1,6 @@
 // Auth services
 export * from './auth/profileService.js';
+export * from './notifications/notificationService.js';
 
 // Vacancy services
 export * from './sending/vacancyAuthService.js';

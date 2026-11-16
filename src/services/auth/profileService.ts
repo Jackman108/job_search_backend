@@ -1,6 +1,7 @@
 import { ProfileData, UserProfileUpdateFields } from '@interface';
 import { broadcast } from '@server';
 import { executeQuery, generateUpdateQuery, invalidateUserProfileCache, userProfileCache } from '@utils';
+import { deriveUserRank } from '../../utils/deriveUserRank.js';
 
 async function createUserProfile(userId: string): Promise<void> {
     const query = `
@@ -31,7 +32,11 @@ export async function getUserProfile(userId: string): Promise<ProfileData> {
         return await getUserProfile(userId);
     }
 
-    const userProfile = result[0];
+    const userProfile = result[0] as ProfileData;
+    userProfile.rank = deriveUserRank(
+        Number(userProfile.successful_responses_count) || 0,
+        Number(userProfile.spin_count) || 0,
+    );
     userProfileCache.set(userIdStr, userProfile);
     return userProfile;
 }
@@ -57,6 +62,7 @@ export async function incrementSpinCount(userId: string): Promise<void> {
     `;
 
     await executeQuery(query, [userId]);
+    invalidateUserProfileCache(userId);
 }
 
 export async function updateSuccessfulResponsesCount(userId: string): Promise<void> {
@@ -76,4 +82,5 @@ export async function updateSuccessfulResponsesCount(userId: string): Promise<vo
     const result = await executeQuery<{ successful_responses_count: number | string }>(countQuery);
     const successfulResponsesCount = parseInt(String(result[0]?.successful_responses_count ?? 0), 10);
     await executeQuery(updateQuery, [successfulResponsesCount, userId]);
+    invalidateUserProfileCache(userId);
 }

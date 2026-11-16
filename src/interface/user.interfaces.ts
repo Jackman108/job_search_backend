@@ -5,6 +5,15 @@ export interface UserProfileUpdateFields {
     avatar?: string;
 }
 
+export interface ProfileRank {
+    id: string;
+    level: number;
+    title: string;
+    progressPct: number;
+    nextTitle: string | null;
+    nextSuccessfulResponses: number | null;
+}
+
 export interface ProfileData {
     id: number;
     user_id: string | number;
@@ -15,6 +24,8 @@ export interface ProfileData {
     spin_count: number;
     successful_responses_count: number;
     current_status: string;
+    /** Derived engagement rank (not a DB column). */
+    rank?: ProfileRank;
 }
 
 export interface AvatarUploadParams {
