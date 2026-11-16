@@ -11,11 +11,15 @@ export const createChatFeedbackTable = async (userId: string): Promise<void> => 
             vacancy_id BIGINT NOT NULL,
             feedback_text TEXT,
             feedback_date TIMESTAMP DEFAULT NOW(),
-            response_status VARCHAR(50)
+            response_status VARCHAR(50),
+            title_vacancy VARCHAR(255),
+            title_company VARCHAR(255)
         );
     `;
 
     await executeQuery(createTableQuery);
+    await executeQuery(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS title_vacancy VARCHAR(255)`);
+    await executeQuery(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS title_company VARCHAR(255)`);
 };
 
 export async function deleteFeedbackTable(userId: string): Promise<void> {
@@ -24,15 +28,29 @@ export async function deleteFeedbackTable(userId: string): Promise<void> {
 
 export const saveChatFeedback = async (data: FeedbackData, userId: string): Promise<void> => {
     const tableName = `"${userId}_feedbacks"`;
+    await createChatFeedbackTable(userId);
 
     const insertOrUpdateQuery = `
-    INSERT INTO ${tableName} (id, vacancy_id, feedback_text, feedback_date, response_status)
-    VALUES ($1, $2, $3, $4, $5)
-    ON CONFLICT (id) DO UPDATE 
-    SET vacancy_id = $2, feedback_text = $3, feedback_date = $4, response_status = $5;
+    INSERT INTO ${tableName} (id, vacancy_id, feedback_text, feedback_date, response_status, title_vacancy, title_company)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    ON CONFLICT (id) DO UPDATE
+    SET vacancy_id = $2,
+        feedback_text = $3,
+        feedback_date = $4,
+        response_status = $5,
+        title_vacancy = COALESCE($6, ${tableName}.title_vacancy),
+        title_company = COALESCE($7, ${tableName}.title_company);
 `;
 
-    const values = [data.id, data.vacancy_id, data.feedback_text, data.feedback_date, data.response_status];
+    const values = [
+        data.id,
+        data.vacancy_id,
+        data.feedback_text,
+        data.feedback_date,
+        data.response_status,
+        data.title_vacancy || null,
+        data.title_company || null,
+    ];
 
     await executeQuery(insertOrUpdateQuery, values);
 };
@@ -47,7 +65,9 @@ export const getChatFeedback = async (userId: string): Promise<any[]> => {
     const vacancyTable = `"${userId}_vacancy"`;
     const vacancyExists = await checkTableExists(vacancyTable);
     const query = vacancyExists
-        ? `SELECT f.*, v.title_vacancy, v.title_company
+        ? `SELECT f.*,
+                  COALESCE(f.title_vacancy, v.title_vacancy) AS title_vacancy,
+                  COALESCE(f.title_company, v.title_company) AS title_company
            FROM ${tableName} f
            LEFT JOIN ${vacancyTable} v ON v.id = f.vacancy_id
            ORDER BY f.feedback_date DESC NULLS LAST`

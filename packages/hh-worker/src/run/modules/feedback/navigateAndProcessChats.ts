@@ -1,6 +1,7 @@
 import { HH_SCRAPE, TIMEOUTS } from '@config';
 import { FeedbackWithResponse, navigateAndProcessChats } from '@interface';
 import { isStopped, stop } from '@utils';
+import { expandChatList } from './scrollChatList.js';
 import { getChats } from './getChats.js';
 import { processChat } from './processChat.js';
 
@@ -10,34 +11,51 @@ export async function navigateAndProcessChats({
     browser,
     feedbackRepo,
 }: navigateAndProcessChats): Promise<void> {
-    let currentPage = 0;
-    let existingChatsIds: Set<number>;
-    const totalPages = HH_SCRAPE.TOTAL_PAGES;
+    const maxChats = HH_SCRAPE.MAX_FEEDBACK_CHATS;
+    /** Chats opened this run — allow re-read of rows already in DB so statuses update. */
+    const processedThisRun = new Set<number>();
 
     try {
-        const ChatsFromDb = await feedbackRepo.getChatFeedback(userId);
-        existingChatsIds = new Set(ChatsFromDb.map((chat) => chat.id));
+        const chatsFromDb = await feedbackRepo.getChatFeedback(userId);
+        console.log(`Feedback refresh: ${chatsFromDb.length} rows already in DB; will re-open visible chats`);
     } catch (err) {
         console.error(`Error retrieving chats for user ${userId}: ${err}`);
         throw err instanceof Error ? err : new Error(String(err));
     }
 
-    while (currentPage < totalPages) {
+    await expandChatList(page);
+
+    let idleRounds = 0;
+    while (processedThisRun.size < maxChats && idleRounds < 3) {
         if (isStopped()) {
             await stop(browser);
             return;
         }
-        try {
-            console.log(`Processing page ${currentPage + 1} из ${totalPages}`);
 
+        try {
             let chats: FeedbackWithResponse[] = await getChats(page);
-            chats = chats.filter((data) => data.chatId && !existingChatsIds.has(data.chatId));
+            chats = chats.filter((data) => data.chatId && !processedThisRun.has(data.chatId));
+
             if (chats.length === 0) {
-                console.log('chats.length', chats.length);
-                break;
+                const before = processedThisRun.size;
+                await expandChatList(page, 3);
+                chats = (await getChats(page)).filter((data) => data.chatId && !processedThisRun.has(data.chatId));
+                if (chats.length === 0) {
+                    idleRounds += 1;
+                    console.log(`No new chats after scroll (idle=${idleRounds})`);
+                    continue;
+                }
+                if (processedThisRun.size === before && chats.length === 0) {
+                    idleRounds += 1;
+                }
+            } else {
+                idleRounds = 0;
             }
 
+            console.log(`Processing ${chats.length} chats (done=${processedThisRun.size}/${maxChats})`);
+
             for (let i = 0; i < chats.length; i++) {
+                if (processedThisRun.size >= maxChats) break;
                 const { chatId, chatLinkHandle } = chats[i];
 
                 await page.screenshot({ path: 'screenshot-chats.png' });
@@ -46,14 +64,11 @@ export async function navigateAndProcessChats({
                     return;
                 }
 
-                console.log('chats found', chats.length);
-
                 await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT));
                 try {
-                    existingChatsIds.add(chatId);
+                    processedThisRun.add(chatId);
                     if (chatLinkHandle) {
                         await processChat({ page, chatLinkHandle, chatId, userId, feedbackRepo });
-                        chats = (await getChats(page)).filter(({ chatId }) => chatId && !existingChatsIds.has(chatId));
                     } else {
                         console.error(`Feedback response for ID ${chatId} is null.`);
                     }
@@ -61,12 +76,11 @@ export async function navigateAndProcessChats({
                     console.error(`Error processing feedback with ID ${chatId}:`, err);
                 }
             }
-            if (isStopped()) {
-                await stop(browser);
-                return;
-            }
         } catch (err) {
-            console.error('Error during page processing:', err);
+            console.error('Error during chat list processing:', err);
+            idleRounds += 1;
         }
     }
+
+    console.log(`Feedback refresh finished: opened ${processedThisRun.size} chats`);
 }

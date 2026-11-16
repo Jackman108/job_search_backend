@@ -58,19 +58,35 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             });
             broadcast.broadcast(finished?.lastEvent || `HH job ${id} done (sendFeedback)`);
         } else {
+            const feedbackRepo = {
+                ...deps.feedbackRepo,
+                saveChatFeedback: async (
+                    data: Parameters<typeof deps.feedbackRepo.saveChatFeedback>[0],
+                    userId: string,
+                ) => {
+                    await deps.feedbackRepo.saveChatFeedback(data, userId);
+                    updateJob(id, {
+                        lastEvent: `Feedback saved ${data.id} · ${data.response_status}`,
+                        lastEventAt: new Date().toISOString(),
+                    });
+                },
+            };
             await getFeedback(job.payload, {
-                feedbackRepo: deps.feedbackRepo,
+                feedbackRepo,
                 broadcast,
                 jobId: id,
             });
             if (readJob(id)?.status === 'cancelled') {
                 return;
             }
+            const finished = readJob(id);
             updateJob(id, {
                 status: 'done',
                 finishedAt: new Date().toISOString(),
+                lastEvent: finished?.lastEvent || `HH job ${id} done (getFeedback)`,
+                lastEventAt: new Date().toISOString(),
             });
-            broadcast.broadcast(`HH job ${id} done (getFeedback)`);
+            broadcast.broadcast(finished?.lastEvent || `HH job ${id} done (getFeedback)`);
         }
     } catch (err) {
         if (readJob(id)?.status === 'cancelled') {
