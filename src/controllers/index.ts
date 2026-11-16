@@ -1,6 +1,6 @@
 // Auth related controllers
 export * from './auth/ProfileController.js';
-
+export * from './notifications/NotificationController.js';
 // Job related controllers
 export * from './job/VacancyController.js';
 export * from './job/FeedbackController.js';

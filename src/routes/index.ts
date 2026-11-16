@@ -11,6 +11,7 @@ import { swaggerRouter } from './swagger';
 import { initializeUserRoutes } from './user.routes';
 import { initializeUtilRoutes } from './util.routes';
 import { initializeWebpayRoutes } from './webpay.routes';
+import { initializeNotificationRoutes } from './notification.routes';
 
 export const initializeRoutes = (app: express.Application) => {
     // Swagger documentation
@@ -18,6 +19,7 @@ export const initializeRoutes = (app: express.Application) => {
 
     // Initialize all route groups
     initializeAuthRoutes(app);
+    initializeNotificationRoutes(app);
     initializeCryptoRoutes(app);
     initializeVacancyRoutes(app);
     initializeJobRoutes(app);
