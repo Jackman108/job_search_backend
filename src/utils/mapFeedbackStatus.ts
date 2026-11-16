@@ -1,6 +1,6 @@
 /**
- * Normalize HH chat-bubble title text into our feedback status labels.
- * Prefer invite/reject over generic "viewed" / unknown.
+ * Normalize HH chat-list / bubble status text into our feedback labels.
+ * Prefer invite/reject over generic "viewed" / response / unknown.
  */
 export function mapFeedbackStatus(raw: string | undefined | null): string {
     const text = (raw || '').trim();
@@ -8,13 +8,15 @@ export function mapFeedbackStatus(raw: string | undefined | null): string {
 
     const lower = text.toLowerCase();
     if (/отказ/.test(lower)) return 'Отказ';
-    // "Приглашение" / "пригласили" — different stems (ш vs с).
+    // "Приглашение" / "пригласили" / "Собеседование"
     if (/приглаш|приглас|собеседован|интервью|invite|interview/.test(lower)) return 'Приглашение';
     if (/просмотр/.test(lower)) return 'Резюме просмотрено';
+    // Magritte list label for unanswered response
+    if (/отклик\s+на\s+вакансию|не\s*рассмотрен/.test(lower)) return 'Не рассмотрен';
     return 'Не рассмотрен';
 }
 
-/** Pick the strongest status among several bubble titles in one chat. */
+/** Pick the strongest status among several labels in one chat. */
 export function pickBestFeedbackStatus(rawTitles: string[]): string {
     if (!rawTitles.length) return 'Не рассмотрен';
     const mapped = rawTitles.map(mapFeedbackStatus);

@@ -34,12 +34,12 @@ export const saveChatFeedback = async (data: FeedbackData, userId: string): Prom
     INSERT INTO ${tableName} (id, vacancy_id, feedback_text, feedback_date, response_status, title_vacancy, title_company)
     VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (id) DO UPDATE
-    SET vacancy_id = $2,
-        feedback_text = $3,
+    SET vacancy_id = CASE WHEN $2 = 0 THEN ${tableName}.vacancy_id ELSE $2 END,
+        feedback_text = CASE WHEN $3 = '' THEN ${tableName}.feedback_text ELSE $3 END,
         feedback_date = $4,
         response_status = $5,
-        title_vacancy = COALESCE($6, ${tableName}.title_vacancy),
-        title_company = COALESCE($7, ${tableName}.title_company);
+        title_vacancy = COALESCE(NULLIF($6, ''), ${tableName}.title_vacancy),
+        title_company = COALESCE(NULLIF($7, ''), ${tableName}.title_company);
 `;
 
     const values = [

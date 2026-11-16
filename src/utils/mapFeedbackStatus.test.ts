@@ -14,6 +14,11 @@ describe('mapFeedbackStatus', () => {
         assert.equal(mapFeedbackStatus('Резюме просмотрено'), 'Резюме просмотрено');
     });
 
+    it('maps list labels', () => {
+        assert.equal(mapFeedbackStatus('Отклик на вакансию'), 'Не рассмотрен');
+        assert.equal(mapFeedbackStatus('Собеседование'), 'Приглашение');
+    });
+
     it('defaults unknown', () => {
         assert.equal(mapFeedbackStatus(''), 'Не рассмотрен');
         assert.equal(mapFeedbackStatus('Что-то ещё'), 'Не рассмотрен');
