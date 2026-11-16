@@ -4,6 +4,7 @@ export * from './checkPort.js';
 export * from './errorLogger.js';
 export * from './feedbackUtils.js';
 export * from './mapFeedbackStatus.js';
+export * from './titleSanitize.js';
 export * from './getResumeByUserId.js';
 export * from './healthPayload.js';
 export * from './hhRateLimit.js';

@@ -1,6 +1,12 @@
 import { SELECTORS_CHAT, TIMEOUTS } from '@config';
 import { ProcessChatParams } from '@interface';
-import { extractFeedbackData, isStopped, mapFeedbackStatus, pickBestFeedbackStatus } from '@utils';
+import {
+    extractFeedbackData,
+    isStopped,
+    mapFeedbackStatus,
+    pickBestFeedbackStatus,
+    sanitizeVacancyTitle,
+} from '@utils';
 import type { ChatListMeta } from './getChatListMeta.js';
 
 type ProcessChatWithMeta = ProcessChatParams & {
@@ -52,11 +58,11 @@ export async function processChat({
     const url_vacancy = vacancyUrlHandle
         ? await page.evaluate((el) => (el as HTMLAnchorElement).href, vacancyUrlHandle)
         : '';
-    let title_vacancy = vacancyUrlHandle
-        ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), vacancyUrlHandle)
-        : '';
-    if (!title_vacancy || /^перейти$/i.test(title_vacancy)) {
-        title_vacancy = listMeta?.title_vacancy || '';
+    let title_vacancy = sanitizeVacancyTitle(
+        vacancyUrlHandle ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), vacancyUrlHandle) : '',
+    );
+    if (!title_vacancy) {
+        title_vacancy = sanitizeVacancyTitle(listMeta?.title_vacancy);
     }
     let title_company = await page
         .$$eval(SELECTORS_CHAT.COMPANY_NAME, (els) => {
@@ -69,16 +75,43 @@ export async function processChat({
         .catch(() => '');
     if (!title_company) title_company = listMeta?.title_company || '';
 
-    // List-card status beats bubble titles (Magritte puts Отказ/Собеседование on the card).
-    const response_status = pickBestFeedbackStatus([
-        listMeta?.statusRaw || '',
-        ...statusTitles,
-        listMeta?.previewText || '',
-    ]);
+    const apiStateName = await page
+        .evaluate(async (id) => {
+            try {
+                const res = await fetch(`https://chatik.hh.ru/chatik/api/chat_data?chatId=${id}`, {
+                    credentials: 'include',
+                    headers: { Accept: 'application/json' },
+                });
+                if (!res.ok) return '';
+                const data = (await res.json()) as {
+                    messages?: {
+                        items?: Array<{ workflow_transition?: { applicant_state?: { name?: string; id?: string } } }>;
+                    };
+                };
+                const items = data.messages?.items || [];
+                for (let i = items.length - 1; i >= 0; i--) {
+                    const st = items[i]?.workflow_transition?.applicant_state;
+                    if (st?.name || st?.id) return st.name || st.id || '';
+                }
+            } catch {
+                /* ignore */
+            }
+            return '';
+        }, chatId)
+        .catch(() => '');
 
     const feedback_text = textHandle
         ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), textHandle)
         : listMeta?.previewText || '';
+
+    // List-card + chat_data state beat bubble titles; also sniff invite/reject phrasing in letter.
+    const response_status = pickBestFeedbackStatus([
+        listMeta?.statusRaw || '',
+        apiStateName,
+        ...statusTitles,
+        listMeta?.previewText || '',
+        feedback_text.slice(0, 400),
+    ]);
     const feedback_date = dateHandle
         ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), dateHandle)
         : 'сегодня';
