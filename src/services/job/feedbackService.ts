@@ -57,21 +57,26 @@ export const saveChatFeedback = async (data: FeedbackData, userId: string): Prom
 
 export const getChatFeedback = async (userId: string): Promise<any[]> => {
     const tableName = `"${userId}_feedbacks"`;
-    const exists = await checkTableExists(tableName);
-    if (!exists) {
-        await createChatFeedbackTable(userId);
-    }
+    // Always ensure table + title_* columns exist (CREATE IF NOT EXISTS + ALTER ADD IF NOT EXISTS).
+    // Skipping ALTER on existing tables made GET /feedback 500 after title columns shipped.
+    await createChatFeedbackTable(userId);
 
     const vacancyTable = `"${userId}_vacancy"`;
     const vacancyExists = await checkTableExists(vacancyTable);
     const query = vacancyExists
-        ? `SELECT f.*,
+        ? `SELECT f.id,
+                  f.vacancy_id,
+                  f.feedback_text,
+                  f.feedback_date,
+                  f.response_status,
                   COALESCE(f.title_vacancy, v.title_vacancy) AS title_vacancy,
                   COALESCE(f.title_company, v.title_company) AS title_company
            FROM ${tableName} f
            LEFT JOIN ${vacancyTable} v ON v.id = f.vacancy_id
            ORDER BY f.feedback_date DESC NULLS LAST`
-        : `SELECT * FROM ${tableName} ORDER BY feedback_date DESC NULLS LAST`;
+        : `SELECT id, vacancy_id, feedback_text, feedback_date, response_status, title_vacancy, title_company
+           FROM ${tableName}
+           ORDER BY feedback_date DESC NULLS LAST`;
     const rows = await executeQuery(query);
 
     return rows.length > 0 ? rows : [];
