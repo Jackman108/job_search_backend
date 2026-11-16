@@ -1,22 +1,38 @@
-import { SELECTORS_CHAT } from '@config';
+import { SELECTORS_CHAT, TIMEOUTS } from '@config';
 import { ProcessChatParams } from '@interface';
-import { extractFeedbackData, isStopped, pickBestFeedbackStatus } from '@utils';
+import { extractFeedbackData, isStopped, mapFeedbackStatus, pickBestFeedbackStatus } from '@utils';
+import type { ChatListMeta } from './getChatListMeta.js';
 
+type ProcessChatWithMeta = ProcessChatParams & {
+    listMeta?: ChatListMeta;
+};
+
+/**
+ * Open chat by URL (avoids stale ElementHandle after list virtualization)
+ * and merge list-card status (source of truth on Magritte) with bubble text.
+ */
 export async function processChat({
     page,
-    chatLinkHandle,
     chatId,
     userId,
     feedbackRepo,
-}: ProcessChatParams): Promise<void> {
+    listMeta,
+}: ProcessChatWithMeta): Promise<void> {
     if (isStopped()) {
         console.log('Processing stopped before processing chat:', chatId);
         return;
     }
 
-    await page.screenshot({ path: 'screenshot-unknown.png' });
-    await chatLinkHandle.click();
-    await page.waitForSelector(SELECTORS_CHAT.VACANCY_URL);
+    const chatUrl = listMeta?.href || `${SELECTORS_CHAT.CHAT_URL.replace(/\?.*$/, '')}/chat/${chatId}`;
+    await page.goto(chatUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(async () => {
+        // Fallback: click a fresh card handle if goto failed (SPA routing).
+        const sel = `a[data-qa="chatik-open-chat-${chatId}"], a[data-qa^="chatik-open-chat-${chatId}"]`;
+        const handle = await page.$(sel);
+        if (handle) await handle.click();
+    });
+
+    await page.waitForSelector(SELECTORS_CHAT.VACANCY_URL, { timeout: TIMEOUTS.SEARCH }).catch(() => null);
+    await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT));
 
     const vacancyUrlHandles = await page.$$(SELECTORS_CHAT.VACANCY_URL);
     const statusTitles = await page
@@ -36,10 +52,13 @@ export async function processChat({
     const url_vacancy = vacancyUrlHandle
         ? await page.evaluate((el) => (el as HTMLAnchorElement).href, vacancyUrlHandle)
         : '';
-    const title_vacancy = vacancyUrlHandle
+    let title_vacancy = vacancyUrlHandle
         ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), vacancyUrlHandle)
         : '';
-    const title_company = await page
+    if (!title_vacancy || /^перейти$/i.test(title_vacancy)) {
+        title_vacancy = listMeta?.title_vacancy || '';
+    }
+    let title_company = await page
         .$$eval(SELECTORS_CHAT.COMPANY_NAME, (els) => {
             for (const el of els) {
                 const t = ((el as HTMLElement).innerText || '').trim();
@@ -48,13 +67,21 @@ export async function processChat({
             return '';
         })
         .catch(() => '');
-    const response_status = pickBestFeedbackStatus(statusTitles);
+    if (!title_company) title_company = listMeta?.title_company || '';
+
+    // List-card status beats bubble titles (Magritte puts Отказ/Собеседование on the card).
+    const response_status = pickBestFeedbackStatus([
+        listMeta?.statusRaw || '',
+        ...statusTitles,
+        listMeta?.previewText || '',
+    ]);
+
     const feedback_text = textHandle
         ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), textHandle)
-        : '';
+        : listMeta?.previewText || '';
     const feedback_date = dateHandle
         ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), dateHandle)
-        : 'N/A';
+        : 'сегодня';
     const feedback_time = timeHandle
         ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), timeHandle)
         : '00:00';
@@ -65,10 +92,13 @@ export async function processChat({
         response_status,
         feedback_text,
         feedback_date,
-        feedback_time,
+        feedback_time: /^\d{1,2}:\d{2}$/.test(feedback_time) ? feedback_time : '00:00',
         title_vacancy,
         title_company,
     });
+
+    // Guarantee mapped label even if extract path got empty raw somehow.
+    newData.response_status = mapFeedbackStatus(newData.response_status || response_status);
 
     await feedbackRepo.saveChatFeedback(newData, userId);
     console.log(`The Chat with ID ${newData.id} is saved with flag ${newData.response_status}`);

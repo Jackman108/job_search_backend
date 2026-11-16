@@ -19,7 +19,8 @@ export interface ProcessVacancyParams {
 
 export interface ProcessChatParams {
     page: Page;
-    chatLinkHandle: ElementHandle;
+    /** Optional — prefer opening by chat URL to avoid stale list handles. */
+    chatLinkHandle: ElementHandle | null;
     chatId: number;
     chatUrl?: string;
     userId: string;
