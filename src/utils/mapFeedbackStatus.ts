@@ -7,12 +7,17 @@ export function mapFeedbackStatus(raw: string | undefined | null): string {
     if (!text) return 'Не рассмотрен';
 
     const lower = text.toLowerCase();
-    if (/отказ/.test(lower)) return 'Отказ';
-    // "Приглашение" / "пригласили" / "Собеседование"
-    if (/приглаш|приглас|собеседован|интервью|invite|interview/.test(lower)) return 'Приглашение';
-    if (/просмотр/.test(lower)) return 'Резюме просмотрено';
-    // Magritte list label for unanswered response
-    if (/отклик\s+на\s+вакансию|не\s*рассмотрен/.test(lower)) return 'Не рассмотрен';
+    if (/отказ|discard/.test(lower)) return 'Отказ';
+    // Labels + common HR letter stems + chat_data applicant_state ids
+    if (
+        /приглаш|приглас|собеседован|интервью|invite|interview|invitation/.test(lower) ||
+        /будем\s+рады\s+видеть|удобно\s+(ли\s+)?созвон|назначить\s+собеседован/.test(lower)
+    ) {
+        return 'Приглашение';
+    }
+    if (/просмотр|viewed/.test(lower)) return 'Резюме просмотрено';
+    // Magritte list label / state id for unanswered response
+    if (/отклик\s+на\s+вакансию|не\s*рассмотрен|^response$/.test(lower)) return 'Не рассмотрен';
     return 'Не рассмотрен';
 }
 
