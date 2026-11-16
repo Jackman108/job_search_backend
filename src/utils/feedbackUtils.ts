@@ -1,4 +1,5 @@
 import { ExtractChatDataParams, ExtractFeedbackData, FeedbackData } from '../interface/index.js';
+import { mapFeedbackStatus } from './mapFeedbackStatus.js';
 
 export async function extractChatId({ chatUrl }: ExtractChatDataParams): Promise<{ chatId: number }> {
     const chatId = Number(chatUrl.match(/\/chat\/(\d+)/)?.[1]) || 0;
@@ -12,6 +13,8 @@ export async function extractFeedbackData({
     feedback_text,
     feedback_date,
     feedback_time,
+    title_vacancy,
+    title_company,
 }: ExtractFeedbackData): Promise<FeedbackData> {
     if (!feedback_date || !feedback_time) {
         console.error('Invalid feedback date or time:', feedback_date, feedback_time);
@@ -20,18 +23,14 @@ export async function extractFeedbackData({
     const vacancyId = Number(url_vacancy.match(/\/vacancy\/(\d+)/)?.[1]) || 0;
 
     const feedbackDate = parseDate(feedback_date, feedback_time);
-    let status = 'Не рассмотрен';
-    if (response_status.includes('Приглашение')) {
-        status = 'Приглашение';
-    } else if (response_status.includes('Отказ')) {
-        status = 'Отказ';
-    }
     return {
         id: chatId,
         vacancy_id: vacancyId,
         feedback_text,
         feedback_date: feedbackDate,
-        response_status: status,
+        response_status: mapFeedbackStatus(response_status),
+        title_vacancy: title_vacancy?.trim() || undefined,
+        title_company: title_company?.trim() || undefined,
     };
 }
 

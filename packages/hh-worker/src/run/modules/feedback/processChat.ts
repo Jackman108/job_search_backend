@@ -1,7 +1,6 @@
-// src/processVacancy.js
 import { SELECTORS_CHAT } from '@config';
 import { ProcessChatParams } from '@interface';
-import { extractFeedbackData, isStopped } from '@utils';
+import { extractFeedbackData, isStopped, pickBestFeedbackStatus } from '@utils';
 
 export async function processChat({
     page,
@@ -20,13 +19,16 @@ export async function processChat({
     await page.waitForSelector(SELECTORS_CHAT.VACANCY_URL);
 
     const vacancyUrlHandles = await page.$$(SELECTORS_CHAT.VACANCY_URL);
-    const statusHandles = await page.$$(SELECTORS_CHAT.RESPONSE_STATUS);
+    const statusTitles = await page
+        .$$eval(SELECTORS_CHAT.RESPONSE_STATUS, (els) =>
+            els.map((el) => ((el as HTMLElement).innerText || '').trim()).filter(Boolean),
+        )
+        .catch(() => [] as string[]);
     const textHandles = await page.$$(SELECTORS_CHAT.CHAT_TEXT);
     const dateHandles = await page.$$(SELECTORS_CHAT.CHAT_DATE);
     const timeHandles = await page.$$(SELECTORS_CHAT.CHAT_TIME);
 
     const vacancyUrlHandle = vacancyUrlHandles?.at(-1);
-    const statusHandle = statusHandles?.at(-1);
     const textHandle = textHandles?.at(-1);
     const dateHandle = dateHandles?.at(-1);
     const timeHandle = timeHandles?.at(-1);
@@ -34,9 +36,19 @@ export async function processChat({
     const url_vacancy = vacancyUrlHandle
         ? await page.evaluate((el) => (el as HTMLAnchorElement).href, vacancyUrlHandle)
         : '';
-    const response_status = statusHandle
-        ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), statusHandle)
+    const title_vacancy = vacancyUrlHandle
+        ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), vacancyUrlHandle)
         : '';
+    const title_company = await page
+        .$$eval(SELECTORS_CHAT.COMPANY_NAME, (els) => {
+            for (const el of els) {
+                const t = ((el as HTMLElement).innerText || '').trim();
+                if (t) return t;
+            }
+            return '';
+        })
+        .catch(() => '');
+    const response_status = pickBestFeedbackStatus(statusTitles);
     const feedback_text = textHandle
         ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), textHandle)
         : '';
@@ -54,6 +66,8 @@ export async function processChat({
         feedback_text,
         feedback_date,
         feedback_time,
+        title_vacancy,
+        title_company,
     });
 
     await feedbackRepo.saveChatFeedback(newData, userId);

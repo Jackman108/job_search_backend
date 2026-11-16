@@ -13,6 +13,8 @@ export interface ExtractFeedbackData {
     feedback_text: string;
     feedback_date: string;
     feedback_time: string;
+    title_vacancy?: string;
+    title_company?: string;
 }
 
 export interface SendFeedbackParams {
@@ -32,6 +34,8 @@ export interface FeedbackData {
     feedback_text: string;
     feedback_date: Date;
     response_status: string;
+    title_vacancy?: string;
+    title_company?: string;
 }
 
 export interface FeedbackWithResponse {

@@ -8,6 +8,8 @@ export interface FeedbackSaveRecord {
     feedback_text: string;
     feedback_date: Date;
     response_status: string;
+    title_vacancy?: string;
+    title_company?: string;
 }
 
 export interface FeedbackRepo {

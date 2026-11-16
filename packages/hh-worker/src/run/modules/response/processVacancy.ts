@@ -33,17 +33,17 @@ async function saveSkip(
 
 async function saveFail(
     data: ProcessVacancyParams['data'],
-    userId: string,
+    _userId: string,
     counters: ProcessVacancyParams['counters'],
-    vacancyRepo: VacancyRepo,
+    _vacancyRepo: VacancyRepo,
     reason: string,
 ): Promise<void> {
+    // Do NOT persist failures — only SUCCESS / intentional skips belong in `{user}_vacancy`.
+    // Writing fails made the next SERP pass skip cards that never got a real отклик.
     counters.failedCount++;
     if (!counters.failReasons) counters.failReasons = {};
     counters.failReasons[reason] = (counters.failReasons[reason] ?? 0) + 1;
-    data.vacancy_status = VACANCY_STATUS.SKIP;
-    await vacancyRepo.saveVacancy(data, userId);
-    console.log(`Vacancy ${data.id} failed (${reason}) → status ${VACANCY_STATUS.SKIP} · ${data.title_vacancy}`);
+    console.log(`Vacancy ${data.id} failed (${reason}) — not saved · ${data.title_vacancy}`);
 }
 
 async function saveSuccess(

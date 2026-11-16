@@ -12,6 +12,8 @@ export const TIMEOUTS = {
  */
 export const HH_SCRAPE = {
     TOTAL_PAGES: Number(process.env.HH_TOTAL_PAGES) || 40,
+    /** Cap for chatik refresh (scroll + open). Override with HH_MAX_FEEDBACK_CHATS. */
+    MAX_FEEDBACK_CHATS: Number(process.env.HH_MAX_FEEDBACK_CHATS) || 80,
 };
 
 export const SELECTORS = {
@@ -106,8 +108,12 @@ export const APPLY_SUCCESS_RE =
 export const SELECTORS_CHAT = {
     CHAT_URL: 'https://chatik.hh.ru/?hhtmSource=chat_page&hhtmFrom=chat',
     CHAT_CARD: 'a[data-qa^="chatik-open-chat-"]',
+    /** Left chat list scroll container (Magritte chatik). */
+    CHAT_LIST_SCROLL: '[class*="chatik-list"], [data-qa*="chatik-list"], aside, [class*="chats-list"]',
     VACANCY_RESPONSE: '[data-qa="vacancy-serp__vacancy_response"]',
     VACANCY_URL: '[data-qa="chatik-header-vacancy-link"]',
+    COMPANY_NAME:
+        '[data-qa="chatik-header-employer-name"], [data-qa*="employer-name"], [class*="chatik-header"] [class*="employer"]',
     RESPONSE_STATUS: '[data-qa="chat-bubble-title"]',
     CHAT_TEXT: '[data-qa="chat-bubble-text"]',
     CHAT_DATE: '[class*="chat-date"]',
