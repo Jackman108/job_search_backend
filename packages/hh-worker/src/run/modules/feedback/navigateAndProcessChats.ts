@@ -9,8 +9,9 @@ import { syncNegotiationsInvites } from './syncNegotiationsInvites.js';
 
 function statusRank(raw: string): number {
     const s = mapFeedbackStatus(raw);
-    if (s === 'Приглашение') return 0;
-    if (s === 'Отказ') return 1;
+    // Отказ wins over Приглашение when merging conflicting sources.
+    if (s === 'Отказ') return 0;
+    if (s === 'Приглашение') return 1;
     if (s === 'Резюме просмотрено') return 2;
     return 3;
 }

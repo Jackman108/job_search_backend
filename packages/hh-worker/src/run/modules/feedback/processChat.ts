@@ -104,14 +104,17 @@ export async function processChat({
         ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), textHandle)
         : listMeta?.previewText || '';
 
-    // List-card + chat_data state beat bubble titles; also sniff invite/reject phrasing in letter.
-    const response_status = pickBestFeedbackStatus([
+    // Structured statuses first. Letter text only as fallback — reject letters often
+    // contain «пригласить» and used to flip Отказ → Приглашение when ranked wrong.
+    let response_status = pickBestFeedbackStatus([
         listMeta?.statusRaw || '',
         apiStateName,
         ...statusTitles,
         listMeta?.previewText || '',
-        feedback_text.slice(0, 400),
     ]);
+    if (response_status === 'Не рассмотрен' && feedback_text) {
+        response_status = mapFeedbackStatus(feedback_text.slice(0, 500));
+    }
     const feedback_date = dateHandle
         ? await page.evaluate((el) => (el as HTMLElement).innerText.trim(), dateHandle)
         : 'сегодня';

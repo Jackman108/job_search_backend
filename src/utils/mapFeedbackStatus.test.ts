@@ -14,6 +14,12 @@ describe('mapFeedbackStatus', () => {
         assert.equal(mapFeedbackStatus('Резюме просмотрено'), 'Резюме просмотрено');
     });
 
+    it('does not treat «не готовы пригласить» as invite', () => {
+        const letter =
+            'Большое спасибо за интерес к нашей компании! К сожалению, сейчас мы не готовы пригласить вас на следующий этап.';
+        assert.equal(mapFeedbackStatus(letter), 'Отказ');
+    });
+
     it('maps list labels', () => {
         assert.equal(mapFeedbackStatus('Отклик на вакансию'), 'Не рассмотрен');
         assert.equal(mapFeedbackStatus('Собеседование'), 'Приглашение');
@@ -26,6 +32,11 @@ describe('mapFeedbackStatus', () => {
 });
 
 describe('pickBestFeedbackStatus', () => {
+    it('prefers reject over invite when both signals present', () => {
+        assert.equal(pickBestFeedbackStatus(['Собеседование', 'Отказ']), 'Отказ');
+        assert.equal(pickBestFeedbackStatus(['Отказ', 'не готовы пригласить вас на следующий этап']), 'Отказ');
+    });
+
     it('prefers invite over viewed', () => {
         assert.equal(pickBestFeedbackStatus(['Резюме просмотрено', 'Вас пригласили']), 'Приглашение');
     });
