@@ -24,6 +24,11 @@ function fullName(r: Record<string, unknown>): string {
     return title || 'Без имени';
 }
 
+function typeKey(v: HhNamed): string {
+    if (!v || typeof v === 'string') return named(v).toLowerCase();
+    return `${v.id || ''} ${v.name || ''}`.trim().toLowerCase();
+}
+
 function pickContact(r: Record<string, unknown>): MappedHhResume['contacts'] {
     const contacts = Array.isArray(r.contact) ? r.contact : [];
     let phone = '';
@@ -36,13 +41,20 @@ function pickContact(r: Record<string, unknown>): MappedHhResume['contacts'] {
             contact_value?: string;
             links?: Array<{ url?: string }>;
         };
-        const typeId = named(c.type).toLowerCase();
+        const typeId = typeKey(c.type);
         const value = String(c.value || c.contact_value || '').trim();
-        if (!phone && (typeId.includes('phone') || typeId.includes('cell') || typeId === 'mobile')) {
+        if (
+            !phone &&
+            (typeId.includes('phone') ||
+                typeId.includes('cell') ||
+                typeId.includes('mobile') ||
+                typeId.includes('телефон') ||
+                typeId.includes('мобил'))
+        ) {
             phone = value;
-        } else if (!email && typeId.includes('email') && value.includes('@')) {
+        } else if (!email && (typeId.includes('email') || typeId.includes('почт')) && value.includes('@')) {
             email = value;
-        } else if (!site && (typeId.includes('site') || typeId.includes('portfolio'))) {
+        } else if (!site && (typeId.includes('site') || typeId.includes('portfolio') || typeId.includes('сайт'))) {
             site = value || c.links?.[0]?.url || '';
         }
     }
