@@ -1,4 +1,5 @@
 export type { JobBroadcast } from './broadcast.types.js';
+export type { CredentialsRepo, HhCredentials } from './credentialsRepo.types.js';
 export type { JobCounters } from './counters.types.js';
 export type { FeedbackRepo, FeedbackSaveRecord } from './feedbackRepo.types.js';
 export type { ProcessJobDeps, ScenarioDeps } from './processJob.deps.js';
@@ -24,6 +25,7 @@ export {
     enqueueSyncResume,
     listJobs,
     readJob,
+    redactJobForDisk,
     takeCaptchaAnswer,
     updateJob,
     writeCaptchaAnswer,

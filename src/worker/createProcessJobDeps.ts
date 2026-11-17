@@ -2,6 +2,7 @@ import type { ProcessJobDeps } from '@market-hunter/hh-worker/job';
 import {
     getChatFeedback,
     getVacanciesUser,
+    getVacancyAuthByUserId,
     incrementSpinCount,
     saveChatFeedback,
     saveVacancy,
@@ -35,6 +36,18 @@ export function createProcessJobDeps(): ProcessJobDeps {
         },
         resumeRepo: {
             upsertFromHh: upsertResumeFromHh,
+        },
+        credentialsRepo: {
+            getDecryptedByUserId: async (userId, email) => {
+                const rows = await getVacancyAuthByUserId(userId);
+                if (!rows.length) return null;
+                const match =
+                    (email ? rows.find((r) => r.email === email && r.password) : undefined) ||
+                    rows.find((r) => r.email && r.password) ||
+                    rows[0];
+                if (!match?.email || !match.password) return null;
+                return { email: match.email, password: match.password };
+            },
         },
     };
 }

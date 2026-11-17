@@ -21,8 +21,11 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/run-unit-tests.mjs",
     "check:structure": "node scripts/check-structure.mjs",
+    "check:modules": "node scripts/check-modules.mjs",
+    "migrate": "node scripts/migrate.mjs",
+    "scrub:hh-jobs": "node scripts/scrub-hh-job-passwords.mjs",
     "smoke:health": "node scripts/smoke-health.mjs",
-    "precommit": "npm run lint && npm run format:check && npm run typecheck && npm run check:structure && npm run test && npm run smoke:health -- --http-only",
+    "precommit": "npm run lint && npm run format:check && npm run typecheck && npm run check:structure && npm run check:modules && npm run test && npm run smoke:health -- --http-only",
     "e2e": "node scripts/e2e-cross.mjs",
 
     "docker:up": "docker compose -f ./postgres/docker-compose.yml up -d",

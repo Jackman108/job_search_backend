@@ -67,12 +67,22 @@ function parseJobJson(raw: string): HhJob {
     return JSON.parse(raw) as HhJob;
 }
 
+/** Strip HH password from job payload before disk write (S2). Worker loads via credentialsRepo. */
+export function redactJobForDisk(job: HhJob): HhJob {
+    if (!job.payload || typeof job.payload !== 'object') {
+        return job;
+    }
+    const payload = { ...job.payload, password: '' };
+    return { ...job, payload } as HhJob;
+}
+
 /** Write via temp + replace so concurrent readers never see a torn JSON file. */
 export function writeJob(job: HhJob): void {
     ensureDir();
-    const p = jobPath(job.id);
+    const safe = redactJobForDisk(job);
+    const p = jobPath(safe.id);
     const tmp = `${p}.${process.pid}.${randomUUID()}.tmp`;
-    const data = JSON.stringify(job, null, 2);
+    const data = JSON.stringify(safe, null, 2);
     fs.writeFileSync(tmp, data, 'utf8');
     try {
         // POSIX: rename over existing is atomic. Windows: rename fails if dest exists.

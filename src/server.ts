@@ -1,5 +1,6 @@
 import { JWT_CONFIG, PORTS } from '@config';
 import { startHttpServer, startWebSocketServer } from '@server';
+import { resolveHhCredKey } from './platform/crypto/hhCredCrypto.js';
 import { assertJwtSecret, logger } from '@utils';
 
 process.on('uncaughtException', (error) => {
@@ -21,6 +22,8 @@ process.on('unhandledRejection', (reason) => {
 (async () => {
     try {
         JWT_CONFIG.secret = assertJwtSecret(JWT_CONFIG.secret || process.env.JWT_SECRET);
+        // S1: fail-fast in production if HH_CRED_KEY missing/weak; warn+dev key locally.
+        resolveHhCredKey();
         if (process.env.NODE_ENV !== 'production') {
             logger.info('Dev mode: nodemon watches src + packages/hh-worker (restart on change)');
         }
