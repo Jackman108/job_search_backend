@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 
 const MAX_LINES = Number(process.env.MAX_FILE_LINES || 300);
-const ROOTS = ['src', path.join('packages', 'hh-worker', 'src')];
+const ROOTS = ['src', path.join('packages', 'hh-worker', 'src'), path.join('packages', 'contracts', 'src')];
 const SKIP_DIR = new Set(['node_modules', 'dist', 'coverage', '.hh-jobs']);
 /** Known debt (QUALITY-MATRIX) — warn only; new offenders still fail. */
 const ALLOWLIST = new Set([]);

@@ -1,50 +1,27 @@
-import type { GetFeedbackParams, HhApplySummary, SendFeedbackParams, SyncResumeParams } from '@interface';
+import type {
+    GetFeedbackJob,
+    GetFeedbackParams,
+    HhApplySummary,
+    HhJob,
+    HhJobBase,
+    HhJobKind,
+    HhJobStatus,
+    SendFeedbackJob,
+    SendFeedbackParams,
+    SyncResumeJob,
+    SyncResumeParams,
+} from '@market-hunter/contracts';
 
-export type HhJobKind = 'sendFeedback' | 'getFeedback' | 'syncResume';
-
-export type HhJobStatus = 'queued' | 'running' | 'done' | 'error' | 'cancelled';
-
-export interface HhJobBase {
-    id: string;
-    kind: HhJobKind;
-    status: HhJobStatus;
-    createdAt: string;
-    startedAt?: string;
-    finishedAt?: string;
-    error?: string;
-    userId: string;
-    /** Set after spin/success counters are written (sendFeedback only). */
-    countersUpdated?: boolean;
-    /** Latest worker progress line (CAPTCHA / errors / milestones) for poll SoT. */
-    lastEvent?: string;
-    lastEventAt?: string;
-    /** CAPTCHA image URL when detected (login or mid-apply). */
-    captchaSrc?: string;
-    /** Local PNG under `.hh-jobs/` for headless human solve. */
-    captchaImagePath?: string;
-    /** Worker is blocked on CAPTCHA — POST /jobs/:id/captcha. */
-    awaitingCaptcha?: boolean;
-    /** One-shot answer written by API; cleared when worker consumes it. */
-    captchaAnswer?: string;
-    /** API asked worker to Magritte-refresh the CAPTCHA picture. */
-    captchaRefreshRequested?: boolean;
-    /** Apply-run totals for client completion modal (sendFeedback). */
-    summary?: HhApplySummary;
-}
-
-export interface SendFeedbackJob extends HhJobBase {
-    kind: 'sendFeedback';
-    payload: SendFeedbackParams;
-}
-
-export interface GetFeedbackJob extends HhJobBase {
-    kind: 'getFeedback';
-    payload: GetFeedbackParams;
-}
-
-export interface SyncResumeJob extends HhJobBase {
-    kind: 'syncResume';
-    payload: SyncResumeParams;
-}
-
-export type HhJob = SendFeedbackJob | GetFeedbackJob | SyncResumeJob;
+export type {
+    GetFeedbackJob,
+    GetFeedbackParams,
+    HhApplySummary,
+    HhJob,
+    HhJobBase,
+    HhJobKind,
+    HhJobStatus,
+    SendFeedbackJob,
+    SendFeedbackParams,
+    SyncResumeJob,
+    SyncResumeParams,
+};

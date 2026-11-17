@@ -25,12 +25,13 @@
       "@services": ["src/services/index.ts"],
       "@integrations": ["src/services/integrations/index.ts"],
       "@run": ["packages/hh-worker/src/run/index.ts"],
+      "@market-hunter/contracts": ["packages/contracts/src/index.ts"],
       "@market-hunter/hh-worker": ["packages/hh-worker/src/index.ts"],
       "@market-hunter/hh-worker/job": ["packages/hh-worker/src/job/index.ts"],
       "@controllers": ["src/controllers/index.ts"],
       "@repositories/*": ["src/repositories/*"]
     }
   },
-  "include": ["src/**/*", "packages/hh-worker/src/**/*"],
+  "include": ["src/**/*", "packages/hh-worker/src/**/*", "packages/contracts/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,16 +1,7 @@
 /** HH → local resume sync (POST /sync-resume + detached worker). */
 
-export interface SyncResumeParams {
-    userId: string;
-    email: string;
-    password: string;
-}
-
-/** Optional — when omitted, API uses the first saved vacancy_auth (SearchForm / apply profile). */
-export interface SyncResumeBody {
-    email?: string;
-    password?: string;
-}
+/** @deprecated Prefer `@market-hunter/contracts`. */
+export type { SyncResumeBody, SyncResumeParams } from '@market-hunter/contracts';
 
 export type MappedHhResume = {
     resume: {

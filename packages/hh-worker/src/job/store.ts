@@ -1,8 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
-import type { GetFeedbackParams, SendFeedbackParams, SyncResumeParams } from '@interface';
-import type { GetFeedbackJob, HhJob, SendFeedbackJob, SyncResumeJob } from './types.js';
+import type {
+    GetFeedbackJob,
+    GetFeedbackParams,
+    HhJob,
+    SendFeedbackJob,
+    SendFeedbackParams,
+    SyncResumeJob,
+    SyncResumeParams,
+} from '@market-hunter/contracts';
 
 const JOBS_DIR = process.env.HH_JOBS_DIR
     ? path.resolve(process.env.HH_JOBS_DIR)
