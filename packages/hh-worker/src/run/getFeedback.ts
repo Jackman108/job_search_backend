@@ -1,10 +1,10 @@
 //getFeedback.ts
 import * as dotenv from 'dotenv';
 import { Browser, Page } from 'puppeteer';
-import { SELECTORS_CHAT } from '@config';
-import { GetFeedbackParams } from '@interface';
+import { SELECTORS_CHAT } from '@market-hunter/hh-worker/config';
+import type { GetFeedbackParams } from '@market-hunter/contracts';
 import type { ScenarioDeps } from '../job/processJob.deps.js';
-import { isStopped, stop } from '@utils';
+import { isStopped, stop } from '@market-hunter/hh-worker/lib';
 import { authorize, navigateAndProcessChats, initializeBrowser } from '@run';
 import { launchHhBrowser } from './helpers/launchHhBrowser.js';
 import { stage } from './helpers/stageLog.js';

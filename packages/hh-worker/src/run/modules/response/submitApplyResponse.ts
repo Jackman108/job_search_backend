@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer';
-import { SELECTORS } from '@config';
+import { SELECTORS } from '@market-hunter/hh-worker/config';
 import { scrollToElementIfNotFound } from '../../helpers/scrollToElementIfNotFound.js';
 
 /**

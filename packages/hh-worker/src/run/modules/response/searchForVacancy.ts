@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '@config';
+import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
 import { stage } from '../../helpers/stageLog.js';
 
 /** Magritte may rename search control — keep data-qa primary + common fallbacks. */

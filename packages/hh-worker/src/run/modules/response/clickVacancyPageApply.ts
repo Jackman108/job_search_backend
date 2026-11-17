@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '@config';
+import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
 import { readVacancyPageTitle } from '../../helpers/readVacancyPageTitle.js';
 
 const require = createRequire(import.meta.url);

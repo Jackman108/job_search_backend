@@ -1,5 +1,5 @@
 import { ElementHandle, Page } from 'puppeteer';
-import { TIMEOUTS } from '@config';
+import { TIMEOUTS } from '@market-hunter/hh-worker/config';
 
 /**
  * Click a visible button/link whose trimmed textContent equals `text`.

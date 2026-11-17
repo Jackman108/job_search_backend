@@ -1,5 +1,5 @@
 import type { Page } from 'puppeteer';
-import { TIMEOUTS } from '@config';
+import { TIMEOUTS } from '@market-hunter/hh-worker/config';
 
 /**
  * After HH login: take the first applicant resume (API preferred, DOM fallback for id).

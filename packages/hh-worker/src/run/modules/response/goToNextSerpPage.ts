@@ -1,6 +1,6 @@
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '@config';
-import { delayBetweenPages } from '@utils';
+import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
+import { delayBetweenPages } from '@market-hunter/hh-worker/lib';
 import { stage } from '../../helpers/stageLog.js';
 
 async function isPagerNextEnabled(page: Page): Promise<boolean> {

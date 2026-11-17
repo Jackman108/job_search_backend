@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { Page } from 'puppeteer';
-import { APPLY_SUCCESS_RE, SELECTORS } from '@config';
+import { APPLY_SUCCESS_RE, SELECTORS } from '@market-hunter/hh-worker/config';
 
 export type ApplyPreflightReason = 'already' | 'hidden_resume' | 'employer_questions' | 'disabled_submit' | null;
 

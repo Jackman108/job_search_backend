@@ -1,4 +1,4 @@
-import { TIMEOUTS } from '@config';
+import { TIMEOUTS } from '@market-hunter/hh-worker/config';
 import type { Page } from 'puppeteer';
 
 /** Magritte often paints submit as a spinner before the next step mounts. */

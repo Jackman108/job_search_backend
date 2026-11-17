@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '@config';
+import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
 
 const require = createRequire(import.meta.url);
 /** Plain CJS browser fn — must not pass through tsx `__name` rewrite. */

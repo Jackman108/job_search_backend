@@ -1,4 +1,4 @@
-import type { MappedHhResume } from '@interface';
+import type { MappedHhResume } from '@market-hunter/hh-worker/types';
 
 export type { MappedHhResume };
 

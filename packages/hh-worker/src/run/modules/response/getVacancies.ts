@@ -1,7 +1,7 @@
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '@config';
-import { VacancyWithResponse } from '@interface';
-import { extractVacancyData } from '@utils';
+import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
+import { VacancyWithResponse } from '@market-hunter/hh-worker/types';
+import { extractVacancyData } from '@market-hunter/hh-worker/lib';
 import { normalizeHhVacancyTitle } from '../../helpers/normalizeHhVacancyTitle.js';
 
 /**

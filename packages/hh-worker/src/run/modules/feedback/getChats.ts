@@ -1,8 +1,8 @@
 // src/getChats.ts
 import { Page } from 'puppeteer';
-import { SELECTORS_CHAT, TIMEOUTS } from '@config';
-import { FeedbackWithResponse } from '@interface';
-import { extractChatId } from '@utils';
+import { SELECTORS_CHAT, TIMEOUTS } from '@market-hunter/hh-worker/config';
+import { FeedbackWithResponse } from '@market-hunter/hh-worker/types';
+import { extractChatId } from '@market-hunter/hh-worker/lib';
 
 export async function getChats(page: Page): Promise<FeedbackWithResponse[]> {
     try {

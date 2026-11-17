@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '@config';
+import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
 import { clickByExactText } from './clickByExactText.js';
 import { stage } from './stageLog.js';
 

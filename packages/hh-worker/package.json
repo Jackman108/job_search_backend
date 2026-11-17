@@ -1,20 +1,23 @@
 {
-  "name": "@market-hunter/hh-worker",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Detached HH Puppeteer worker — owns run scenarios, job store, processJob, CLI; crash-isolated queue mode",
-  "type": "module",
-  "bin": {
-    "hh-worker": "./bin/run.mjs"
-  },
-  "exports": {
-    ".": "./src/index.ts",
-    "./job": "./src/job/index.ts"
-  },
-  "scripts": {
-    "start": "node ./bin/run.mjs"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+    "name": "@market-hunter/hh-worker",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Detached HH Puppeteer worker — owns run scenarios, job store, processJob, CLI; crash-isolated queue mode",
+    "type": "module",
+    "bin": {
+        "hh-worker": "./bin/run.mjs"
+    },
+    "exports": {
+        ".": "./src/index.ts",
+        "./job": "./src/job/index.ts",
+        "./config": "./src/config/index.ts",
+        "./lib": "./src/lib/index.ts",
+        "./types": "./src/types/index.ts"
+    },
+    "scripts": {
+        "start": "node ./bin/run.mjs"
+    },
+    "engines": {
+        "node": ">=20"
+    }
 }

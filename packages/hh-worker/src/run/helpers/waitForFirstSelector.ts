@@ -1,5 +1,5 @@
 import { ElementHandle, Page } from 'puppeteer';
-import { TIMEOUTS } from '@config';
+import { TIMEOUTS } from '@market-hunter/hh-worker/config';
 
 export type FirstSelectorMatch = {
     handle: ElementHandle<Element>;

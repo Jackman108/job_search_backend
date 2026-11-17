@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer';
-import { SELECTORS_CHAT, TIMEOUTS } from '@config';
+import { SELECTORS_CHAT, TIMEOUTS } from '@market-hunter/hh-worker/config';
 
 /** Scroll the chatik sidebar so more chat cards virtualize into the DOM. */
 export async function scrollChatList(page: Page): Promise<number> {

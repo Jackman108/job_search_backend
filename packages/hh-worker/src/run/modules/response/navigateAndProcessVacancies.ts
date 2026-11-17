@@ -1,6 +1,6 @@
-import { HH_SCRAPE } from '@config';
-import { NavigateAndProcessVacanciesParams } from '@interface';
-import { delayBeforeApply, isStopped, readApplyCap, stop } from '@utils';
+import { HH_SCRAPE } from '@market-hunter/hh-worker/config';
+import { NavigateAndProcessVacanciesParams } from '@market-hunter/hh-worker/types';
+import { delayBeforeApply, isStopped, readApplyCap, stop } from '@market-hunter/hh-worker/lib';
 import { updateJob } from '../../../job/store.js';
 import { patchLiveApplySummary } from '../../helpers/patchLiveApplySummary.js';
 import { stage } from '../../helpers/stageLog.js';

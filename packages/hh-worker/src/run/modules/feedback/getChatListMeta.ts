@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer';
-import { SELECTORS_CHAT } from '@config';
+import { SELECTORS_CHAT } from '@market-hunter/hh-worker/config';
 
 export type ChatListMeta = {
     chatId: number;

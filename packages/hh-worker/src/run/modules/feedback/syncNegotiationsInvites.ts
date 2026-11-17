@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer';
-import { TIMEOUTS } from '@config';
+import { TIMEOUTS } from '@market-hunter/hh-worker/config';
 import type { ChatListMeta } from './getChatListMeta.js';
 
 /**

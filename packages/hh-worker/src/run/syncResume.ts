@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import { Browser, Page } from 'puppeteer';
-import type { SyncResumeParams } from '@interface';
-import { isStopped, stop } from '@utils';
+import type { SyncResumeParams } from '@market-hunter/contracts';
+import { isStopped, stop } from '@market-hunter/hh-worker/lib';
 import { authorize, initializeBrowser } from '@run';
 import type { ScenarioDeps } from '../job/processJob.deps.js';
 import { updateJob } from '../job/store.js';
