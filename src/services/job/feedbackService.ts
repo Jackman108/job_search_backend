@@ -55,22 +55,49 @@ export const saveChatFeedback = async (data: FeedbackData, userId: string): Prom
     await executeQuery(insertOrUpdateQuery, values);
 };
 
+/** Magritte CTA labels that leaked into title_vacancy — never show as vacancy name. */
+const BAD_TITLE_SQL = `LOWER(TRIM(COALESCE(title_vacancy, ''))) IN ('перейти','открыть','смотреть','подробнее','vacancy','вакансия')`;
+
 export const getChatFeedback = async (userId: string): Promise<any[]> => {
     const tableName = `"${userId}_feedbacks"`;
     // Always ensure table + title_* columns exist (CREATE IF NOT EXISTS + ALTER ADD IF NOT EXISTS).
     // Skipping ALTER on existing tables made GET /feedback 500 after title columns shipped.
     await createChatFeedbackTable(userId);
 
+    // Scrub CTA junk so JOIN display and vacancy table stay aligned.
+    await executeQuery(`UPDATE ${tableName} SET title_vacancy = NULL WHERE ${BAD_TITLE_SQL}`);
+
     const vacancyTable = `"${userId}_vacancy"`;
     const vacancyExists = await checkTableExists(vacancyTable);
+    if (vacancyExists) {
+        // Prefer vacancy SoT for title/company whenever the vacancy row exists.
+        await executeQuery(`
+            UPDATE ${tableName} f
+            SET title_vacancy = COALESCE(NULLIF(TRIM(v.title_vacancy), ''), f.title_vacancy),
+                title_company = COALESCE(NULLIF(TRIM(v.title_company), ''), f.title_company)
+            FROM ${vacancyTable} v
+            WHERE v.id = f.vacancy_id
+              AND (
+                NULLIF(TRIM(v.title_vacancy), '') IS NOT NULL
+                OR NULLIF(TRIM(v.title_company), '') IS NOT NULL
+              )
+              AND (
+                f.title_vacancy IS DISTINCT FROM v.title_vacancy
+                OR f.title_company IS DISTINCT FROM v.title_company
+                OR f.title_vacancy IS NULL
+                OR f.title_company IS NULL
+              )
+        `);
+    }
+
     const query = vacancyExists
         ? `SELECT f.id,
                   f.vacancy_id,
                   f.feedback_text,
                   f.feedback_date,
                   f.response_status,
-                  COALESCE(f.title_vacancy, v.title_vacancy) AS title_vacancy,
-                  COALESCE(f.title_company, v.title_company) AS title_company
+                  COALESCE(NULLIF(TRIM(v.title_vacancy), ''), NULLIF(TRIM(f.title_vacancy), '')) AS title_vacancy,
+                  COALESCE(NULLIF(TRIM(v.title_company), ''), NULLIF(TRIM(f.title_company), '')) AS title_company
            FROM ${tableName} f
            LEFT JOIN ${vacancyTable} v ON v.id = f.vacancy_id
            ORDER BY f.feedback_date DESC NULLS LAST`
