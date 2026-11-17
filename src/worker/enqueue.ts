@@ -1,6 +1,6 @@
-import type { GetFeedbackParams, SendFeedbackParams } from '@interface';
+import type { GetFeedbackParams, SendFeedbackParams, SyncResumeParams } from '@interface';
 import { logger } from '../utils/logger.js';
-import { enqueueGetFeedback, enqueueSendFeedback } from './jobStore.js';
+import { enqueueGetFeedback, enqueueSendFeedback, enqueueSyncResume } from './jobStore.js';
 import { spawnWorker } from './spawnWorker.js';
 
 /** Queue HH Puppeteer work in a detached process so the API process stays up if Chrome dies. */
@@ -18,6 +18,16 @@ export function queueSendFeedback(payload: SendFeedbackParams): { jobId: string 
 export function queueGetFeedback(payload: GetFeedbackParams): { jobId: string } {
     const job = enqueueGetFeedback(payload);
     logger.info('HH job queued (getFeedback /refresh)', {
+        jobId: job.id,
+        userId: payload.userId,
+    });
+    spawnWorker(job.id);
+    return { jobId: job.id };
+}
+
+export function queueSyncResume(payload: SyncResumeParams): { jobId: string } {
+    const job = enqueueSyncResume(payload);
+    logger.info('HH job queued (syncResume /sync-resume)', {
         jobId: job.id,
         userId: payload.userId,
     });

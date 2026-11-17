@@ -6,6 +6,7 @@ import {
     saveChatFeedback,
     saveVacancy,
     updateSuccessfulResponsesCount,
+    upsertResumeFromHh,
 } from '@services';
 import { noopJobBroadcast } from './noopJobBroadcast.js';
 
@@ -31,6 +32,9 @@ export function createProcessJobDeps(): ProcessJobDeps {
         feedbackRepo: {
             saveChatFeedback,
             getChatFeedback,
+        },
+        resumeRepo: {
+            upsertFromHh: upsertResumeFromHh,
         },
     };
 }

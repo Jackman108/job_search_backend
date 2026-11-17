@@ -1,5 +1,6 @@
 import { getFeedback } from '../run/getFeedback.js';
 import { sendFeedback } from '../run/sendFeedback.js';
+import { syncResume } from '../run/syncResume.js';
 import { createJobStoreBroadcast } from './jobStoreBroadcast.js';
 import type { ProcessJobDeps } from './processJob.deps.js';
 import { claimQueuedJob, readJob, updateJob } from './store.js';
@@ -28,7 +29,6 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
                 ...deps.vacancyRepo,
                 saveVacancy: async (data: Parameters<typeof deps.vacancyRepo.saveVacancy>[0], userId: string) => {
                     await deps.vacancyRepo.saveVacancy(data, userId);
-                    // Drive client table refresh via poll lastEventAt (no cross-process WS).
                     updateJob(id, {
                         lastEvent: `Vacancy saved ${data.id}`,
                         lastEventAt: new Date().toISOString(),
@@ -42,7 +42,6 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             });
             await counters.incrementSpinCount(job.userId);
             await counters.updateSuccessfulResponsesCount(job.userId);
-            // Don't overwrite a late cancel mark (rare; kill may race).
             if (readJob(id)?.status === 'cancelled') {
                 return;
             }
@@ -51,13 +50,12 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
                 status: 'done',
                 finishedAt: new Date().toISOString(),
                 countersUpdated: true,
-                // Keep worker summary / «Поиск вакансий окончен…» if already written.
                 lastEvent: finished?.lastEvent || `HH job ${id} done (sendFeedback)`,
                 lastEventAt: finished?.lastEventAt || new Date().toISOString(),
                 summary: finished?.summary,
             });
             broadcast.broadcast(finished?.lastEvent || `HH job ${id} done (sendFeedback)`);
-        } else {
+        } else if (job.kind === 'getFeedback') {
             const feedbackRepo = {
                 ...deps.feedbackRepo,
                 saveChatFeedback: async (
@@ -87,6 +85,23 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
                 lastEventAt: new Date().toISOString(),
             });
             broadcast.broadcast(finished?.lastEvent || `HH job ${id} done (getFeedback)`);
+        } else {
+            await syncResume(job.payload, {
+                resumeRepo: deps.resumeRepo,
+                broadcast,
+                jobId: id,
+            });
+            if (readJob(id)?.status === 'cancelled') {
+                return;
+            }
+            const finished = readJob(id);
+            updateJob(id, {
+                status: 'done',
+                finishedAt: new Date().toISOString(),
+                lastEvent: finished?.lastEvent || `HH job ${id} done (syncResume)`,
+                lastEventAt: new Date().toISOString(),
+            });
+            broadcast.broadcast(finished?.lastEvent || `HH job ${id} done (syncResume)`);
         }
     } catch (err) {
         if (readJob(id)?.status === 'cancelled') {

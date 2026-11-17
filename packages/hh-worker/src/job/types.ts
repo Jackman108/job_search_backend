@@ -1,6 +1,6 @@
-import type { GetFeedbackParams, HhApplySummary, SendFeedbackParams } from '@interface';
+import type { GetFeedbackParams, HhApplySummary, SendFeedbackParams, SyncResumeParams } from '@interface';
 
-export type HhJobKind = 'sendFeedback' | 'getFeedback';
+export type HhJobKind = 'sendFeedback' | 'getFeedback' | 'syncResume';
 
 export type HhJobStatus = 'queued' | 'running' | 'done' | 'error' | 'cancelled';
 
@@ -42,4 +42,9 @@ export interface GetFeedbackJob extends HhJobBase {
     payload: GetFeedbackParams;
 }
 
-export type HhJob = SendFeedbackJob | GetFeedbackJob;
+export interface SyncResumeJob extends HhJobBase {
+    kind: 'syncResume';
+    payload: SyncResumeParams;
+}
+
+export type HhJob = SendFeedbackJob | GetFeedbackJob | SyncResumeJob;
