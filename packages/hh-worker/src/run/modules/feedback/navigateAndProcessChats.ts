@@ -1,6 +1,6 @@
-import { HH_SCRAPE, SELECTORS_CHAT, TIMEOUTS } from '@config';
-import { navigateAndProcessChats } from '@interface';
-import { isStopped, mapFeedbackStatus, sanitizeVacancyTitle, stop } from '@utils';
+import { HH_SCRAPE, SELECTORS_CHAT, TIMEOUTS } from '@market-hunter/hh-worker/config';
+import type { NavigateAndProcessChatsParams } from '@market-hunter/hh-worker/types';
+import { isStopped, mapFeedbackStatus, sanitizeVacancyTitle, stop } from '@market-hunter/hh-worker/lib';
 import { expandChatList } from './scrollChatList.js';
 import { fetchChatikChatsApi } from './fetchChatikChatsApi.js';
 import { getChatListMeta, type ChatListMeta } from './getChatListMeta.js';
@@ -47,7 +47,7 @@ export async function navigateAndProcessChats({
     page,
     browser,
     feedbackRepo,
-}: navigateAndProcessChats): Promise<void> {
+}: NavigateAndProcessChatsParams): Promise<void> {
     const maxChats = HH_SCRAPE.MAX_FEEDBACK_CHATS;
     const metas = new Map<number, ChatListMeta>();
 

@@ -1,5 +1,5 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
-import { ENV, ENV_BROWSER_CONFIG, resolvePuppeteerHeadless } from '@config';
+import { ENV, ENV_BROWSER_CONFIG, resolvePuppeteerHeadless } from '@market-hunter/hh-worker/config';
 import { applyStealth } from './applyStealth.js';
 import { stage } from './stageLog.js';
 

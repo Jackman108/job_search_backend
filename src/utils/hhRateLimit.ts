@@ -1,6 +1,6 @@
 /**
- * @deprecated Import from `src/modules/hh-jobs` (or worker config after phase 4b).
- * Re-export keeps worker `@utils` imports working until worker isolation lands.
+ * @deprecated Prefer `@market-hunter/hh-worker/lib` (worker) or `modules/hh-jobs` (API).
+ * Single SoT for pacing is the worker package.
  */
 export {
     HH_RATE_LIMIT,
@@ -9,4 +9,4 @@ export {
     readApplyCap,
     sleep,
     withJitter,
-} from '../modules/hh-jobs/index.js';
+} from '@market-hunter/hh-worker/lib';

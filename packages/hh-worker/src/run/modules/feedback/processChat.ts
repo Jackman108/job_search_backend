@@ -1,12 +1,12 @@
-import { SELECTORS_CHAT, TIMEOUTS } from '@config';
-import { ProcessChatParams } from '@interface';
+import { SELECTORS_CHAT, TIMEOUTS } from '@market-hunter/hh-worker/config';
+import { ProcessChatParams } from '@market-hunter/hh-worker/types';
 import {
     extractFeedbackData,
     isStopped,
     mapFeedbackStatus,
     pickBestFeedbackStatus,
     sanitizeVacancyTitle,
-} from '@utils';
+} from '@market-hunter/hh-worker/lib';
 import type { ChatListMeta } from './getChatListMeta.js';
 
 type ProcessChatWithMeta = ProcessChatParams & {

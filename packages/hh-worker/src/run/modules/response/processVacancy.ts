@@ -1,5 +1,5 @@
-import { SELECTORS, TIMEOUTS, VACANCY_STATUS } from '@config';
-import { ProcessVacancyParams } from '@interface';
+import { SELECTORS, TIMEOUTS, VACANCY_STATUS } from '@market-hunter/hh-worker/config';
+import { ProcessVacancyParams } from '@market-hunter/hh-worker/types';
 import type { VacancyRepo } from '../../../job/vacancyRepo.types.js';
 import { scrollToElementIfNotFound } from '../../helpers/scrollToElementIfNotFound.js';
 import { stage } from '../../helpers/stageLog.js';

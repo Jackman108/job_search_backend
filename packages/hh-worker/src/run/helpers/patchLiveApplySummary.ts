@@ -1,4 +1,4 @@
-import type { Counters } from '@interface';
+import type { Counters } from '@market-hunter/hh-worker/types';
 import { readJob, updateJob } from '../../job/store.js';
 
 /** Keep GET /jobs/:id summary counters fresh during the apply loop (not only at end). */

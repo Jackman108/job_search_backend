@@ -1,10 +1,11 @@
 //index.ts
 import * as dotenv from 'dotenv';
 import { Browser, Page } from 'puppeteer';
-import { Counters, HhApplyEndReason, SendFeedbackParams } from '@interface';
+import type { HhApplyEndReason, SendFeedbackParams } from '@market-hunter/contracts';
+import type { Counters } from '@market-hunter/hh-worker/types';
 import type { ScenarioDeps } from '../job/processJob.deps.js';
 import { readJob, updateJob } from '../job/store.js';
-import { isStopped, stop } from '@utils';
+import { isStopped, stop } from '@market-hunter/hh-worker/lib';
 import { authorize, initializeBrowser, navigateAndProcessVacancies, searchForVacancy } from '@run';
 import { launchHhBrowser } from './helpers/launchHhBrowser.js';
 import { stage } from './helpers/stageLog.js';

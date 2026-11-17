@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '@config';
+import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
 
 async function isOnSerp(page: Page): Promise<boolean> {
     return page

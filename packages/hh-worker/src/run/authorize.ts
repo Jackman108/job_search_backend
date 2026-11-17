@@ -1,4 +1,4 @@
-import { SELECTORS, TIMEOUTS } from '@config';
+import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
 import { Browser, Page } from 'puppeteer';
 import type { JobBroadcast } from '../job/broadcast.types.js';
 import { clickByExactText } from './helpers/clickByExactText.js';

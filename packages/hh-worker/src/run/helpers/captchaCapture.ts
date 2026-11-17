@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Page } from 'puppeteer';
-import { SELECTORS, TIMEOUTS } from '@config';
+import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
 import { JOBS_DIR } from '../../job/store.js';
 import { stage } from './stageLog.js';
 

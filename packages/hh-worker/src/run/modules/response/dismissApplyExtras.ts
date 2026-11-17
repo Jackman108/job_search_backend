@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer';
-import { SELECTORS } from '@config';
+import { SELECTORS } from '@market-hunter/hh-worker/config';
 
 /** Close Magritte post-submit / profile-completion overlays if present. */
 export async function dismissApplyExtras(page: Page): Promise<void> {

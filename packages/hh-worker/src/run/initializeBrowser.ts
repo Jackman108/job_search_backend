@@ -1,6 +1,6 @@
 import { Browser, Page } from 'puppeteer';
-import { TIMEOUTS } from '@config';
-import { reset, stop } from '@utils';
+import { TIMEOUTS } from '@market-hunter/hh-worker/config';
+import { reset, stop } from '@market-hunter/hh-worker/lib';
 import type { JobBroadcast } from '../job/broadcast.types.js';
 import { clearBrowserSession } from './helpers/clearBrowserSession.js';
 import { dismissPreLoginOverlays } from './helpers/dismissPreLoginOverlays.js';

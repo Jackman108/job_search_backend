@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer';
-import { TIMEOUTS } from '@config';
+import { TIMEOUTS } from '@market-hunter/hh-worker/config';
 import { waitForFirstSelector } from './waitForFirstSelector.js';
 
 export async function scrollToElementIfNotFound(page: Page, selector: string | readonly string[]) {
