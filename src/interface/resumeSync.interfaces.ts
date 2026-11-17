@@ -6,9 +6,10 @@ export interface SyncResumeParams {
     password: string;
 }
 
+/** Optional — when omitted, API uses the first saved vacancy_auth (SearchForm / apply profile). */
 export interface SyncResumeBody {
-    email: string;
-    password: string;
+    email?: string;
+    password?: string;
 }
 
 export type MappedHhResume = {

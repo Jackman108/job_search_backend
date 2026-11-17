@@ -12,6 +12,7 @@ import {
     StopScriptResponse,
     SyncResumeBody,
 } from '@interface';
+import { getVacancyAuthByUserId } from '@services';
 import { cancelJobsForUser } from '../../worker/cancelJobs.js';
 import { queueGetFeedback, queueSendFeedback, queueSyncResume } from '../../worker/enqueue.js';
 import { listJobs, readJob, updateJob, writeCaptchaAnswer } from '../../worker/jobStore.js';
@@ -96,11 +97,29 @@ export class ScriptController {
     /** Queue HH → local resume sync (first resume on the HH account). */
     async syncResume(req: AuthenticatedRequest, res: Response) {
         try {
-            const { email, password } = req.body as Partial<SyncResumeBody>;
+            const bodyIn = (req.body || {}) as Partial<SyncResumeBody>;
+            let email = typeof bodyIn.email === 'string' ? bodyIn.email.trim() : '';
+            let password = typeof bodyIn.password === 'string' ? bodyIn.password : '';
+
+            // Same HH account as apply/refresh: fall back to first saved vacancy_auth.
             if (!email || !password) {
-                res.status(400).json({ message: 'Required: email, password (HH account).' });
+                const auths = await getVacancyAuthByUserId(req.userId!);
+                const first = auths.find((a) => a.email && a.password) || auths[0];
+                if (first?.email && first?.password) {
+                    email = email || String(first.email);
+                    password = password || String(first.password);
+                }
+            }
+
+            if (!email || !password) {
+                res.status(400).json({
+                    code: 'HH_CREDS_MISSING',
+                    message:
+                        'Нет сохранённых логина/пароля HH. Откройте «Отправка заявок», введите email и пароль, нажмите Сохранить — затем синхронизируйте резюме.',
+                });
                 return;
             }
+
             const { jobId } = queueSyncResume({
                 userId: req.userId!,
                 email,
