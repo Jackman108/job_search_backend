@@ -4,9 +4,11 @@ import { registerVacancyRoutes } from './http/vacancy.routes.js';
 
 export { VacancyController } from './http/VacancyController.js';
 export {
+    countSuccessfulVacancies,
     createTableVacanciesUser,
     deleteVacancyTable,
     deleteVacancyUser,
+    ensureVacanciesTable,
     getVacanciesUser,
     saveVacancy,
 } from './application/vacancyService.js';

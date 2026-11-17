@@ -38,7 +38,7 @@ async function saveFail(
     _vacancyRepo: VacancyRepo,
     reason: string,
 ): Promise<void> {
-    // Do NOT persist failures — only SUCCESS / intentional skips belong in `{user}_vacancy`.
+    // Do NOT persist failures — only SUCCESS / intentional skips belong in shared vacancies.
     // Writing fails made the next SERP pass skip cards that never got a real отклик.
     counters.failedCount++;
     if (!counters.failReasons) counters.failReasons = {};
