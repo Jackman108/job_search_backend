@@ -111,18 +111,18 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *   post:
      *     summary: Queue HH resume sync (first resume → local resume stack)
      *     description: |
-     *       Requires JWT + HH email/password. Always **202** + `jobId` (detached worker).
+     *       Requires JWT. HH email/password optional in body — if omitted, uses the first
+     *       saved `vacancy_auth` (same credentials as «Отправка заявок»). Always **202** + `jobId`.
      *       If the HH account has several resumes, the first one is used.
      *     tags: [HH]
      *     security:
      *       - bearerAuth: []
      *     requestBody:
-     *       required: true
+     *       required: false
      *       content:
      *         application/json:
      *           schema:
      *             type: object
-     *             required: [email, password]
      *             properties:
      *               email: { type: string }
      *               password: { type: string }
@@ -130,7 +130,7 @@ export const initializeUtilRoutes = (app: express.Application) => {
      *       202:
      *         description: Resume sync job queued
      *       400:
-     *         description: Missing email/password
+     *         description: No HH credentials in body or vacancy_auth
      *       401:
      *         description: Invalid or expired JWT
      */
