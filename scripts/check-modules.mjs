@@ -12,6 +12,13 @@ const SRC = path.join(ROOT, 'src');
 const MODULES_DIR = path.join(SRC, 'modules');
 const ENFORCE =
     process.argv.includes('--enforce') || process.env.CHECK_MODULES_ENFORCE === '1';
+/** Modules that must pass scaffold + deep-import rules even in report-only mode. */
+const ENFORCE_MODULES = new Set(
+    (process.env.CHECK_MODULES_ENFORCE_LIST || 'notifications')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+);
 
 const REQUIRED_README_SECTIONS = ['## Public API', '## Tables', '## Env', '## Routes', '## Security'];
 
@@ -100,19 +107,32 @@ if (deepIssues.length) {
     for (const i of deepIssues) report.push(`  - ${i}`);
 }
 
+const enforcedScaffold = scaffoldIssues.filter((i) =>
+    [...ENFORCE_MODULES].some((m) => i.startsWith(`modules/${m}:`)),
+);
+const enforcedDeep = deepIssues.filter((i) =>
+    [...ENFORCE_MODULES].some((m) => i.includes(`/modules/${m}/`) || i.includes(`modules/${m}/`)),
+);
+
 const hasProblems = scaffoldIssues.length > 0 || deepIssues.length > 0;
+const hasEnforcedProblems = enforcedScaffold.length > 0 || enforcedDeep.length > 0;
 
 if (!hasProblems) {
-    report.push(ENFORCE ? 'OK (enforce)' : 'OK (report-only; no modules or clean)');
+    report.push(ENFORCE ? 'OK (enforce all)' : `OK (report-only; enforced=[${[...ENFORCE_MODULES]}])`);
     console.log(report.join('\n'));
     process.exit(0);
 }
 
-if (!ENFORCE) {
-    report.push('REPORT-ONLY — not failing CI (set CHECK_MODULES_ENFORCE=1 or --enforce)');
+if (!ENFORCE && !hasEnforcedProblems) {
+    report.push(
+        `REPORT-ONLY — not failing CI for non-enforced modules (enforced=[${[...ENFORCE_MODULES]}]; set CHECK_MODULES_ENFORCE=1 or --enforce for all)`,
+    );
     console.log(report.join('\n'));
     process.exit(0);
 }
 
 console.error(report.join('\n'));
-process.exit(1);
+if (ENFORCE || hasEnforcedProblems) {
+    process.exit(1);
+}
+process.exit(0);
