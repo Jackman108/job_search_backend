@@ -1,5 +1,4 @@
-import { deriveUserRank } from '../../../utils/deriveUserRank.js';
-import { getUserProfile } from '../../../services/auth/profileService.js';
+import { deriveUserRank, getUserProfile } from '../../profile/index.js';
 import { notificationsConfig } from '../module.config.js';
 import type { AppNotification } from '../domain/types.js';
 import {

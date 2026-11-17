@@ -1,12 +1,7 @@
 import express from 'express';
-import { initializeContactsRoutes } from './contacts.routes';
-import { initializeResumeRoutes } from './resume.routes';
-import { initializeSkillsRoutes } from './skills.routes';
-import { initializeWorkExperienceRoutes } from './workExperience.routes';
+import { register as registerResume } from '../modules/resume/index.js';
 
+/** @deprecated Prefer `modules/resume.register`. */
 export const initializeUserRoutes = (app: express.Application) => {
-    initializeResumeRoutes(app);
-    initializeContactsRoutes(app);
-    initializeSkillsRoutes(app);
-    initializeWorkExperienceRoutes(app);
+    registerResume(app);
 };
