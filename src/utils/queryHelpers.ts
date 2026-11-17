@@ -102,8 +102,7 @@ export async function checkTableExists(tableName: string): Promise<boolean> {
     return result[0]?.to_regclass !== null;
 }
 
+/** @deprecated S4 removed per-user vacancy/feedback tables — use module DELETE BY user_id. */
 export async function deleteTable(userId: string, tableName: string): Promise<void> {
-    const fullTableName = `"${userId}_${tableName}"`;
-    const query = `DROP TABLE IF EXISTS ${fullTableName}`;
-    await executeQuery(query);
+    throw new Error(`deleteTable is deprecated after S4 (refused drop of per-user "${tableName}" for ${userId})`);
 }

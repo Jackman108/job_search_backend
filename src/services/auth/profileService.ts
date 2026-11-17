@@ -1,6 +1,7 @@
 import { ProfileData, UserProfileUpdateFields } from '@interface';
 import { broadcast } from '@server';
 import { executeQuery, generateUpdateQuery, invalidateUserProfileCache, userProfileCache } from '@utils';
+import { countSuccessfulVacancies } from '../../modules/vacancies/index.js';
 import { deriveUserRank } from '../../utils/deriveUserRank.js';
 
 async function createUserProfile(userId: string): Promise<void> {
@@ -66,12 +67,7 @@ export async function incrementSpinCount(userId: string): Promise<void> {
 }
 
 export async function updateSuccessfulResponsesCount(userId: string): Promise<void> {
-    const tableName = `"${userId}_vacancy"`;
-    const countQuery = `
-        SELECT COUNT(*)::int AS successful_responses_count
-        FROM ${tableName}
-        WHERE vacancy_status = 'true';
-    `;
+    const successfulResponsesCount = await countSuccessfulVacancies(userId);
 
     const updateQuery = `
         UPDATE profiles
@@ -79,8 +75,6 @@ export async function updateSuccessfulResponsesCount(userId: string): Promise<vo
         WHERE user_id = $2;
     `;
 
-    const result = await executeQuery<{ successful_responses_count: number | string }>(countQuery);
-    const successfulResponsesCount = parseInt(String(result[0]?.successful_responses_count ?? 0), 10);
     await executeQuery(updateQuery, [successfulResponsesCount, userId]);
     invalidateUserProfileCache(userId);
 }

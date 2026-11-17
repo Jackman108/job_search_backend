@@ -1,16 +1,18 @@
 # vacancies
 
-User vacancy rows from HH apply runs (per-user tables until S4).
+User vacancy rows from HH apply runs (shared table with `user_id`, S4).
 
 ## Public API
 
 - `register(app)` — mount routes
-- `saveVacancy` / `getVacanciesUser` / `deleteVacancyUser` / `deleteVacancyTable` / `createTableVacanciesUser`
-- `vacancyTableIdent(userId)` — quoted legacy table name for joins
+- `saveVacancy` / `getVacanciesUser` / `deleteVacancyUser` / `deleteVacancyTable` / `ensureVacanciesTable`
+- `countSuccessfulVacancies(userId)` — profile spin/success counters
+- `vacancyTableIdent()` — shared table name (`vacancies`)
 
 ## Tables
 
-- Per-user `"${userId}_vacancy"` (S4 will migrate to shared `vacancies(user_id, …)`)
+- `vacancies` (migration `004_vacancies_feedbacks_shared.sql`)
+- Legacy per-user tables renamed `_legacy_*` via `yarn migrate:s4`
 
 ## Env
 
@@ -22,10 +24,10 @@ None required today.
 |--------|------|------|
 | GET | `/vacancy` | yes |
 | DELETE | `/vacancy/:vacancyId` | yes |
-| DELETE | `/default/vacancies` | yes |
+| DELETE | `/default/vacancies` | yes (DELETE WHERE user_id) |
 
 ## Security
 
-- All routes require JWT (`req.userId`); table scoped by that id.
+- All routes require JWT (`req.userId`); rows scoped by `user_id`.
 - Empty list → `200 []`.
-- Dynamic table names are quoted idents from trusted `userId` (JWT), not request body.
+- PK `(user_id, id)` — HH vacancy id alone is not unique across users.

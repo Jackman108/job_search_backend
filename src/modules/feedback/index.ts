@@ -7,6 +7,7 @@ export {
     createChatFeedbackTable,
     deleteChatFeedback,
     deleteFeedbackTable,
+    ensureFeedbacksTable,
     getChatFeedback,
     saveChatFeedback,
 } from './application/feedbackService.js';
