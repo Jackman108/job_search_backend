@@ -1,4 +1,4 @@
-/** Re-export — canonical types live in `@market-hunter/hh-worker`. */
+/** Re-export — canonical types live in `@market-hunter/contracts` / hh-worker. */
 export type {
     GetFeedbackJob,
     HhJob,
@@ -6,4 +6,5 @@ export type {
     HhJobKind,
     HhJobStatus,
     SendFeedbackJob,
+    SyncResumeJob,
 } from '@market-hunter/hh-worker/job';

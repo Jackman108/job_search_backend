@@ -1,10 +1,7 @@
 import { ElementHandle } from 'puppeteer';
 
-export interface GetFeedbackParams {
-    userId: string;
-    email: string;
-    password: string;
-}
+/** @deprecated Prefer `@market-hunter/contracts`. */
+export type { GetFeedbackParams, SendFeedbackParams } from '@market-hunter/contracts';
 
 export interface ExtractFeedbackData {
     chatId: number;
@@ -15,17 +12,6 @@ export interface ExtractFeedbackData {
     feedback_time: string;
     title_vacancy?: string;
     title_company?: string;
-}
-
-export interface SendFeedbackParams {
-    userId: string;
-    email: string;
-    password: string;
-    position: string;
-    message: string;
-    vacancyUrl: string;
-    dryRun?: boolean;
-    applyCap?: number;
 }
 
 export interface FeedbackData {

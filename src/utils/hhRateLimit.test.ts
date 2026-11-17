@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { HH_RATE_LIMIT, withJitter } from './hhRateLimit.js';
+import { HH_RATE_LIMIT, withJitter } from '../modules/hh-jobs/index.js';
 
 describe('hhRateLimit.withJitter', () => {
     it('stays within [base, base+jitter]', () => {

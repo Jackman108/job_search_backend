@@ -44,5 +44,5 @@ export const swaggerOptions: Options = {
             { name: 'Health', description: 'Liveness probes' },
         ],
     },
-    apis: ['./src/routes/*.ts', './src/swagger/**/*.ts'],
+    apis: ['./src/routes/*.ts', './src/swagger/**/*.ts', './src/modules/*/http/*.ts'],
 };
