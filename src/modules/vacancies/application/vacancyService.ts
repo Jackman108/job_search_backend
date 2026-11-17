@@ -1,0 +1,68 @@
+import type { VacancyData } from '@market-hunter/hh-worker/types';
+import { broadcast } from '@server';
+import { checkTableExists, deleteTable, executeQuery } from '@utils';
+import { vacanciesConfig, vacancyTableIdent } from '../module.config.js';
+
+export async function createTableVacanciesUser(userId: string): Promise<void> {
+    const tableName = vacancyTableIdent(userId);
+
+    const query = `
+        CREATE TABLE IF NOT EXISTS ${tableName} (
+            id BIGINT PRIMARY KEY,
+            title_vacancy VARCHAR(255),
+            url_vacancy TEXT,
+            title_company VARCHAR(255),
+            url_company TEXT,
+            vacancy_status VARCHAR(50),
+            response_date TIMESTAMP                
+        );
+    `;
+
+    await executeQuery(query);
+}
+
+export async function deleteVacancyTable(userId: string): Promise<void> {
+    await deleteTable(userId, vacanciesConfig.tableSuffix);
+}
+
+export async function saveVacancy(data: VacancyData, userId: string): Promise<void> {
+    const tableName = vacancyTableIdent(userId);
+
+    const insertOrUpdateQuery = `
+        INSERT INTO ${tableName} (id, title_vacancy, url_vacancy, title_company, url_company, vacancy_status, response_date)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (id) DO UPDATE 
+        SET title_vacancy = $2, url_vacancy = $3, title_company = $4, url_company = $5, vacancy_status = $6, response_date = $7;
+    `;
+
+    const values = [
+        data.id,
+        data.title_vacancy,
+        data.url_vacancy,
+        data.title_company,
+        data.url_company,
+        data.vacancy_status,
+        data.response_date,
+    ];
+
+    await executeQuery(insertOrUpdateQuery, values);
+    broadcast(`Vacancy has been successfully saved with ID ${data.id}`);
+}
+
+export async function getVacanciesUser(userId: string): Promise<any[]> {
+    const tableName = vacancyTableIdent(userId);
+    const exists = await checkTableExists(tableName);
+    if (!exists) {
+        await createTableVacanciesUser(userId);
+    }
+    const query = `SELECT * FROM ${tableName}`;
+    const result = await executeQuery(query);
+    return result.length > 0 ? result : [];
+}
+
+export async function deleteVacancyUser(userId: string, vacancyId: string | number): Promise<void> {
+    const tableName = vacancyTableIdent(userId);
+    const query = `DELETE FROM ${tableName} WHERE id = $1;`;
+    await executeQuery(query, [vacancyId]);
+    broadcast(`Vacancy with ID ${vacancyId} has been successfully deleted.`);
+}
