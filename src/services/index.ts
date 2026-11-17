@@ -15,6 +15,7 @@ export * from './user/resume/contactService.js';
 export * from './user/resume/resumeService.js';
 export * from './user/resume/skillService.js';
 export * from './user/resume/workExperienceService.js';
+export * from './user/resume/upsertResumeFromHh.js';
 
 // Базовые платежные сервисы
 export * from './payment/infoPaymentService.js';

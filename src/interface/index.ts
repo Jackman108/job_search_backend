@@ -7,6 +7,7 @@ export * from './process.interfaces.js';
 export * from './common.interfaces.js';
 export * from './subscription.interfaces.js';
 export * from './skill.interfaces.js';
+export * from './resumeSync.interfaces.js';
 
 // Экспорт платежных интерфейсов
 export * from './payment/base.interfaces';

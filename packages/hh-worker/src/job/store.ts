@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
-import type { GetFeedbackParams, SendFeedbackParams } from '@interface';
-import type { GetFeedbackJob, HhJob, SendFeedbackJob } from './types.js';
+import type { GetFeedbackParams, SendFeedbackParams, SyncResumeParams } from '@interface';
+import type { GetFeedbackJob, HhJob, SendFeedbackJob, SyncResumeJob } from './types.js';
 
 const JOBS_DIR = process.env.HH_JOBS_DIR
     ? path.resolve(process.env.HH_JOBS_DIR)
@@ -147,6 +147,19 @@ export function enqueueGetFeedback(payload: GetFeedbackParams): GetFeedbackJob {
     const job: GetFeedbackJob = {
         id: randomUUID(),
         kind: 'getFeedback',
+        status: 'queued',
+        createdAt: new Date().toISOString(),
+        userId: payload.userId,
+        payload,
+    };
+    writeJob(job);
+    return job;
+}
+
+export function enqueueSyncResume(payload: SyncResumeParams): SyncResumeJob {
+    const job: SyncResumeJob = {
+        id: randomUUID(),
+        kind: 'syncResume',
         status: 'queued',
         createdAt: new Date().toISOString(),
         userId: payload.userId,

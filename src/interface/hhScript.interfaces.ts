@@ -42,7 +42,7 @@ export interface StopScriptResponse {
     abortedCount: number;
 }
 
-export type HhJobKindDto = 'sendFeedback' | 'getFeedback';
+export type HhJobKindDto = 'sendFeedback' | 'getFeedback' | 'syncResume';
 
 export type HhJobStatusDto = 'queued' | 'running' | 'done' | 'error' | 'cancelled';
 

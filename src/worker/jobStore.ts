@@ -5,6 +5,7 @@ export {
     claimQueuedJob,
     enqueueGetFeedback,
     enqueueSendFeedback,
+    enqueueSyncResume,
     listJobs,
     readJob,
     takeCaptchaAnswer,

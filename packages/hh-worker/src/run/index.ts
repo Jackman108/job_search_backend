@@ -1,5 +1,6 @@
 export * from './sendFeedback.js';
 export * from './getFeedback.js';
+export * from './syncResume.js';
 export * from './authorize.js';
 export * from './initializeBrowser.js';
 export * from './modules/response/navigateAndProcessVacancies.js';

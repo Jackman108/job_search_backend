@@ -10,9 +10,10 @@ import {
     RefreshScriptBody,
     StartScriptBody,
     StopScriptResponse,
+    SyncResumeBody,
 } from '@interface';
 import { cancelJobsForUser } from '../../worker/cancelJobs.js';
-import { queueGetFeedback, queueSendFeedback } from '../../worker/enqueue.js';
+import { queueGetFeedback, queueSendFeedback, queueSyncResume } from '../../worker/enqueue.js';
 import { listJobs, readJob, updateJob, writeCaptchaAnswer } from '../../worker/jobStore.js';
 
 export class ScriptController {
@@ -89,6 +90,30 @@ export class ScriptController {
             res.status(202).json(body);
         } catch (error) {
             handleErrors(res, error, 'Error Update!');
+        }
+    }
+
+    /** Queue HH → local resume sync (first resume on the HH account). */
+    async syncResume(req: AuthenticatedRequest, res: Response) {
+        try {
+            const { email, password } = req.body as Partial<SyncResumeBody>;
+            if (!email || !password) {
+                res.status(400).json({ message: 'Required: email, password (HH account).' });
+                return;
+            }
+            const { jobId } = queueSyncResume({
+                userId: req.userId!,
+                email,
+                password,
+            });
+            const body: HhJobQueuedResponse = {
+                message: 'HH resume sync queued (detached worker).',
+                jobId,
+                mode: 'queue',
+            };
+            res.status(202).json(body);
+        } catch (error) {
+            handleErrors(res, error, 'Resume sync queue error.');
         }
     }
 
