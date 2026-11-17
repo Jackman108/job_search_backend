@@ -1,9 +1,33 @@
 import { getFeedback } from '../run/getFeedback.js';
 import { sendFeedback } from '../run/sendFeedback.js';
 import { syncResume } from '../run/syncResume.js';
+import type { CredentialsRepo } from './credentialsRepo.types.js';
 import { createJobStoreBroadcast } from './jobStoreBroadcast.js';
 import type { ProcessJobDeps } from './processJob.deps.js';
 import { claimQueuedJob, readJob, updateJob } from './store.js';
+
+type CredPayload = { userId: string; email: string; password: string };
+
+/** Fill password from DB when job file was redacted (S2). */
+async function resolvePayloadCredentials<T extends CredPayload>(
+    payload: T,
+    credentialsRepo: CredentialsRepo,
+): Promise<T> {
+    if (typeof payload.password === 'string' && payload.password.trim()) {
+        return payload;
+    }
+    const creds = await credentialsRepo.getDecryptedByUserId(payload.userId, payload.email);
+    if (!creds?.password) {
+        throw new Error(
+            'HH credentials missing for job (not on disk by design). Save login/password on Отправка заявок and retry.',
+        );
+    }
+    return {
+        ...payload,
+        email: payload.email?.trim() ? payload.email : creds.email,
+        password: creds.password,
+    };
+}
 
 /**
  * Claim a queued HH job and run the matching scenario.
@@ -25,6 +49,7 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
 
     try {
         if (job.kind === 'sendFeedback') {
+            const payload = await resolvePayloadCredentials(job.payload, deps.credentialsRepo);
             const vacancyRepo = {
                 ...deps.vacancyRepo,
                 saveVacancy: async (data: Parameters<typeof deps.vacancyRepo.saveVacancy>[0], userId: string) => {
@@ -35,7 +60,7 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
                     });
                 },
             };
-            await sendFeedback(job.payload, {
+            await sendFeedback(payload, {
                 vacancyRepo,
                 broadcast,
                 jobId: id,
@@ -56,6 +81,7 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             });
             broadcast.broadcast(finished?.lastEvent || `HH job ${id} done (sendFeedback)`);
         } else if (job.kind === 'getFeedback') {
+            const payload = await resolvePayloadCredentials(job.payload, deps.credentialsRepo);
             const feedbackRepo = {
                 ...deps.feedbackRepo,
                 saveChatFeedback: async (
@@ -69,7 +95,7 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
                     });
                 },
             };
-            await getFeedback(job.payload, {
+            await getFeedback(payload, {
                 feedbackRepo,
                 broadcast,
                 jobId: id,
@@ -86,7 +112,8 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             });
             broadcast.broadcast(finished?.lastEvent || `HH job ${id} done (getFeedback)`);
         } else {
-            await syncResume(job.payload, {
+            const payload = await resolvePayloadCredentials(job.payload, deps.credentialsRepo);
+            await syncResume(payload, {
                 resumeRepo: deps.resumeRepo,
                 broadcast,
                 jobId: id,

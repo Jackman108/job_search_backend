@@ -1,3 +1,5 @@
+import { redact } from '../platform/logging/redact.js';
+
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 const LEVEL_ORDER: Record<LogLevel, number> = {
@@ -25,7 +27,8 @@ class Logger {
 
     private static formatMessage(level: LogLevel, message: string, meta?: unknown): string {
         const timestamp = new Date().toISOString();
-        const metaStr = meta === undefined ? '' : ` ${JSON.stringify(meta)}`;
+        const safeMeta = meta === undefined ? undefined : redact(meta);
+        const metaStr = safeMeta === undefined ? '' : ` ${JSON.stringify(safeMeta)}`;
         return `[${timestamp}] ${level.toUpperCase()}: ${message}${metaStr}`;
     }
 

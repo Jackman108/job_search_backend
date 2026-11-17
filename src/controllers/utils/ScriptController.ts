@@ -12,10 +12,11 @@ import {
     StopScriptResponse,
     SyncResumeBody,
 } from '@interface';
-import { getVacancyAuthByUserId } from '@services';
+import { upsertVacancyAuthCredentials } from '@services';
 import { cancelJobsForUser } from '../../worker/cancelJobs.js';
 import { queueGetFeedback, queueSendFeedback, queueSyncResume } from '../../worker/enqueue.js';
 import { listJobs, readJob, updateJob, writeCaptchaAnswer } from '../../worker/jobStore.js';
+import { resolveHhApplyCredentials } from './resolveHhApplyCredentials.js';
 
 export class ScriptController {
     async startScript(req: AuthenticatedRequest, res: Response) {
@@ -28,10 +29,12 @@ export class ScriptController {
                 });
                 return;
             }
+            // Persist encrypted creds before enqueue — job JSON must not carry password (S2).
+            await upsertVacancyAuthCredentials(req.userId!, email, password);
             const payload = {
                 userId: req.userId!,
                 email,
-                password,
+                password: '',
                 position,
                 message,
                 vacancyUrl,
@@ -76,10 +79,11 @@ export class ScriptController {
                 res.status(400).json({ message: 'Required: email, password (from form).' });
                 return;
             }
+            await upsertVacancyAuthCredentials(req.userId!, email, password);
             const payload = {
                 userId: req.userId!,
                 email,
-                password,
+                password: '',
             };
 
             const { jobId } = queueGetFeedback(payload);
@@ -98,20 +102,8 @@ export class ScriptController {
     async syncResume(req: AuthenticatedRequest, res: Response) {
         try {
             const bodyIn = (req.body || {}) as Partial<SyncResumeBody>;
-            let email = typeof bodyIn.email === 'string' ? bodyIn.email.trim() : '';
-            let password = typeof bodyIn.password === 'string' ? bodyIn.password : '';
-
-            // Same HH account as apply/refresh: fall back to first saved vacancy_auth.
-            if (!email || !password) {
-                const auths = await getVacancyAuthByUserId(req.userId!);
-                const first = auths.find((a) => a.email && a.password) || auths[0];
-                if (first?.email && first?.password) {
-                    email = email || String(first.email);
-                    password = password || String(first.password);
-                }
-            }
-
-            if (!email || !password) {
+            const creds = await resolveHhApplyCredentials(req.userId!, bodyIn.email, bodyIn.password);
+            if (!creds) {
                 res.status(400).json({
                     code: 'HH_CREDS_MISSING',
                     message:
@@ -120,10 +112,11 @@ export class ScriptController {
                 return;
             }
 
+            await upsertVacancyAuthCredentials(req.userId!, creds.email, creds.password);
             const { jobId } = queueSyncResume({
                 userId: req.userId!,
-                email,
-                password,
+                email: creds.email,
+                password: '',
             });
             const body: HhJobQueuedResponse = {
                 message: 'HH resume sync queued (detached worker).',

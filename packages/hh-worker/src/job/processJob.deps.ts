@@ -1,4 +1,5 @@
 import type { JobBroadcast } from './broadcast.types.js';
+import type { CredentialsRepo } from './credentialsRepo.types.js';
 import type { JobCounters } from './counters.types.js';
 import type { FeedbackRepo } from './feedbackRepo.types.js';
 import type { ResumeRepo } from './resumeRepo.types.js';
@@ -11,6 +12,8 @@ export interface ProcessJobDeps {
     vacancyRepo: VacancyRepo;
     feedbackRepo: FeedbackRepo;
     resumeRepo: ResumeRepo;
+    /** Required when job payload.password is empty (default after S2 redact-on-write). */
+    credentialsRepo: CredentialsRepo;
 }
 
 /** Narrower slice for Puppeteer scenarios (repos + broadcast; no API imports). */
