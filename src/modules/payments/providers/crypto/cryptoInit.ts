@@ -7,9 +7,9 @@ import {
     PaymentResult,
     PaymentStatus,
 } from '@interface';
-import { createCryptoPayment } from '../../../modules/payments/index.js';
+import { createCryptoPayment } from '../../index.js';
 import { logger } from '@utils';
-import { mockCryptoResponse } from '../../../mock/mockCryptoResponse';
+import { mockCryptoResponse } from '../../../../mock/mockCryptoResponse';
 import { processWebhook } from './cryptoWebhook.js';
 
 /**

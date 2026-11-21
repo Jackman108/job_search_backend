@@ -8,7 +8,7 @@ import {
 } from '@integrations';
 import { CryptoPaymentDetails, PaymentResult, PaymentStatus } from '@interface';
 import { executeQuery, logger } from '@utils';
-import { mockCryptoResponse } from '../../../mock/mockCryptoResponse';
+import { mockCryptoResponse } from '../../../../mock/mockCryptoResponse';
 
 /**
  * Проверяет статус платежа у провайдера и обновляет записи

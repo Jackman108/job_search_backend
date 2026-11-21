@@ -20,10 +20,10 @@ import {
     WebpayInitParams,
     WebpayInitResult,
 } from '@interface';
-import { createWebpayPayment, updatePayment } from '../../../modules/payments/index.js';
+import { createWebpayPayment, updatePayment } from '../../index.js';
 import { logger } from '@utils';
 import crypto from 'crypto';
-import { mockWebPayResponse } from '../../../mock/mockWebPayResponse';
+import { mockWebPayResponse } from '../../../../mock/mockWebPayResponse';
 import { processWebpayWebhook } from './webpayCallbacks.js';
 
 /**

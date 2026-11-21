@@ -7,7 +7,7 @@ import {
     claimWebhookEvent,
     decideWebhookGate,
     resolveCryptoEventKey,
-} from '../../../modules/payments/webhookPublic.js';
+} from '../../webhookPublic.js';
 
 /**
  * Processes crypto provider webhook: verify signature → claim event → side effects.

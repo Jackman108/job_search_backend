@@ -4,7 +4,7 @@ import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } fro
 import {
     isPaymentsKeyedByUserId,
     resetPaymentsSchemaCache,
-} from '../../../services/integrations/common/paymentSchema.utils.js';
+} from '../providers/common/paymentSchema.utils.js';
 
 /**
  * @module PaymentService

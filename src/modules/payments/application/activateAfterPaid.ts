@@ -1,7 +1,7 @@
 import { PaymentStatus } from '@interface';
 import { executeQuery, logger } from '@utils';
 import { activateSubscription, subscriptionTypeFromAmount } from '../../subscriptions/index.js';
-import { isPaymentsKeyedByUserId } from '../../../services/integrations/common/paymentSchema.utils.js';
+import { isPaymentsKeyedByUserId } from '../providers/common/paymentSchema.utils.js';
 
 type PaymentRow = {
     id: string;

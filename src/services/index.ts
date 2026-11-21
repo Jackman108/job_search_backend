@@ -1,5 +1,5 @@
 /**
- * Domain CRUD lives in `src/modules/*`.
- * Payment provider adapters remain under `src/services/integrations` (`@integrations`).
+ * Legacy barrel removed. Domain modules live under `src/modules/*`.
+ * Payment providers: import `@integrations` or `modules/payments/providers`.
  */
-export * from './integrations/index.js';
+export {};
