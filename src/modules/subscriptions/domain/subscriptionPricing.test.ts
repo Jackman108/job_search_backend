@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { calculateSubscriptionDetails, isSubscriptionType, SUBSCRIPTION_PRICES } from './subscriptionPricing.js';
+import {
+    calculateSubscriptionDetails,
+    isSubscriptionType,
+    SUBSCRIPTION_PRICES,
+    subscriptionTypeFromAmount,
+} from './subscriptionPricing.js';
 
 describe('subscriptionPricing', () => {
     it('accepts known types', () => {
@@ -26,5 +31,12 @@ describe('subscriptionPricing', () => {
 
     it('rejects unknown type', () => {
         assert.throws(() => calculateSubscriptionDetails('yearly'), /Invalid subscription type/);
+    });
+
+    it('maps known amounts to subscription types', () => {
+        assert.equal(subscriptionTypeFromAmount(3), 'daily');
+        assert.equal(subscriptionTypeFromAmount(15), 'weekly');
+        assert.equal(subscriptionTypeFromAmount(50), 'monthly');
+        assert.equal(subscriptionTypeFromAmount(99), null);
     });
 });

@@ -48,6 +48,7 @@ export {
 } from './application/webpayService.js';
 export { paymentsConfig } from './module.config.js';
 export { claimWebhookEvent } from './application/webhookEvents.js';
+export { activateAfterPaid, maybeActivateAfterStatus } from './application/activateAfterPaid.js';
 export {
     buildProviderEventId,
     decideWebhookGate,

@@ -38,3 +38,4 @@ Provider keys via existing payment configs (`USE_MOCK_PROVIDER`, WebPay/NOWPayme
 - Mutating/list routes require JWT; rows scoped by `user_id` (or legacy subscription scope).
 - Empty list → `200 []`.
 - Webhooks: verify signature **before** side effects; unique `(provider, provider_event_id)` claim; raw body captured for HMAC on `/webhook/*`.
+- On `payment_status=completed`, `activateAfterPaid` maps amount → plan and calls `subscriptions.activate()` (best-effort; already-active is OK).
