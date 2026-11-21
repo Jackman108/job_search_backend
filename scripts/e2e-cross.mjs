@@ -80,6 +80,7 @@ async function main() {
     if (!Array.isArray(vacancy.body)) {
         fail(`GET /vacancy expected array, got ${typeof vacancy.body}`);
     }
+    // Empty list must stay 200 [] (quality-bar); length may be 0.
     console.log(`[e2e-cross] GET /vacancy ok (length=${vacancy.body.length})`);
     console.log('[e2e-cross] pass');
 }
