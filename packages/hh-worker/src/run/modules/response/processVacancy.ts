@@ -119,9 +119,15 @@ export async function processVacancy({
 
         const early = await detectEarlyPreflight(page);
         if (early === 'already') {
-            await saveSuccess(data, userId, counters, vacancyRepo);
+            // Persist SUCCESS so the next SERP pass skips this card, but do NOT
+            // bump successfullySubmittedCount — that KPI / apply_cap is for real submits.
+            // Counting «уже откликались» as success made success > found and burned the cap.
+            data.vacancy_status = VACANCY_STATUS.SUCCESS;
+            await vacancyRepo.saveVacancy(data, userId);
+            counters.skippedCount++;
+            console.log(`Vacancy ${data.id} already applied on HH — saved SUCCESS, skip KPI · ${data.title_vacancy}`);
             await leaveApplySurface(page, serpUrl);
-            return 'success';
+            return 'skip';
         }
         if (early === 'hidden_resume' || early === 'employer_questions') {
             await leaveApplySurface(page, serpUrl);
