@@ -19,10 +19,7 @@ describe('webhookGate', () => {
     });
 
     it('resolves webpay event key from order + tid + status', () => {
-        assert.equal(
-            resolveWebpayEventKey({ wsb_order_num: 'o1', wsb_tid: 't1', wsb_status: 'paid' }),
-            'o1:t1:paid',
-        );
+        assert.equal(resolveWebpayEventKey({ wsb_order_num: 'o1', wsb_tid: 't1', wsb_status: 'paid' }), 'o1:t1:paid');
         assert.equal(resolveWebpayEventKey({}), null);
     });
 
@@ -34,17 +31,11 @@ describe('webhookGate', () => {
     });
 
     it('gates invalid signature before side effects', () => {
-        assert.equal(
-            decideWebhookGate({ signatureOk: false, eventKey: 'e1', claim: 'claimed' }),
-            'reject_signature',
-        );
+        assert.equal(decideWebhookGate({ signatureOk: false, eventKey: 'e1', claim: 'claimed' }), 'reject_signature');
     });
 
     it('skips duplicate provider_event_id (idempotent replay)', () => {
-        assert.equal(
-            decideWebhookGate({ signatureOk: true, eventKey: 'e1', claim: 'duplicate' }),
-            'skip_duplicate',
-        );
+        assert.equal(decideWebhookGate({ signatureOk: true, eventKey: 'e1', claim: 'duplicate' }), 'skip_duplicate');
     });
 
     it('processes only after claim', () => {

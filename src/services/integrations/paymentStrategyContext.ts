@@ -55,11 +55,7 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
      * @param signature Подпись вебхука
      * @returns Результат обработки вебхука
      */
-    const validateWebhook = async (
-        data: any,
-        signature: string,
-        rawBody?: string,
-    ): Promise<PaymentResult<boolean>> => {
+    const validateWebhook = async (data: any, signature: string, rawBody?: string): Promise<PaymentResult<boolean>> => {
         if (!currentStrategy) {
             logger.error('Payment strategy not set for webhook validation');
             return {
