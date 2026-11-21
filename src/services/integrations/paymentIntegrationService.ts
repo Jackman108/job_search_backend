@@ -116,11 +116,11 @@ export const processPaymentWebhook = async (
     paymentMethod: string,
     data: any,
     signature: string,
+    rawBody?: string,
 ): Promise<PaymentResult<boolean>> => {
     try {
-        logger.info('Processing payment webhook', { paymentMethod, data });
+        logger.info('Processing payment webhook', { paymentMethod, hasRawBody: Boolean(rawBody) });
 
-        // Проверяем входные данные
         if (!data) {
             return {
                 success: false,
@@ -128,7 +128,6 @@ export const processPaymentWebhook = async (
             };
         }
 
-        // Проверяем поддержку метода
         if (!paymentStrategyFactory.supportsMethod(paymentMethod)) {
             return {
                 success: false,
@@ -136,12 +135,10 @@ export const processPaymentWebhook = async (
             };
         }
 
-        // Получаем стратегию для указанного метода
         const strategy = await paymentStrategyFactory.getStrategy(paymentMethod);
         paymentContext.setStrategy(strategy);
 
-        // Обрабатываем вебхук через контекст
-        return await paymentContext.validateWebhook(data, signature);
+        return await paymentContext.validateWebhook(data, signature, rawBody);
     } catch (error) {
         return createPaymentError<boolean>(error, 'Error processing payment webhook');
     }

@@ -4,11 +4,14 @@ import { registerCryptoRoutes } from './http/crypto.routes.js';
 import { registerInfoPaymentRoutes } from './http/infoPayment.routes.js';
 import { registerPaymentRoutes } from './http/payment.routes.js';
 import { registerWebpayRoutes } from './http/webpay.routes.js';
+import { registerIntegrationRoutes } from './http/integration.routes.js';
 
 export { PaymentController } from './http/PaymentController.js';
 export { InfoPaymentController } from './http/InfoPaymentController.js';
 export { CryptoPaymentController } from './http/CryptoPaymentController.js';
 export { WebpayController } from './http/WebpayController.js';
+export { PaymentIntegrationController } from './http/PaymentIntegrationController.js';
+
 export {
     createPayment,
     createTablePayments,
@@ -44,6 +47,16 @@ export {
     webpayService,
 } from './application/webpayService.js';
 export { paymentsConfig } from './module.config.js';
+export { claimWebhookEvent } from './application/webhookEvents.js';
+export {
+    buildProviderEventId,
+    decideWebhookGate,
+    resolveCryptoEventKey,
+    resolveWebpayEventKey,
+    signaturesMatch,
+    type WebhookClaim,
+    type WebhookGateDecision,
+} from './domain/webhookGate.js';
 
 export function register(app: express.Application): void {
     validatePaymentsConfig();
@@ -51,4 +64,5 @@ export function register(app: express.Application): void {
     registerInfoPaymentRoutes(app);
     registerCryptoRoutes(app);
     registerWebpayRoutes(app);
+    registerIntegrationRoutes(app);
 }

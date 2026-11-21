@@ -55,7 +55,11 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
      * @param signature Подпись вебхука
      * @returns Результат обработки вебхука
      */
-    const validateWebhook = async (data: any, signature: string): Promise<PaymentResult<boolean>> => {
+    const validateWebhook = async (
+        data: any,
+        signature: string,
+        rawBody?: string,
+    ): Promise<PaymentResult<boolean>> => {
         if (!currentStrategy) {
             logger.error('Payment strategy not set for webhook validation');
             return {
@@ -65,8 +69,8 @@ export const createPaymentStrategyContext = (): PaymentStrategyContext => {
         }
 
         try {
-            logger.info('Processing webhook with strategy', { data });
-            return await currentStrategy.processPaymentWebhook(data, signature);
+            logger.info('Processing webhook with strategy', { hasRawBody: Boolean(rawBody) });
+            return await currentStrategy.processPaymentWebhook(data, signature, rawBody);
         } catch (error) {
             logger.error('Error processing webhook', { error });
             return {
