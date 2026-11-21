@@ -1,35 +1,26 @@
 import express from 'express';
-import { initializeAuthRoutes } from './auth.routes';
-import { initializeCryptoRoutes } from './crypto.routes';
-import { initializeInfoPaymentRoutes } from './infoPayment.routes';
-import { initializeIntegrationRoutes } from './integration.routes';
-import { initializeJobRoutes } from './job.routes';
-import { initializePaymentRoutes } from './payment.routes';
-import { initializeVacancyRoutes } from './sending.routes';
-import { initializeSubscriptionRoutes } from './subscription.routes';
-import { swaggerRouter } from './swagger';
-import { initializeUserRoutes } from './user.routes';
-import { initializeUtilRoutes } from './util.routes';
-import { initializeWebpayRoutes } from './webpay.routes';
-import { initializeNotificationRoutes } from './notification.routes';
+import { register as registerFeedback } from '../modules/feedback/index.js';
+import { register as registerHhJobs } from '../modules/hh-jobs/index.js';
+import { register as registerNotifications } from '../modules/notifications/index.js';
+import { register as registerPayments } from '../modules/payments/index.js';
+import { register as registerProfile } from '../modules/profile/index.js';
+import { register as registerResume } from '../modules/resume/index.js';
+import { register as registerSearchProfile } from '../modules/search-profile/index.js';
+import { register as registerSubscriptions } from '../modules/subscriptions/index.js';
+import { register as registerVacancies } from '../modules/vacancies/index.js';
+import { swaggerRouter } from './swagger.js';
 
+/** Mount all domain modules + OpenAPI. Legacy `routes/*.routes.ts` shims removed (Phase 8b). */
 export const initializeRoutes = (app: express.Application) => {
-    // Swagger documentation
     app.use('/api-docs', swaggerRouter);
 
-    // Initialize all route groups
-    initializeAuthRoutes(app);
-    initializeNotificationRoutes(app);
-    initializeCryptoRoutes(app);
-    initializeVacancyRoutes(app);
-    initializeJobRoutes(app);
-    initializeUserRoutes(app);
-    initializePaymentRoutes(app);
-    initializeSubscriptionRoutes(app);
-    initializeUtilRoutes(app);
-    initializeInfoPaymentRoutes(app);
-    initializeWebpayRoutes(app);
-
-    // Инициализация интеграционных маршрутов
-    initializeIntegrationRoutes(app);
+    registerProfile(app);
+    registerNotifications(app);
+    registerSearchProfile(app);
+    registerVacancies(app);
+    registerFeedback(app);
+    registerResume(app);
+    registerSubscriptions(app);
+    registerPayments(app);
+    registerHhJobs(app);
 };

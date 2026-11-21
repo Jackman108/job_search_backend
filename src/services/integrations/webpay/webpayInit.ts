@@ -20,7 +20,7 @@ import {
     WebpayInitParams,
     WebpayInitResult,
 } from '@interface';
-import { createWebpayPayment, updatePayment } from '@services';
+import { createWebpayPayment, updatePayment } from '../../../modules/payments/index.js';
 import { logger } from '@utils';
 import crypto from 'crypto';
 import { mockWebPayResponse } from '../../../mock/mockWebPayResponse';

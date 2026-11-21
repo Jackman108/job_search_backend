@@ -1,7 +1,7 @@
 import { USE_MOCK_PROVIDER } from '@config';
 import { updatePaymentStatus, validateWebpaySignature } from '@integrations';
 import { PaymentStatus } from '@interface';
-import { getWebpayPaymentByOrderNum, updateWebpayPaymentByOrderNum } from '@services';
+import { getWebpayPaymentByOrderNum, updateWebpayPaymentByOrderNum } from '../../../modules/payments/index.js';
 import { logger } from '@utils';
 import {
     buildProviderEventId,

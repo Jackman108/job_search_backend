@@ -1,29 +1,5 @@
-// Auth services
-export * from './auth/profileService.js';
-export * from './notifications/notificationService.js';
-
-// Vacancy services
-export * from './sending/vacancyAuthService.js';
-export * from './sending/vacancySubmitService.js';
-
-// Job services
-export * from './job/feedbackService.js';
-export * from './job/vacancyService.js';
-
-// User services
-export * from './user/resume/contactService.js';
-export * from './user/resume/resumeService.js';
-export * from './user/resume/skillService.js';
-export * from './user/resume/workExperienceService.js';
-export * from './user/resume/upsertResumeFromHh.js';
-
-// Базовые платежные сервисы
-export * from './payment/infoPaymentService.js';
-export * from './payment/paymentService.js';
-export * from './payment/subscriptionsService.js';
-
-// WebPay платежные сервисы
-export * from './payment/webpayService.js';
-
-// Crypto платежные сервисы
-export * from './payment/cryptoService.js';
+/**
+ * Domain CRUD lives in `src/modules/*`.
+ * Payment provider adapters remain under `src/services/integrations` (`@integrations`).
+ */
+export * from './integrations/index.js';
