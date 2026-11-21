@@ -21,11 +21,12 @@ None required.
 | Method | Path | Auth |
 |--------|------|------|
 | GET | `/health` | no (liveness, no DB) |
-| GET | `/api-docs` | no (Swagger UI) |
+| GET | `/api-docs` | no when enabled (Swagger UI) |
 
 WS liveness uses the same `/health` path via `server/wsHealth.ts` + `buildHealthPayload`.
 
 ## Security
 
-- Health and docs are intentionally public (no JWT, no secrets in payload).
+- Health is intentionally public (no JWT, no secrets in payload).
+- `/api-docs`: **off in production** unless `SWAGGER_ENABLED=1` (ideal-gap I10).
 - Do not attach DB or credential checks to `/health` — keep it safe for compose/k8s probes.

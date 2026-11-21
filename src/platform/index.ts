@@ -2,6 +2,14 @@
 export { redact } from './logging/redact.js';
 export { buildClefEvent, resolveSeqUrl, shipToSeq, warnSeqConfiguredOnce } from './logging/seqSink.js';
 export {
+    checkTableExists,
+    deleteTable,
+    executeQuery,
+    generateSetClause,
+    generateUpdateQuery,
+    generateUpdateQueryWithConditions,
+} from './db/index.js';
+export {
     decryptHhPassword,
     encryptHhPassword,
     evaluateHhCredKey,

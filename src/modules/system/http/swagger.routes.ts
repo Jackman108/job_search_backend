@@ -20,6 +20,21 @@ swaggerRouter.get(
 
 export const SWAGGER_MOUNT = '/api-docs';
 
+/** Prod: docs off unless SWAGGER_ENABLED=1. Dev/test: on by default. */
+export function isSwaggerEnabled(): boolean {
+    const flag = process.env.SWAGGER_ENABLED?.trim().toLowerCase();
+    if (flag === '1' || flag === 'true' || flag === 'yes') {
+        return true;
+    }
+    if (flag === '0' || flag === 'false' || flag === 'no') {
+        return false;
+    }
+    return process.env.NODE_ENV !== 'production';
+}
+
 export function registerSwaggerRoutes(app: express.Application): void {
+    if (!isSwaggerEnabled()) {
+        return;
+    }
     app.use(SWAGGER_MOUNT, swaggerRouter);
 }
