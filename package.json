@@ -20,7 +20,7 @@
         "typecheck": "tsc --noEmit",
         "test": "node scripts/run-unit-tests.mjs",
         "check:structure": "node scripts/check-structure.mjs",
-        "check:modules": "node scripts/check-modules.mjs",
+        "check:modules": "node scripts/check-modules.mjs --enforce",
         "check:sql": "node scripts/check-sql.mjs",
         "migrate": "node scripts/migrate.mjs",
         "migrate:s4": "node scripts/migrate-s4-per-user-tables.mjs",

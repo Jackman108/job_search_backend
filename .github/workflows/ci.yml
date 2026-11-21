@@ -44,7 +44,7 @@ jobs:
       - name: Structure (≤300 lines)
         run: yarn check:structure
 
-      - name: Modules boundaries (report-only until enforce)
+      - name: Modules boundaries (enforce)
         run: yarn check:modules
 
   e2e-cross:

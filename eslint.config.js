@@ -41,6 +41,18 @@ export default [
             '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
             'no-console': 'off',
             'no-undef': 'off',
+            // Prefer modules/*/index (or webhookPublic); yarn check:modules --enforce is SoT.
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            group: ['**/modules/*/**/!(index|webhookPublic)?(.*)', '!**/modules/*/index.*'],
+                            message: 'Import domain modules via public API (index / webhookPublic), not deep paths.',
+                        },
+                    ],
+                },
+            ],
         },
     },
 ];
