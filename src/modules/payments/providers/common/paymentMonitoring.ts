@@ -2,8 +2,8 @@
  * Сервис мониторинга платежей
  * Предоставляет функциональность для сбора метрик и мониторинга платежных операций
  */
-import { PaymentMonitoring } from '@interface';
-import { logger } from '@utils';
+import { PaymentMonitoring } from '../../../../interface/index.js';
+import { logger } from '../../../../utils/index.js';
 
 /**
  * Создает функциональный сервис мониторинга платежей без использования классов

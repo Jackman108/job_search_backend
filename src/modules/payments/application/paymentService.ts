@@ -1,6 +1,6 @@
-import { CreatePaymentParams, PaymentBase, PaymentStatus } from '@interface';
+import { CreatePaymentParams, PaymentBase, PaymentStatus } from '../../../interface/index.js';
 import { getSubscriptionIdByUserId, withErrorHandling } from '@integrations';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '../../../utils/index.js';
 import { isPaymentsKeyedByUserId, resetPaymentsSchemaCache } from '../providers/common/paymentSchema.utils.js';
 
 /**

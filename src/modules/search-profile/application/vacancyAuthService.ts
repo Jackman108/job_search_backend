@@ -6,8 +6,8 @@ import {
     setToCache,
     checkTableExists,
     asListResult,
-} from '@utils';
-import { UpdateVacancyAuthData, VacancyAuthData } from '@interface';
+} from '../../../utils/index.js';
+import { UpdateVacancyAuthData, VacancyAuthData } from '../../../interface/index.js';
 import {
     decryptHhPassword,
     encryptHhPassword,

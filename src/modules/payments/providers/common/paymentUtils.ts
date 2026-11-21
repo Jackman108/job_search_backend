@@ -1,7 +1,7 @@
 /**
  * Вспомогательные функции для работы с платежами
  */
-import { PaymentStatus } from '@interface';
+import { PaymentStatus } from '../../../../interface/index.js';
 
 /**
  * Преобразует значение в строку, безопасно обрабатывая undefined и null

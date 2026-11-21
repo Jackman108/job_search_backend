@@ -6,8 +6,8 @@ import {
     ICryptoPaymentService,
     PaymentStatus,
     RefundPaymentParams,
-} from '@interface';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
+} from '../../../interface/index.js';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '../../../utils/index.js';
 
 /**
  * Создание таблицы для криптоплатежей

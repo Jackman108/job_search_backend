@@ -2,8 +2,8 @@
  * Обработчик ошибок для платежных интеграций
  * Предоставляет структурированный подход к обработке ошибок платежных систем
  */
-import { PaymentErrorDetails, PaymentErrorType, PaymentResult } from '@interface';
-import { logger } from '@utils';
+import { PaymentErrorDetails, PaymentErrorType, PaymentResult } from '../../../interface/index.js';
+import { logger } from '../../../utils/index.js';
 import { paymentMonitoring } from '@integrations';
 
 /**

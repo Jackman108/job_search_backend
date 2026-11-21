@@ -11,8 +11,8 @@ import {
     NowPaymentsCreatePaymentResponse,
     NowPaymentsPaymentStatusResponse,
     PaymentStatus,
-} from '@interface';
-import { logger } from '@utils';
+} from '../../../../interface/index.js';
+import { logger } from '../../../../utils/index.js';
 import axios from 'axios';
 import { mapNowPaymentsStatus, validateNowPaymentsSignature } from '@integrations';
 

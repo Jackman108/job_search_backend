@@ -6,8 +6,8 @@ import {
     setToCache,
     checkTableExists,
     asListResult,
-} from '@utils';
-import { UpdateVacancySubmitData, VacancySubmitData } from '@interface';
+} from '../../../utils/index.js';
+import { UpdateVacancySubmitData, VacancySubmitData } from '../../../interface/index.js';
 import { deleteVacancyAuth } from './vacancyAuthService.js';
 
 const vacancySubmitCache = new Map<string, VacancySubmitData[]>();

@@ -8,7 +8,13 @@ import {
     processWebhook,
     validateNowPaymentsSignature,
 } from '@integrations';
-import { CryptoPaymentDetails, PaymentResult, PaymentStatus, PaymentStrategy, RefundPaymentParams } from '@interface';
+import {
+    CryptoPaymentDetails,
+    PaymentResult,
+    PaymentStatus,
+    PaymentStrategy,
+    RefundPaymentParams,
+} from '../../../../interface/index.js';
 
 /**
  * Создает стратегию для работы с криптоплатежами

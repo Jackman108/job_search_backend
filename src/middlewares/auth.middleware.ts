@@ -1,8 +1,8 @@
 import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthenticatedRequest } from '@interface';
+import { AuthenticatedRequest } from '../interface/index.js';
 import { JWT_CONFIG } from '@config';
-import { logger } from '@utils';
+import { logger } from '../utils/index.js';
 
 export const validateUserIdMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.userId) {

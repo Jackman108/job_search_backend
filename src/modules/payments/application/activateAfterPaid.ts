@@ -1,5 +1,5 @@
-import { PaymentStatus } from '@interface';
-import { executeQuery, logger } from '@utils';
+import { PaymentStatus } from '../../../interface/index.js';
+import { executeQuery, logger } from '../../../utils/index.js';
 import { activateSubscription, subscriptionTypeFromAmount } from '../../subscriptions/index.js';
 import { isPaymentsKeyedByUserId } from '../providers/common/paymentSchema.utils.js';
 

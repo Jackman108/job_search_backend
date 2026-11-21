@@ -1,8 +1,8 @@
 import express from 'express';
 import { initializeMiddleware, errorMiddleware } from '@middlewares';
 import { initializeRoutes } from '@routes';
-import { StartHttpServerParams } from '@interface';
-import { buildHealthPayload, checkPort, logger } from '@utils';
+import { StartHttpServerParams } from '../interface/index.js';
+import { buildHealthPayload, checkPort, logger } from '../utils/index.js';
 
 export const startHttpServer = async ({ port }: StartHttpServerParams): Promise<express.Express> => {
     try {

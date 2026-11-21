@@ -1,5 +1,5 @@
 import { ENV } from './base.config.js';
-import { PaymentMethod } from '@interface';
+import { PaymentMethod } from '../interface/index.js';
 
 /**
  * Флаг использования мок-провайдера для режима разработки

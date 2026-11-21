@@ -1,5 +1,5 @@
-import type { Subscription } from '@interface';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
+import type { Subscription } from '../../../interface/index.js';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '../../../utils/index.js';
 import { calculateSubscriptionDetails } from '../domain/subscriptionPricing.js';
 
 export const createTableSubscriptions = async (): Promise<void> => {

@@ -19,9 +19,9 @@ import {
     PaymentStatus,
     WebpayInitParams,
     WebpayInitResult,
-} from '@interface';
+} from '../../../../interface/index.js';
 import { createWebpayPayment, updatePayment } from '../../index.js';
-import { logger } from '@utils';
+import { logger } from '../../../../utils/index.js';
 import crypto from 'crypto';
 import { mockWebPayResponse } from '../../../../mock/mockWebPayResponse';
 import { processWebpayWebhook } from './webpayCallbacks.js';

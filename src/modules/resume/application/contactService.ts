@@ -1,4 +1,4 @@
-import { executeQuery, generateUpdateQuery } from '@utils';
+import { executeQuery, generateUpdateQuery } from '../../../utils/index.js';
 import { getResumeByUserId } from '../infra/getResumeByUserId.js';
 
 export const createContactUser = async (

@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { buildHealthPayload, HEALTH_WS_PATH } from '@utils';
+import { buildHealthPayload, HEALTH_WS_PATH } from '../utils/index.js';
 
 export const isWsHealthPath = (url?: string): boolean => {
     if (!url) {

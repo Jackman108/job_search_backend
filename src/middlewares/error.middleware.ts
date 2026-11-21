@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { logger } from '@utils';
+import { logger } from '../utils/index.js';
 
 type HttpError = Error & { status?: number; statusCode?: number };
 

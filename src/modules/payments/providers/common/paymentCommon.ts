@@ -1,7 +1,7 @@
 import { isPaymentMethodAvailable, USE_MOCK_PROVIDER } from '@config';
-import { PaymentBase, PaymentResult, PaymentStatus } from '@interface';
+import { PaymentBase, PaymentResult, PaymentStatus } from '../../../../interface/index.js';
 import { handleErrors } from '@middlewares';
-import { executeQuery, logger } from '@utils';
+import { executeQuery, logger } from '../../../../utils/index.js';
 import { Response } from 'express';
 import { isPaymentsKeyedByUserId } from './paymentSchema.utils';
 

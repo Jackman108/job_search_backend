@@ -1,4 +1,4 @@
-import type { GetFeedbackParams, SendFeedbackParams, SyncResumeParams } from '@interface';
+import type { GetFeedbackParams, SendFeedbackParams, SyncResumeParams } from '../interface/index.js';
 import { logger } from '../utils/logger.js';
 import { enqueueGetFeedback, enqueueSendFeedback, enqueueSyncResume } from './jobStore.js';
 import { spawnWorker } from './spawnWorker.js';

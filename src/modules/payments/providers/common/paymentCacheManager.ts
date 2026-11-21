@@ -2,8 +2,8 @@
  * Сервис для кэширования платежных данных
  * Предоставляет функциональность для эффективного управления кэшем платежей
  */
-import { PaymentCache, PaymentStatus } from '@interface';
-import { logger } from '@utils';
+import { PaymentCache, PaymentStatus } from '../../../../interface/index.js';
+import { logger } from '../../../../utils/index.js';
 
 /**
  * Создает функциональный сервис кэширования платежных данных

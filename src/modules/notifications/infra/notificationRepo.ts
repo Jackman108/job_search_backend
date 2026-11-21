@@ -1,4 +1,4 @@
-import { executeQuery } from '@utils';
+import { executeQuery } from '../../../utils/index.js';
 import type { AppNotification } from '../domain/types.js';
 
 /** Safety net when migrations were not run on a fresh local DB. */

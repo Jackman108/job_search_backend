@@ -1,5 +1,5 @@
 import type { NextFunction, Response } from 'express';
-import type { AuthenticatedRequest } from '@interface';
+import type { AuthenticatedRequest } from '../../../interface/index.js';
 import { hhJobsConfig } from '../module.config.js';
 
 type Bucket = { timestamps: number[] };

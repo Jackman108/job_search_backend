@@ -3,7 +3,7 @@ import cors, { CorsOptions } from 'cors';
 import express from 'express';
 import fs from 'fs';
 import { URLS, BASE_PATHS } from '@config';
-import { InitializeMiddleware } from '@interface';
+import { InitializeMiddleware } from '../interface/index.js';
 import { requestLoggerMiddleware } from './requestLogger.middleware.js';
 
 const corsOptions: CorsOptions = {

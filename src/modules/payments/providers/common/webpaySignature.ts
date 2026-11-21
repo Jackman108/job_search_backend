@@ -2,7 +2,7 @@
  * WebPay signature validation.
  */
 import { USE_MOCK_PROVIDER, WEBPAY_SECRET_KEY } from '@config';
-import { logger } from '@utils';
+import { logger } from '../../../../utils/index.js';
 import crypto from 'crypto';
 import { HashAlgorithm } from './hashAlgorithm.js';
 

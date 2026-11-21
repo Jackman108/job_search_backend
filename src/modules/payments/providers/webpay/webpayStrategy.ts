@@ -13,8 +13,14 @@ import {
     validateWebpaySignature,
     verifyHmacSignature,
 } from '@integrations';
-import { InitWebPayPaymentParams, PaymentResult, PaymentStatus, WebpayInitResult, WebPayStrategy } from '@interface';
-import { logger } from '@utils';
+import {
+    InitWebPayPaymentParams,
+    PaymentResult,
+    PaymentStatus,
+    WebpayInitResult,
+    WebPayStrategy,
+} from '../../../../interface/index.js';
+import { logger } from '../../../../utils/index.js';
 import { handleWebpayNotify } from './webpayCallbacks.js';
 
 /**

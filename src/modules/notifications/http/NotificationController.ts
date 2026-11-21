@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '@interface';
+import { AuthenticatedRequest } from '../../../interface/index.js';
 import { handleErrors } from '@middlewares';
 import {
     listNotifications,
