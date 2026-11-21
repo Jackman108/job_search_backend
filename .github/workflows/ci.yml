@@ -47,6 +47,9 @@ jobs:
       - name: Modules boundaries (enforce)
         run: yarn check:modules
 
+      - name: Env example sync (E8)
+        run: yarn check:env-examples --enforce
+
   e2e-cross:
     name: e2e cross (optional stack)
     runs-on: ubuntu-latest
