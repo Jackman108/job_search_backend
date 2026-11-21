@@ -2,7 +2,7 @@ import express from 'express';
 import { initializeMiddleware, errorMiddleware } from '@middlewares';
 import { initializeRoutes } from '@routes';
 import { StartHttpServerParams } from '../interface/index.js';
-import { buildHealthPayload, checkPort, logger } from '../utils/index.js';
+import { checkPort, logger } from '../utils/index.js';
 
 export const startHttpServer = async ({ port }: StartHttpServerParams): Promise<express.Express> => {
     try {
@@ -10,10 +10,6 @@ export const startHttpServer = async ({ port }: StartHttpServerParams): Promise<
 
         const app = express();
         initializeMiddleware(app);
-        // Lightweight liveness probe (no auth, no DB) — safe for compose/k8s.
-        app.get('/health', (_req, res) => {
-            res.status(200).json(buildHealthPayload('backend'));
-        });
         initializeRoutes(app);
         app.use(errorMiddleware);
 

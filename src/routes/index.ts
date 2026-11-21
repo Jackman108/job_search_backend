@@ -7,13 +7,12 @@ import { register as registerProfile } from '../modules/profile/index.js';
 import { register as registerResume } from '../modules/resume/index.js';
 import { register as registerSearchProfile } from '../modules/search-profile/index.js';
 import { register as registerSubscriptions } from '../modules/subscriptions/index.js';
+import { register as registerSystem } from '../modules/system/index.js';
 import { register as registerVacancies } from '../modules/vacancies/index.js';
-import { swaggerRouter } from './swagger.js';
 
-/** Mount all domain modules + OpenAPI. Legacy `routes/*.routes.ts` shims removed (Phase 8b). */
+/** Mount all domain modules + system (health/OpenAPI). Legacy route shims removed (Phase 8b). */
 export const initializeRoutes = (app: express.Application) => {
-    app.use('/api-docs', swaggerRouter);
-
+    registerSystem(app);
     registerProfile(app);
     registerNotifications(app);
     registerSearchProfile(app);

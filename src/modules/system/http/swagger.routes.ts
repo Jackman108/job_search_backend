@@ -1,3 +1,4 @@
+import type express from 'express';
 import { Router } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
@@ -16,3 +17,9 @@ swaggerRouter.get(
         customSiteTitle: 'Job Search API Documentation',
     }),
 );
+
+export const SWAGGER_MOUNT = '/api-docs';
+
+export function registerSwaggerRoutes(app: express.Application): void {
+    app.use(SWAGGER_MOUNT, swaggerRouter);
+}
