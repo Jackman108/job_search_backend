@@ -1,0 +1,2656 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Market Hunter API",
+    "version": "1.0.0",
+    "description": "Backend API for Market Hunter (vacancies, payments, HH automation). HH routes: POST `/start`, `/refresh`, `/stop`, GET `/jobs/{jobId}`. HH worker is queue-only → HTTP 202 + poll job status (detached `@market-hunter/hh-worker`). Auth: Bearer JWT; mutating routes require a resolved `userId`.",
+    "contact": {
+      "name": "API Support",
+      "email": "support@example.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Access JWT from auth service. Missing/invalid token (or unresolved userId on guarded routes) → 401."
+      }
+    },
+    "schemas": {
+      "StartScriptBody": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "position",
+          "message",
+          "vacancyUrl"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "HH account email (from SearchForm)"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "description": "HH account password (from SearchForm; not stored in API secrets)"
+          },
+          "position": {
+            "type": "string",
+            "description": "Target role / search position label"
+          },
+          "message": {
+            "type": "string",
+            "description": "Cover letter / apply message"
+          },
+          "vacancyUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "HH vacancy URL to apply to"
+          }
+        }
+      },
+      "RefreshScriptBody": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "StopScriptBody": {
+        "type": "object",
+        "properties": {
+          "browser": {
+            "description": "Optional legacy browser hint (ignored)"
+          }
+        }
+      },
+      "HhJobQueuedResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "jobId",
+          "mode"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "HH apply job queued (detached worker)."
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "queue"
+            ]
+          }
+        }
+      },
+      "StopScriptResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "cancelledJobIds",
+          "cancelledCount",
+          "abortedJobIds",
+          "abortedCount"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Script stopped successfully!"
+          },
+          "cancelledJobIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cancelledCount": {
+            "type": "integer"
+          },
+          "abortedJobIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Jobs that were running and had their worker PID tree-killed"
+          },
+          "abortedCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "HhJobStatusResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "createdAt",
+          "countersUpdated"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "sendFeedback",
+              "getFeedback"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "error",
+              "cancelled"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string"
+          },
+          "countersUpdated": {
+            "type": "boolean",
+            "description": "True after spin/success counters written (sendFeedback only)"
+          },
+          "lastEvent": {
+            "type": "string",
+            "description": "Latest worker progress line (CAPTCHA / errors) for poll SoT"
+          },
+          "lastEventAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "captchaSrc": {
+            "type": "string",
+            "description": "CAPTCHA image URL when detected (login or mid-apply)"
+          },
+          "summary": {
+            "type": "object",
+            "description": "Apply-run totals for completion modal (sendFeedback)",
+            "properties": {
+              "found": {
+                "type": "integer",
+                "description": "Alias of foundListed (legacy)"
+              },
+              "foundListed": {
+                "type": "integer",
+                "description": "SERP header total after filters"
+              },
+              "applyablePage1": {
+                "type": "integer",
+                "description": "Page-1 cards not already in DB at announce"
+              },
+              "alreadyInDb": {
+                "type": "integer",
+                "description": "Skip-set size at announce"
+              },
+              "success": {
+                "type": "integer"
+              },
+              "skipped": {
+                "type": "integer"
+              },
+              "failed": {
+                "type": "integer"
+              },
+              "pages": {
+                "type": "integer"
+              },
+              "endReason": {
+                "type": "string",
+                "enum": [
+                  "last_page",
+                  "page_cap",
+                  "stopped",
+                  "aborted"
+                ],
+                "description": "Why the apply loop ended (done-modal copy)"
+              }
+            }
+          }
+        }
+      },
+      "ErrorMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthPayload": {
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "ts"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          },
+          "service": {
+            "type": "string",
+            "example": "backend"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaymentMethod": {
+        "type": "string",
+        "enum": [
+          "webpay",
+          "crypto"
+        ],
+        "description": "Метод оплаты"
+      },
+      "PaymentStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "processing",
+          "completed",
+          "failed",
+          "canceled",
+          "refunded"
+        ],
+        "description": "Статус платежа"
+      },
+      "PaymentInitRequest": {
+        "type": "object",
+        "required": [
+          "payment_id",
+          "amount"
+        ],
+        "properties": {
+          "payment_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID платежа (в формате UUID)"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Сумма платежа"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Валюта платежа",
+            "default": "BYN (для WebPay) или BTC (для криптоплатежей)"
+          },
+          "network": {
+            "type": "string",
+            "description": "Сеть для криптоплатежа",
+            "default": "BTC"
+          },
+          "success_url": {
+            "type": "string",
+            "description": "URL для редиректа при успешной оплате"
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "URL для редиректа при отмене платежа"
+          }
+        }
+      },
+      "PaymentRefundRequest": {
+        "type": "object",
+        "required": [
+          "paymentId"
+        ],
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID платежа для возврата (в формате UUID)"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Сумма возврата (если не указана, будет полный возврат)"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Причина возврата"
+          }
+        }
+      },
+      "PaymentSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "description": "Данные, специфичные для каждого метода платежа"
+          }
+        }
+      },
+      "PaymentErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "description": "Сообщение об ошибке"
+          }
+        }
+      },
+      "WebPayInitResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "redirectUrl": {
+                "type": "string",
+                "description": "URL для перенаправления пользователя на страницу оплаты"
+              },
+              "orderNum": {
+                "type": "string",
+                "description": "Номер заказа"
+              },
+              "wt": {
+                "type": "string",
+                "description": "Токен WebPay"
+              }
+            }
+          }
+        }
+      },
+      "CryptoInitResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "payment_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "ID платежа (UUID)"
+              },
+              "crypto_address": {
+                "type": "string",
+                "description": "Адрес для оплаты криптовалютой"
+              },
+              "crypto_amount": {
+                "type": "number",
+                "description": "Сумма в криптовалюте"
+              },
+              "payment_status": {
+                "type": "string",
+                "description": "Статус платежа"
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Срок действия платежа"
+              }
+            }
+          }
+        }
+      },
+      "PaymentStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "processing",
+              "completed",
+              "failed",
+              "canceled",
+              "refunded"
+            ],
+            "description": "Статус платежа"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "HH",
+      "description": "HeadHunter Puppeteer apply / refresh / jobs"
+    },
+    {
+      "name": "Health",
+      "description": "Liveness probes"
+    },
+    {
+      "name": "Auth",
+      "description": "API для аутентификации и профиля"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Liveness probe",
+        "description": "Unauthenticated HTTP health check (no DB). WS liveness is also available at path `/health`.",
+        "tags": [
+          "Health"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthPayload"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/integration/{paymentMethod}": {
+      "post": {
+        "summary": "Инициализация платежа с использованием выбранной платежной системы",
+        "description": "Создает новый платеж с использованием выбранной платежной системы (WebPay или Crypto).\nДля каждой системы требуются разные параметры, но основные (payment_id и amount) обязательны для всех.\n",
+        "tags": [
+          "Интеграция оплаты"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paymentMethod",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            },
+            "description": "Метод оплаты (webpay, crypto)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentInitRequest"
+              },
+              "examples": {
+                "webpay": {
+                  "value": {
+                    "payment_id": "123e4567-e89b-12d3-a456-426614174000",
+                    "amount": 100,
+                    "currency": "BYN",
+                    "success_url": "https://example.com/success",
+                    "cancel_url": "https://example.com/cancel"
+                  }
+                },
+                "crypto": {
+                  "value": {
+                    "payment_id": "123e4567-e89b-12d3-a456-426614174000",
+                    "amount": 0.01,
+                    "currency": "BTC",
+                    "network": "BTC"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Платеж успешно инициализирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/WebPayInitResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CryptoInitResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка при инициализации платежа",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неавторизованный доступ"
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера"
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/{paymentMethod}": {
+      "post": {
+        "summary": "Обработка вебхука от платежной системы",
+        "description": "Обрабатывает входящие вебхуки от платежных систем.\nДля проверки подлинности вебхука используется подпись, переданная в заголовке 'x-webhook-signature'.\n",
+        "tags": [
+          "Интеграция оплаты"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paymentMethod",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            },
+            "description": "Метод оплаты (webpay, crypto)"
+          },
+          {
+            "in": "header",
+            "name": "x-webhook-signature",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Подпись вебхука для проверки подлинности"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Данные вебхука, специфичные для каждой платежной системы"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Вебхук успешно обработан",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка при обработке вебхука",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера"
+          }
+        }
+      }
+    },
+    "/api/payments/status/{paymentMethod}/{paymentId}": {
+      "get": {
+        "summary": "Проверка статуса платежа",
+        "description": "Проверяет текущий статус платежа в выбранной платежной системе.\nВозвращает один из статусов: pending, processing, completed, failed, canceled, refunded.\n",
+        "tags": [
+          "Интеграция оплаты"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paymentMethod",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            },
+            "description": "Метод оплаты (webpay, crypto)"
+          },
+          {
+            "in": "path",
+            "name": "paymentId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "ID платежа (UUID)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Статус платежа успешно получен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentStatusResponse"
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "success": true,
+                      "message": "Payment status retrieved successfully",
+                      "data": "completed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка при получении статуса платежа",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неавторизованный доступ"
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера"
+          }
+        }
+      }
+    },
+    "/api/payments/refund/{paymentMethod}": {
+      "post": {
+        "summary": "Возврат средств по платежу",
+        "description": "Инициирует возврат средств для указанного платежа.\nЕсли сумма возврата не указана, будет выполнен полный возврат.\n",
+        "tags": [
+          "Интеграция оплаты"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paymentMethod",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            },
+            "description": "Метод оплаты (webpay, crypto)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentRefundRequest"
+              },
+              "example": {
+                "paymentId": "123e4567-e89b-12d3-a456-426614174000",
+                "amount": 50,
+                "reason": "Частичный возврат по запросу клиента"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Возврат успешно инициирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentSuccessResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Payment refunded successfully",
+                  "data": {
+                    "refund_id": "123e4567-e89b-12d3-a456-426614174123",
+                    "amount": 50,
+                    "payment_status": "partially_refunded"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка при инициализации возврата",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неавторизованный доступ"
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера"
+          }
+        }
+      }
+    },
+    "/api/payments/details/{paymentMethod}/{paymentId}": {
+      "get": {
+        "summary": "Получение детальной информации о платеже",
+        "description": "Возвращает полную информацию о платеже, включая статус, сумму, дату создания и другие детали,\nспецифичные для выбранной платежной системы.\n",
+        "tags": [
+          "Интеграция оплаты"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paymentMethod",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            },
+            "description": "Метод оплаты (webpay, crypto)"
+          },
+          {
+            "in": "path",
+            "name": "paymentId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "ID платежа (UUID)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Детали платежа успешно получены",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentSuccessResponse"
+                },
+                "examples": {
+                  "webpay": {
+                    "value": {
+                      "success": true,
+                      "message": "Payment details retrieved successfully",
+                      "data": {
+                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "payment_status": "completed",
+                        "amount": 100,
+                        "currency": "BYN",
+                        "created_at": "2023-10-01T12:00:00Z",
+                        "transaction_id": "tx_67890"
+                      }
+                    }
+                  },
+                  "crypto": {
+                    "value": {
+                      "success": true,
+                      "message": "Payment details retrieved successfully",
+                      "data": {
+                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "payment_status": "completed",
+                        "amount": 0.01,
+                        "currency": "BTC",
+                        "created_at": "2023-10-01T12:00:00Z",
+                        "crypto_address": "bc1q...xyz",
+                        "transaction_hash": "0x123...abc"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка при получении деталей платежа",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неавторизованный доступ"
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера"
+          }
+        }
+      }
+    },
+    "/feedback": {
+      "get": {
+        "summary": "Получить список отзывов",
+        "tags": [
+          "Отзывы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список отзывов (может быть пустым массивом)"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/feedback/{feedbackId}": {
+      "delete": {
+        "summary": "Удалить отзыв",
+        "tags": [
+          "Отзывы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feedbackId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Отзыв успешно удален"
+          },
+          "404": {
+            "description": "Отзыв не найден"
+          }
+        }
+      }
+    },
+    "/default/feedback": {
+      "delete": {
+        "summary": "Удалить все отзывы",
+        "tags": [
+          "Отзывы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Все отзывы успешно удалены"
+          }
+        }
+      }
+    },
+    "/start": {
+      "post": {
+        "summary": "Queue HH apply (sendFeedback)",
+        "description": "Requires JWT. Body credentials come from the client SearchForm.\nAlways **202** `{ jobId, mode: queue }` — poll `GET /jobs/{jobId}`.\nPuppeteer runs in detached `@market-hunter/hh-worker`.\n",
+        "tags": [
+          "HH"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartScriptBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Apply job accepted into detached worker queue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HhJobQueuedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing body fields, or missing userId (no usable Bearer)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired JWT"
+          },
+          "429": {
+            "description": "Enqueue rate limit (S10)"
+          }
+        }
+      }
+    },
+    "/stop": {
+      "post": {
+        "summary": "Stop HH automation for the caller",
+        "description": "Cancels **queued** jobs and aborts **running** workers for `req.userId`\n(tree-kill detached PID).\n",
+        "tags": [
+          "HH"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopScriptBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stop acknowledged; lists cancelled and aborted job ids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopScriptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing userId (no usable Bearer)"
+          },
+          "401": {
+            "description": "Invalid or expired JWT"
+          }
+        }
+      }
+    },
+    "/refresh": {
+      "post": {
+        "summary": "Queue HH feedback refresh (getFeedback)",
+        "description": "Requires JWT + HH email/password from SearchForm.\nAlways **202** + `jobId` (detached worker).\n",
+        "tags": [
+          "HH"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshScriptBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Refresh job queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HhJobQueuedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing email/password, or missing userId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired JWT"
+          },
+          "429": {
+            "description": "Enqueue rate limit (S10)"
+          }
+        }
+      }
+    },
+    "/sync-resume": {
+      "post": {
+        "summary": "Queue HH resume sync (first resume → local resume stack)",
+        "description": "Requires JWT. HH email/password optional in body — if omitted, uses the first\nsaved `vacancy_auth` (same credentials as «Отправка заявок»). Always **202** + `jobId`.\nCovered by HH enqueue rate limit (S10).\n",
+        "tags": [
+          "HH"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Resume sync job queued"
+          },
+          "400": {
+            "description": "No HH credentials in body or vacancy_auth"
+          },
+          "401": {
+            "description": "Invalid or expired JWT"
+          },
+          "429": {
+            "description": "Enqueue rate limit (S10)"
+          }
+        }
+      }
+    },
+    "/jobs/{jobId}": {
+      "get": {
+        "summary": "HH worker job status",
+        "description": "Authz: job must belong to `req.userId` (**403** otherwise).\nResponse is whitelisted (S3) — omits payload / credentials / captchaAnswer.\n",
+        "tags": [
+          "HH"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HhJobStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Job exists but belongs to another user"
+          },
+          "404": {
+            "description": "Job not found"
+          }
+        }
+      }
+    },
+    "/jobs/{jobId}/captcha": {
+      "post": {
+        "summary": "Submit CAPTCHA text for a headless HH job",
+        "description": "When `awaitingCaptcha` is true on GET /jobs/{jobId}, post `{ \"answer\": \"…\" }`.\n",
+        "tags": [
+          "HH"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "answer"
+                ],
+                "properties": {
+                  "answer": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Answer queued for the worker"
+          },
+          "409": {
+            "description": "Job not awaiting CAPTCHA"
+          }
+        }
+      }
+    },
+    "/jobs/{jobId}/captcha-image": {
+      "get": {
+        "summary": "CAPTCHA PNG captured by the headless worker",
+        "tags": [
+          "HH"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "image/png"
+          },
+          "404": {
+            "description": "Image not ready"
+          }
+        }
+      }
+    },
+    "/payment/info/methods": {
+      "get": {
+        "summary": "Получить информацию о доступных методах оплаты",
+        "tags": [
+          "Информация о платежах"
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о методах оплаты успешно получена"
+          }
+        }
+      }
+    },
+    "/payment/info/current-plan": {
+      "get": {
+        "summary": "Получить информацию о текущем тарифе пользователя",
+        "tags": [
+          "Информация о платежах"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о текущем тарифе успешно получена"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/payment/info/test-page": {
+      "get": {
+        "summary": "Получить тестовую страницу для проверки платежей",
+        "tags": [
+          "Информация о платежах"
+        ],
+        "responses": {
+          "200": {
+            "description": "Тестовая страница успешно получена"
+          }
+        }
+      }
+    },
+    "/payment": {
+      "get": {
+        "summary": "Получить список платежей",
+        "tags": [
+          "Платежи"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список платежей успешно получен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать платеж",
+        "tags": [
+          "Платежи"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "payment_method": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Платеж успешно создан"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/payment/{id}": {
+      "get": {
+        "summary": "Получить информацию о платеже",
+        "tags": [
+          "Платежи"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о платеже успешно получена"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Платеж не найден"
+          }
+        }
+      },
+      "put": {
+        "summary": "Обновить платеж",
+        "tags": [
+          "Платежи"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Платеж успешно обновлен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Платеж не найден"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить платеж",
+        "tags": [
+          "Платежи"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Платеж успешно удален"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Платеж не найден"
+          }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "summary": "Получить профиль пользователя",
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Профиль пользователя успешно получен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "put": {
+        "summary": "Обновить профиль пользователя",
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Профиль успешно обновлен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить профиль пользователя",
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Профиль успешно удален"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/contacts": {
+      "get": {
+        "summary": "Получить контакты пользователя",
+        "tags": [
+          "Контакты"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Контакты успешно получены"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать контакт",
+        "tags": [
+          "Контакты"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Контакт успешно создан"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "put": {
+        "summary": "Обновить контакт",
+        "tags": [
+          "Контакты"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Контакт успешно обновлен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить контакт",
+        "tags": [
+          "Контакты"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Контакт успешно удален"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/resume": {
+      "get": {
+        "summary": "Получить резюме пользователя",
+        "tags": [
+          "Резюме"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Резюме успешно получено"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать резюме",
+        "tags": [
+          "Резюме"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Резюме успешно создано"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "put": {
+        "summary": "Обновить резюме",
+        "tags": [
+          "Резюме"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Резюме успешно обновлено"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить резюме",
+        "tags": [
+          "Резюме"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Резюме успешно удалено"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/skills": {
+      "get": {
+        "summary": "Получить список навыков",
+        "tags": [
+          "Навыки"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список навыков успешно получен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать навык",
+        "tags": [
+          "Навыки"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "level": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Навык успешно создан"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/skills/{skillId}": {
+      "put": {
+        "summary": "Обновить навык",
+        "tags": [
+          "Навыки"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "skillId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "level": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Навык успешно обновлен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Навык не найден"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить навык",
+        "tags": [
+          "Навыки"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "skillId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Навык успешно удален"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Навык не найден"
+          }
+        }
+      }
+    },
+    "/work_experience": {
+      "get": {
+        "summary": "Получить опыт работы",
+        "tags": [
+          "Опыт работы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Опыт работы успешно получен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать запись об опыте работы",
+        "tags": [
+          "Опыт работы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "company": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string"
+                  },
+                  "endDate": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Запись об опыте работы успешно создана"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/work_experience/{experienceId}": {
+      "put": {
+        "summary": "Обновить запись об опыте работы",
+        "tags": [
+          "Опыт работы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "experienceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "company": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string"
+                  },
+                  "endDate": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Запись об опыте работы успешно обновлена"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Запись не найдена"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить запись об опыте работы",
+        "tags": [
+          "Опыт работы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "experienceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запись об опыте работы успешно удалена"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Запись не найдена"
+          }
+        }
+      }
+    },
+    "/vacancy-auth": {
+      "get": {
+        "summary": "Получить список авторизаций вакансий",
+        "tags": [
+          "Авторизация вакансий"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список авторизаций успешно получен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать новую авторизацию вакансии",
+        "tags": [
+          "Авторизация вакансий"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "platform": {
+                    "type": "string"
+                  },
+                  "credentials": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Авторизация успешно создана"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/vacancy-auth/{authId}": {
+      "put": {
+        "summary": "Обновить авторизацию вакансии",
+        "tags": [
+          "Авторизация вакансий"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "authId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "platform": {
+                    "type": "string"
+                  },
+                  "credentials": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Авторизация успешно обновлена"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Авторизация не найдена"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить авторизацию вакансии",
+        "tags": [
+          "Авторизация вакансий"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "authId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Авторизация успешно удалена"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Авторизация не найдена"
+          }
+        }
+      }
+    },
+    "/vacancy-field": {
+      "get": {
+        "summary": "Получить список полей вакансий",
+        "tags": [
+          "Поля вакансий"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список полей успешно получен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать новое поле вакансии",
+        "tags": [
+          "Поля вакансий"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Поле успешно создано"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/vacancy-field/{fieldId}": {
+      "put": {
+        "summary": "Обновить поле вакансии",
+        "tags": [
+          "Поля вакансий"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fieldId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Поле успешно обновлено"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Поле не найдено"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить поле вакансии",
+        "tags": [
+          "Поля вакансий"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fieldId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Поле успешно удалено"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Поле не найдено"
+          }
+        }
+      }
+    },
+    "/subscription": {
+      "get": {
+        "summary": "Получить список подписок",
+        "tags": [
+          "Подписки"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список подписок успешно получен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать новую подписку",
+        "tags": [
+          "Подписки"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subscription_type": {
+                    "type": "string"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Подписка успешно создана"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/subscription/{id}": {
+      "get": {
+        "summary": "Получить информацию о подписке",
+        "tags": [
+          "Подписки"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о подписке успешно получена"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Подписка не найдена"
+          }
+        }
+      },
+      "put": {
+        "summary": "Обновить информацию о подписке",
+        "tags": [
+          "Подписки"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subscription_type": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Подписка успешно обновлена"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Подписка не найдена"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить подписку",
+        "tags": [
+          "Подписки"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Подписка успешно удалена"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Подписка не найдена"
+          }
+        }
+      }
+    },
+    "/vacancy": {
+      "get": {
+        "summary": "Получить список вакансий",
+        "tags": [
+          "Вакансии"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список вакансий (может быть пустым массивом)"
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/vacancy/{vacancyId}": {
+      "delete": {
+        "summary": "Удалить вакансию",
+        "tags": [
+          "Вакансии"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vacancyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Вакансия успешно удалена"
+          },
+          "404": {
+            "description": "Вакансия не найдена"
+          }
+        }
+      }
+    },
+    "/default/vacancies": {
+      "delete": {
+        "summary": "Удалить все вакансии",
+        "tags": [
+          "Вакансии"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Все вакансии успешно удалены"
+          }
+        }
+      }
+    }
+  }
+}
