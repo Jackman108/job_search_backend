@@ -13,7 +13,10 @@ const MODULES_DIR = path.join(SRC, 'modules');
 const ENFORCE = process.argv.includes('--enforce') || process.env.CHECK_MODULES_ENFORCE === '1';
 /** Modules that must pass scaffold + deep-import rules even in report-only mode. */
 const ENFORCE_MODULES = new Set(
-    (process.env.CHECK_MODULES_ENFORCE_LIST || 'notifications,search-profile,hh-jobs,vacancies,feedback,resume,profile')
+    (
+        process.env.CHECK_MODULES_ENFORCE_LIST ||
+        'notifications,search-profile,hh-jobs,vacancies,feedback,resume,profile,subscriptions'
+    )
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean),
