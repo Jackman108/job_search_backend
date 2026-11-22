@@ -1,0 +1,83 @@
+import { AuthenticatedRequest } from '@interface';
+import { handleErrors, handleSuccess } from '@middlewares';
+import { Response } from 'express';
+import { cryptoService } from '../application/cryptoService.js';
+
+/** HTTP adapter for crypto payment CRUD. */
+export class CryptoPaymentController {
+    /**
+     * Получение списка криптоплатежей пользователя
+     */
+    async listCryptoPayments(req: AuthenticatedRequest, res: Response) {
+        const result = await cryptoService.listPayments();
+
+        if (result.success) {
+            res.status(200).json(result.data);
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Error listing crypto payments');
+        }
+    }
+
+    /**
+     * Получение информации о конкретном криптоплатеже
+     */
+    async getCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        const result = await cryptoService.getPayment(req.userId!, req.params.paymentId);
+
+        if (result.success) {
+            handleSuccess(res, 'Crypto payment retrieved successfully', result.data);
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to fetch crypto payment');
+        }
+    }
+
+    /**
+     * Создание нового криптоплатежа
+     */
+    async createCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        const { amount, currency, payment_id, network, crypto_address } = req.body;
+
+        if (!payment_id) {
+            return handleErrors(res, new Error('Missing required fields'), 'Payment ID and amount are required');
+        }
+
+        const result = await cryptoService.createPayment({
+            amount,
+            currency,
+            payment_id,
+            network,
+            crypto_address,
+        });
+
+        if (result.success) {
+            handleSuccess(res, 'Crypto payment created successfully', result.data);
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to create crypto payment');
+        }
+    }
+
+    /**
+     * Обновление криптоплатежа
+     */
+    async updateCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        const result = await cryptoService.updatePayment(req.params.paymentId, req.body);
+        if (result.success) {
+            handleSuccess(res, 'Crypto payment updated successfully', result.data);
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to update crypto payment');
+        }
+    }
+
+    /**
+     * Удаление криптоплатежа
+     */
+    async deleteCryptoPayment(req: AuthenticatedRequest, res: Response) {
+        const result = await cryptoService.deletePayment(req.userId!, req.params.paymentId);
+
+        if (result.success) {
+            handleSuccess(res, 'Crypto payment deleted successfully');
+        } else {
+            handleErrors(res, new Error(result.error || 'Unknown error'), 'Failed to delete crypto payment');
+        }
+    }
+}
