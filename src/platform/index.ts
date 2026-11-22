@@ -1,5 +1,6 @@
 /** Platform public surface (phase 1′ — growing). */
 export { redact } from './logging/redact.js';
+export { buildClefEvent, resolveSeqUrl, shipToSeq, warnSeqConfiguredOnce } from './logging/seqSink.js';
 export {
     decryptHhPassword,
     encryptHhPassword,

@@ -1,4 +1,5 @@
 import { redact } from '../platform/logging/redact.js';
+import { shipToSeq, warnSeqConfiguredOnce } from '../platform/logging/seqSink.js';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -20,44 +21,56 @@ const resolveMinLevel = (): LogLevel => {
     return process.env.NODE_ENV === 'production' ? 'warn' : 'info';
 };
 
+let seqBootHintDone = false;
+
 class Logger {
     private static shouldLog(level: LogLevel): boolean {
         return LEVEL_ORDER[level] >= LEVEL_ORDER[resolveMinLevel()];
     }
 
+    /** `meta` must already be redacted (or undefined). */
     private static formatMessage(level: LogLevel, message: string, meta?: unknown): string {
         const timestamp = new Date().toISOString();
-        const safeMeta = meta === undefined ? undefined : redact(meta);
-        const metaStr = safeMeta === undefined ? '' : ` ${JSON.stringify(safeMeta)}`;
+        const metaStr = meta === undefined ? '' : ` ${JSON.stringify(meta)}`;
         return `[${timestamp}] ${level.toUpperCase()}: ${message}${metaStr}`;
     }
 
-    /**
-     * Use console.log/warn/error (not info/debug): some Windows/Cursor terminals
-     * and redirected hosts drop or demote console.info/debug.
-     */
-    static debug(message: string, meta?: unknown): void {
-        if (this.shouldLog('debug')) {
-            console.log(this.formatMessage('debug', message, meta));
+    private static emit(level: LogLevel, message: string, meta?: unknown): void {
+        if (!this.shouldLog(level)) {
+            return;
         }
+        if (!seqBootHintDone) {
+            seqBootHintDone = true;
+            warnSeqConfiguredOnce();
+        }
+        const safeMeta = meta === undefined ? undefined : redact(meta);
+        const line = this.formatMessage(level, message, safeMeta);
+        // console.log/warn/error: some Windows/Cursor hosts drop console.info/debug.
+        if (level === 'error') {
+            console.error(line);
+        } else if (level === 'warn') {
+            console.warn(line);
+        } else {
+            console.log(line);
+        }
+        // E7: optional Seq; never blocks / never upgrades console failure.
+        shipToSeq(level, message, safeMeta);
+    }
+
+    static debug(message: string, meta?: unknown): void {
+        this.emit('debug', message, meta);
     }
 
     static info(message: string, meta?: unknown): void {
-        if (this.shouldLog('info')) {
-            console.log(this.formatMessage('info', message, meta));
-        }
+        this.emit('info', message, meta);
     }
 
     static warn(message: string, meta?: unknown): void {
-        if (this.shouldLog('warn')) {
-            console.warn(this.formatMessage('warn', message, meta));
-        }
+        this.emit('warn', message, meta);
     }
 
     static error(message: string, meta?: unknown): void {
-        if (this.shouldLog('error')) {
-            console.error(this.formatMessage('error', message, meta));
-        }
+        this.emit('error', message, meta);
     }
 }
 
