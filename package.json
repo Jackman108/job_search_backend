@@ -22,6 +22,7 @@
         "check:structure": "node scripts/check-structure.mjs",
         "check:modules": "node scripts/check-modules.mjs --enforce",
         "check:sql": "node scripts/check-sql.mjs",
+        "check:env-examples": "node scripts/check-env-examples.mjs",
         "migrate": "node scripts/migrate.mjs",
         "migrate:s4": "node scripts/migrate-s4-per-user-tables.mjs",
         "scrub:hh-jobs": "node scripts/scrub-hh-job-passwords.mjs",
