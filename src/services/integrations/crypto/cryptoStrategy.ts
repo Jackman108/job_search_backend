@@ -60,8 +60,12 @@ export const createCryptoStrategy = (): PaymentStrategy => {
     /**
      * Обрабатывает вебхук от платежной системы
      */
-    const processPaymentWebhook = async (webhookData: any, signature: string): Promise<PaymentResult<boolean>> => {
-        return processWebhook(webhookData, signature);
+    const processPaymentWebhook = async (
+        webhookData: any,
+        signature: string,
+        rawBody?: string,
+    ): Promise<PaymentResult<boolean>> => {
+        return processWebhook(webhookData, signature, rawBody);
     };
 
     /**

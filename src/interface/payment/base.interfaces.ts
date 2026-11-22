@@ -148,7 +148,8 @@ export interface PaymentStrategy {
     initPayment: (params: any) => Promise<PaymentResult<any>>;
     validatePaymentSignature: (data: any, signature: string) => boolean;
     handlePaymentCallback: (params: any) => Promise<PaymentResult<string>>;
-    processPaymentWebhook: (data: any, signature: string) => Promise<PaymentResult<boolean>>;
+    processPaymentWebhook: (data: any, signature: string, rawBody?: string) => Promise<PaymentResult<boolean>>;
+
     checkPaymentStatus: (paymentId: string) => Promise<PaymentResult<PaymentStatus>>;
     refundPayment: (params: RefundPaymentParams) => Promise<PaymentResult<any>>;
     getPaymentDetails: (paymentId: string) => Promise<PaymentResult<any>>;
@@ -161,7 +162,8 @@ export interface PaymentStrategyContext {
     strategy: PaymentStrategy;
     setStrategy: (strategy: PaymentStrategy) => void;
     executePayment: (params: any) => Promise<PaymentResult<any>>;
-    validateWebhook: (data: any, signature: string) => Promise<PaymentResult<boolean>>;
+    validateWebhook: (data: any, signature: string, rawBody?: string) => Promise<PaymentResult<boolean>>;
+
     checkStatus: (paymentId: string) => Promise<PaymentResult<PaymentStatus>>;
     refundPayment: (params: RefundPaymentParams) => Promise<PaymentResult<any>>;
     getPaymentDetails: (paymentId: string) => Promise<PaymentResult<any>>;

@@ -172,6 +172,11 @@ export const updatePaymentStatus = async (paymentId: string, status: PaymentStat
         WHERE id = $2
     `;
     await executeQuery(query, [status, paymentId]);
+
+    if (status === PaymentStatus.Completed) {
+        const { maybeActivateAfterStatus } = await import('../../../modules/payments/index.js');
+        await maybeActivateAfterStatus(paymentId, status);
+    }
 };
 
 /**

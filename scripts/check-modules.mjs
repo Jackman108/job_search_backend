@@ -77,7 +77,16 @@ function findDeepModuleImports(file) {
         const match = spec.match(/(?:^|\/)modules\/([a-z0-9-]+)\/(.+)$/);
         if (!match) continue;
         const [, mod, rest] = match;
-        if (rest === 'index' || rest === 'index.js' || rest === 'index.ts') continue;
+        if (
+            rest === 'index' ||
+            rest === 'index.js' ||
+            rest === 'index.ts' ||
+            rest === 'webhookPublic' ||
+            rest === 'webhookPublic.js' ||
+            rest === 'webhookPublic.ts'
+        ) {
+            continue;
+        }
         // allow importing within same module
         if (rel.includes(`/modules/${mod}/`)) continue;
         issues.push(`${rel} imports modules/${mod}/${rest} (use modules/${mod} public API)`);

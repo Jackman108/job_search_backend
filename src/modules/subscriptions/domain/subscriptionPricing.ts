@@ -10,6 +10,15 @@ export function isSubscriptionType(value: string): value is SubscriptionType {
     return value === 'daily' || value === 'weekly' || value === 'monthly';
 }
 
+/** Reverse map payment amount → plan (null if amount is not a known plan price). */
+export function subscriptionTypeFromAmount(amount: number): SubscriptionType | null {
+    const n = Number(amount);
+    for (const type of Object.keys(SUBSCRIPTION_PRICES) as SubscriptionType[]) {
+        if (SUBSCRIPTION_PRICES[type] === n) return type;
+    }
+    return null;
+}
+
 /** Pure: price + end date for a subscription type. */
 export function calculateSubscriptionDetails(
     subscriptionType: string,

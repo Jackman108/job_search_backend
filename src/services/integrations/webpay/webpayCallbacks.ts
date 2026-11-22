@@ -3,6 +3,12 @@ import { updatePaymentStatus, validateWebpaySignature } from '@integrations';
 import { PaymentStatus } from '@interface';
 import { getWebpayPaymentByOrderNum, updateWebpayPaymentByOrderNum } from '@services';
 import { logger } from '@utils';
+import {
+    buildProviderEventId,
+    claimWebhookEvent,
+    decideWebhookGate,
+    resolveWebpayEventKey,
+} from '../../../modules/payments/webhookPublic.js';
 
 /**
  * Обработка возврата покупателя после успешной оплаты
@@ -48,20 +54,31 @@ export const handleWebpayCancel = async (orderNum: string): Promise<string> => {
 };
 
 /**
- * Обработка нотификации от WebPay
+ * WebPay notify: verify signature → claim event → side effects (S6).
  */
 export const handleWebpayNotify = async (payload: any, signature: string): Promise<boolean> => {
-    if (!USE_MOCK_PROVIDER && !validateWebpaySignature(payload, signature)) {
+    const signatureOk = USE_MOCK_PROVIDER || validateWebpaySignature(payload, signature);
+    const eventKey = resolveWebpayEventKey((payload || {}) as Record<string, unknown>);
+    let claim: 'claimed' | 'duplicate' | null = null;
+    if (signatureOk && eventKey) {
+        claim = await claimWebhookEvent('webpay', buildProviderEventId('webpay', eventKey));
+    }
+
+    const decision = decideWebhookGate({ signatureOk, eventKey, claim });
+    if (decision === 'reject_signature') {
         logger.error('Invalid WebPay notification signature');
         return false;
     }
-
-    const { wsb_order_num, wsb_tid, wsb_status } = payload;
-
-    if (!wsb_order_num || !wsb_status) {
+    if (decision === 'reject_event') {
         logger.error('Missing required fields in WebPay notification');
         return false;
     }
+    if (decision === 'skip_duplicate') {
+        logger.info('Skipping duplicate WebPay notification', { eventKey });
+        return true;
+    }
+
+    const { wsb_order_num, wsb_tid, wsb_status } = payload;
 
     try {
         const webpayPayment = await getWebpayPaymentByOrderNum(wsb_order_num);

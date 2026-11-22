@@ -2,26 +2,51 @@ import { USE_MOCK_PROVIDER } from '@config';
 import { nowpaymentsApi, updatePaymentStatuses, validateNowPaymentsSignature, withErrorHandling } from '@integrations';
 import { CryptoPaymentDetails, PaymentResult, PaymentStatus } from '@interface';
 import { executeQuery, logger } from '@utils';
+import {
+    buildProviderEventId,
+    claimWebhookEvent,
+    decideWebhookGate,
+    resolveCryptoEventKey,
+} from '../../../modules/payments/webhookPublic.js';
 
 /**
- * Обрабатывает вебхук от провайдера
+ * Processes crypto provider webhook: verify signature → claim event → side effects.
  */
-export const processWebhook = async (webhookData: any, signature: string): Promise<PaymentResult<boolean>> => {
+export const processWebhook = async (
+    webhookData: any,
+    signature: string,
+    rawBody?: string,
+): Promise<PaymentResult<boolean>> => {
     return await withErrorHandling(async () => {
-        logger.info('Processing crypto webhook', { webhookData });
+        logger.info('Processing crypto webhook', { hasRawBody: Boolean(rawBody) });
 
-        if (!USE_MOCK_PROVIDER && !validateNowPaymentsSignature(webhookData, signature)) {
-            logger.error('Invalid crypto webhook signature', { signature });
+        const signatureOk =
+            USE_MOCK_PROVIDER ||
+            validateNowPaymentsSignature(
+                rawBody && looksLikeJsonObject(rawBody) ? safeJsonParse(rawBody) : webhookData,
+                signature,
+            );
+
+        const eventKey = resolveCryptoEventKey((webhookData || {}) as Record<string, unknown>);
+        let claim: 'claimed' | 'duplicate' | null = null;
+        if (signatureOk && eventKey) {
+            claim = await claimWebhookEvent('crypto', buildProviderEventId('crypto', eventKey));
+        }
+
+        const decision = decideWebhookGate({ signatureOk, eventKey, claim });
+        if (decision === 'reject_signature') {
+            logger.error('Invalid crypto webhook signature');
             throw new Error('Invalid webhook signature');
+        }
+        if (decision === 'reject_event') {
+            throw new Error('Missing payment_id in webhook data');
+        }
+        if (decision === 'skip_duplicate') {
+            logger.info('Skipping duplicate crypto webhook', { eventKey });
+            return true;
         }
 
         const { payment_id: nowPaymentsId, payment_status } = webhookData;
-
-        if (!nowPaymentsId) {
-            logger.error('Missing payment_id in webhook data', { webhookData });
-            throw new Error('Missing payment_id in webhook data');
-        }
-
         const cryptoPayments = await executeQuery<CryptoPaymentDetails>(
             'SELECT * FROM crypto_payments WHERE transaction_hash = $1',
             [nowPaymentsId],
@@ -35,13 +60,12 @@ export const processWebhook = async (webhookData: any, signature: string): Promi
         const cryptoPayment = cryptoPayments[0];
         const normalizedStatus = USE_MOCK_PROVIDER ? payment_status : nowpaymentsApi.mapPaymentStatus(payment_status);
 
-        if (cryptoPayment.id) {
-            await updatePaymentStatuses(cryptoPayment.id, normalizedStatus);
-        } else {
+        if (!cryptoPayment.id) {
             logger.error('Missing crypto payment ID', { nowPaymentsId });
             throw new Error('Missing crypto payment ID');
         }
 
+        await updatePaymentStatuses(cryptoPayment.id, normalizedStatus);
         await logWebhook({
             paymentId: cryptoPayment.payment_id,
             status: normalizedStatus,
@@ -52,9 +76,16 @@ export const processWebhook = async (webhookData: any, signature: string): Promi
     });
 };
 
-/**
- * Логирует данные вебхука в БД
- */
+const looksLikeJsonObject = (raw: string) => raw.trim().startsWith('{');
+
+const safeJsonParse = (raw: string): unknown => {
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return {};
+    }
+};
+
 const logWebhook = async (data: { paymentId: string; status: PaymentStatus; data: any }): Promise<void> => {
     try {
         await executeQuery(

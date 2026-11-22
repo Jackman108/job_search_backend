@@ -17,6 +17,7 @@ export {
     calculateSubscriptionDetails,
     isSubscriptionType,
     SUBSCRIPTION_PRICES,
+    subscriptionTypeFromAmount,
     type SubscriptionType,
 } from './domain/subscriptionPricing.js';
 export { subscriptionsConfig } from './module.config.js';

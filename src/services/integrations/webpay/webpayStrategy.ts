@@ -15,6 +15,7 @@ import {
 } from '@integrations';
 import { InitWebPayPaymentParams, PaymentResult, PaymentStatus, WebpayInitResult, WebPayStrategy } from '@interface';
 import { logger } from '@utils';
+import { handleWebpayNotify } from './webpayCallbacks.js';
 
 /**
  * Создание стратегии платежей для WebPay
@@ -175,19 +176,15 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @param signature Подпись вебхука
      * @returns Результат обработки вебхука
      */
-    const processPaymentWebhook = async (data: any, signature: string): Promise<PaymentResult<boolean>> => {
-        // Проверяем подпись вебхука
-        if (!validatePaymentSignature(data, signature)) {
-            logger.error('Invalid WebPay webhook signature', { data, signature });
-            throw new Error('Invalid WebPay webhook signature');
+    const processPaymentWebhook = async (
+        data: any,
+        signature: string,
+        _rawBody?: string,
+    ): Promise<PaymentResult<boolean>> => {
+        const ok = await handleWebpayNotify(data, signature);
+        if (!ok) {
+            throw new Error('Invalid WebPay webhook signature or payload');
         }
-
-        // Обновляем статус платежа на основе данных вебхука
-        const orderNum = data.wsb_order_num;
-        const status = data.payment_status || PaymentStatus.Completed;
-
-        await updatePaymentStatus(orderNum, status);
-
         return {
             success: true,
             data: true,
