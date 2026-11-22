@@ -13,8 +13,23 @@ module.exports = function detectApplyOutcomeInPage(selectors, successReSource) {
     }
     var haystack = body + '\n' + dialog + '\n' + toastBits;
     // Magritte controls only — never scan full body for /капч/ (false mid-apply on vacancy pages).
-    var captchaImg = !!document.querySelector(selectors.CAPTCHA_IMAGE);
-    var captchaInput = !!document.querySelector(selectors.CAPTCHA_INPUT);
+    // Require *visible* nodes — HH often leaves hidden captcha markup in vacancy DOM.
+    function isVisible(el) {
+        if (!el) return false;
+        var style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+        return el.getClientRects().length > 0;
+    }
+    var captchaImg = false;
+    var imgs = document.querySelectorAll(selectors.CAPTCHA_IMAGE);
+    for (var ci = 0; ci < imgs.length; ci++) {
+        if (isVisible(imgs[ci])) {
+            captchaImg = true;
+            break;
+        }
+    }
+    var captchaInputEl = document.querySelector(selectors.CAPTCHA_INPUT);
+    var captchaInput = isVisible(captchaInputEl);
     var captcha = captchaImg || captchaInput;
 
     var formInvalid = [

@@ -141,10 +141,35 @@ async function typeAndSubmitAnswer(page: Page, answer: string): Promise<boolean>
  * POST /jobs/:id/captcha. Always holds (awaitingCaptcha=true) until answer / cancel /
  * HH_CAPTCHA_WAIT_MS — a missing Magritte picture is retried, never skipped.
  */
+async function pageHasVisibleCaptcha(page: Page): Promise<boolean> {
+    return page
+        .evaluate(
+            (sels) => {
+                const visible = (el: Element | null) => {
+                    if (!el) return false;
+                    const style = window.getComputedStyle(el);
+                    if (style.display === 'none' || style.visibility === 'hidden') return false;
+                    return el.getClientRects().length > 0;
+                };
+                const imgs = Array.from(document.querySelectorAll(sels.image));
+                return imgs.some((img) => visible(img)) || visible(document.querySelector(sels.input));
+            },
+            { image: SELECTORS.CAPTCHA_IMAGE, input: SELECTORS.CAPTCHA_INPUT },
+        )
+        .catch(() => false);
+}
+
 export async function waitAndSubmitCaptchaAnswer(jobId: string, page: Page, captchaSrc: string): Promise<boolean> {
     const budget = Number(process.env.HH_CAPTCHA_WAIT_MS) || DEFAULT_WAIT_MS;
     const deadline = Date.now() + budget;
     let src = captchaSrc && isPictureUrl(captchaSrc) ? captchaSrc : await readCaptchaSrc(page);
+
+    // No picture URL and no visible Magritte captcha → nothing to solve (false positive).
+    if (!src && !(await pageHasVisibleCaptcha(page))) {
+        stage('captcha', 'skip wait — no visible captcha controls');
+        clearAwaiting(jobId, 'CAPTCHA false positive skipped');
+        return true;
+    }
 
     for (let attempt = 1; attempt <= MAX_WRONG_ANSWERS && Date.now() < deadline; attempt++) {
         if (!src) src = await refreshCaptchaPicture(page);
@@ -172,8 +197,17 @@ export async function waitAndSubmitCaptchaAnswer(jobId: string, page: Page, capt
             return false;
         }
 
-        const still = await page.$(SELECTORS.CAPTCHA_IMAGE).catch(() => null);
-        if (!still) {
+        const stillVisible = await page
+            .evaluate((sel) => {
+                const nodes = Array.from(document.querySelectorAll(sel));
+                return nodes.some((el) => {
+                    const style = window.getComputedStyle(el);
+                    if (style.display === 'none' || style.visibility === 'hidden') return false;
+                    return el.getClientRects().length > 0;
+                });
+            }, SELECTORS.CAPTCHA_IMAGE)
+            .catch(() => false);
+        if (!stillVisible) {
             await page
                 .waitForFunction(() => !location.pathname.includes('/account/login'), {
                     timeout: TIMEOUTS.MODAL,

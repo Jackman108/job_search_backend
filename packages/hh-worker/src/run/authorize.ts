@@ -2,6 +2,7 @@ import { SELECTORS, TIMEOUTS } from '@market-hunter/hh-worker/config';
 import { Browser, Page } from 'puppeteer';
 import type { JobBroadcast } from '../job/broadcast.types.js';
 import { clickByExactText } from './helpers/clickByExactText.js';
+import { clickDomHandle, clickDomSelector } from './helpers/clickDom.js';
 import { dismissPreLoginOverlays } from './helpers/dismissPreLoginOverlays.js';
 import { fillControlledInput } from './helpers/fillControlledInput.js';
 import { MagritteLoginTransientError, submitAndDetectBlockers } from './helpers/loginBlockers.js';
@@ -44,12 +45,15 @@ async function passAccountTypeGate(page: Page): Promise<void> {
 
     if ((await page.$(SELECTORS.EMAIL_INPUT)) || (await page.$(SELECTORS.EMAIL_BUTTON))) return;
 
+    stage('login', 'account-type gate');
     await waitMagritteLoaderGone(page);
-    await applicantCard.click();
+    await clickDomHandle(applicantCard);
     await settle(400);
     await waitMagritteLoaderGone(page);
 
+    const submitViaQa = await clickDomSelector(page, SELECTORS.LOGIN_SUBMIT);
     const submit =
+        submitViaQa ||
         (await clickFirstSelector(page, [SELECTORS.LOGIN_SUBMIT], {
             timeout: TIMEOUTS.SEARCH,
             visible: true,
@@ -59,8 +63,17 @@ async function passAccountTypeGate(page: Page): Promise<void> {
     if (!submit) {
         throw new Error('HH login: account-type SUBMIT not found');
     }
-    await waitMagritteLoaderGone(page, TIMEOUTS.LONG);
-    const ready = await waitLoginCredentialStep(page, TIMEOUTS.MODAL);
+    await waitMagritteLoaderGone(page, TIMEOUTS.MODAL);
+    let ready = await waitLoginCredentialStep(page, TIMEOUTS.MODAL);
+    if (!ready) {
+        // Soft nav stall: retry submit via DOM click + Enter on the form.
+        stage('login', 'account-type retry submit');
+        await clickDomSelector(page, SELECTORS.LOGIN_SUBMIT);
+        await page.keyboard.press('Enter').catch(() => undefined);
+        await settle(TIMEOUTS.SHORT);
+        await waitMagritteLoaderGone(page, TIMEOUTS.MODAL);
+        ready = await waitLoginCredentialStep(page, TIMEOUTS.MODAL);
+    }
     if (!ready) {
         await page.screenshot({ path: 'screenshot-authorize-account-type.png' }).catch(() => null);
         throw new Error('HH login: credential step did not appear after account-type submit');
@@ -74,8 +87,17 @@ async function ensureLoginForm(page: Page): Promise<void> {
         return;
     }
 
-    await page.goto(HH_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
-    await settle(TIMEOUTS.SHORT * 2);
+    stage('login', 'goto /account/login');
+    // Headless HH often paints the form before `domcontentloaded` settles — race form vs nav.
+    const nav = page.goto(HH_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch((err) => {
+        stage('login', `goto soft-fail: ${String(err).slice(0, 80)}`);
+        return null;
+    });
+    const formEarly = page
+        .waitForSelector(SELECTORS.ACCOUNT_LOGIN_FORM, { timeout: TIMEOUTS.LONG, visible: true })
+        .catch(() => null);
+    await Promise.race([nav, formEarly]);
+    await settle(TIMEOUTS.SHORT);
     await dismissPreLoginOverlays(page);
 
     const form = await page
@@ -229,9 +251,10 @@ export async function authorize(
     } catch (error) {
         if (error instanceof MagritteLoginTransientError) {
             stage('login', 'Magritte reload toast — full login retry once');
+            await page.goto(HH_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
             await page
-                .goto(HH_LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG })
-                .catch(() => undefined);
+                .waitForSelector(SELECTORS.ACCOUNT_LOGIN_FORM, { timeout: TIMEOUTS.MODAL, visible: true })
+                .catch(() => null);
             await settle(TIMEOUTS.SHORT * 2);
             try {
                 await runLoginPass(page, email, password, browser, broadcast, jobId, true);

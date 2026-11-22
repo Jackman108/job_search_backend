@@ -31,7 +31,10 @@ export async function clickByExactText(
         if (el) {
             const box = await el.boundingBox().catch(() => null);
             if (box) {
-                await el.click();
+                // DOM click — avoid Puppeteer nav-wait hang on Magritte soft transitions.
+                await el.evaluate((node) => {
+                    if (node instanceof HTMLElement) node.click();
+                });
                 return el;
             }
         }
