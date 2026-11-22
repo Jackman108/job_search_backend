@@ -8,6 +8,8 @@
         "forceConsistentCasingInFileNames": true,
         "strict": true,
         "skipLibCheck": true,
+        "incremental": true,
+        "tsBuildInfoFile": "./.cache/tsc/tsconfig.tsbuildinfo",
         "rootDir": ".",
         "outDir": "./dist",
         "allowJs": true,
