@@ -1,12 +1,13 @@
 # payments
 
-Core `payments` rows, payment info, provider CRUD, and S6 webhook gate (signature → claim → side effects). Provider strategy adapters still under `services/integrations`.
+Core `payments` rows, payment info, provider CRUD, S6 webhook gate, and provider strategies under `providers/` (`@integrations`).
 
 ## Public API
 
 - `register(app)` — mount `/payment*`, crypto/webpay CRUD, integration + webhook routes
 - Core / info / crypto / webpay CRUD helpers
-- `webhookPublic` — `claimWebhookEvent`, `decideWebhookGate`, event-key helpers (for integrations)
+- `webhookPublic` — `claimWebhookEvent`, `decideWebhookGate`, event-key helpers
+- `providers/` — WebPay/NOWPayments strategies (`@integrations`)
 
 ## Tables
 

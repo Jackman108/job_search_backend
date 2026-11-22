@@ -83,7 +83,10 @@ function findDeepModuleImports(file) {
             rest === 'index.ts' ||
             rest === 'webhookPublic' ||
             rest === 'webhookPublic.js' ||
-            rest === 'webhookPublic.ts'
+            rest === 'webhookPublic.ts' ||
+            rest === 'providers/index' ||
+            rest === 'providers/index.js' ||
+            rest === 'providers/index.ts'
         ) {
             continue;
         }

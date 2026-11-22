@@ -1,14 +1,14 @@
 import { USE_MOCK_PROVIDER } from '@config';
 import { updatePaymentStatus, validateWebpaySignature } from '@integrations';
 import { PaymentStatus } from '@interface';
-import { getWebpayPaymentByOrderNum, updateWebpayPaymentByOrderNum } from '../../../modules/payments/index.js';
+import { getWebpayPaymentByOrderNum, updateWebpayPaymentByOrderNum } from '../../index.js';
 import { logger } from '@utils';
 import {
     buildProviderEventId,
     claimWebhookEvent,
     decideWebhookGate,
     resolveWebpayEventKey,
-} from '../../../modules/payments/webhookPublic.js';
+} from '../../webhookPublic.js';
 
 /**
  * Обработка возврата покупателя после успешной оплаты

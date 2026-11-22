@@ -1,10 +1,7 @@
 import { CreatePaymentParams, PaymentBase, PaymentStatus } from '@interface';
 import { getSubscriptionIdByUserId, withErrorHandling } from '@integrations';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
-import {
-    isPaymentsKeyedByUserId,
-    resetPaymentsSchemaCache,
-} from '../../../services/integrations/common/paymentSchema.utils.js';
+import { isPaymentsKeyedByUserId, resetPaymentsSchemaCache } from '../providers/common/paymentSchema.utils.js';
 
 /**
  * @module PaymentService
