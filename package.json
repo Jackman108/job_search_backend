@@ -23,6 +23,8 @@
         "check:modules": "node scripts/check-modules.mjs --enforce",
         "check:sql": "node scripts/check-sql.mjs",
         "check:env-examples": "node scripts/check-env-examples.mjs",
+        "openapi:export": "node scripts/export-openapi.mjs",
+        "openapi:check": "node scripts/export-openapi.mjs --check",
         "migrate": "node scripts/migrate.mjs",
         "migrate:s4": "node scripts/migrate-s4-per-user-tables.mjs",
         "scrub:hh-jobs": "node scripts/scrub-hh-job-passwords.mjs",

@@ -50,6 +50,9 @@ jobs:
       - name: Env example sync (E8)
         run: yarn check:env-examples --enforce
 
+      - name: OpenAPI export drift (E4)
+        run: yarn openapi:check
+
   e2e-cross:
     name: e2e cross (optional stack)
     runs-on: ubuntu-latest
