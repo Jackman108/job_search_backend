@@ -1,4 +1,4 @@
-import { executeQuery } from '@utils';
+import { executeQuery } from '../../../../utils/index.js';
 
 /** Cached: auth Prisma shared DB uses `user_id`; legacy backend DDL used `subscription_id`. */
 let paymentsKeyedByUserId: boolean | null = null;

@@ -1,9 +1,9 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import http from 'http';
 import jwt from 'jsonwebtoken';
-import { StartWebSocketServerParams } from '@interface';
+import { StartWebSocketServerParams } from '../interface/index.js';
 import { JWT_CONFIG } from '@config';
-import { checkPort, logger } from '@utils';
+import { checkPort, logger } from '../utils/index.js';
 import { handleWsHealthConnection, isWsHealthMessage, isWsHealthPath, sendWsHealth } from './wsHealth.js';
 
 interface Client {

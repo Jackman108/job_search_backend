@@ -2,8 +2,8 @@
  * Фабрика для создания платежных стратегий
  * Позволяет выбирать подходящую стратегию по типу платежа
  */
-import { PaymentMethod, PaymentStrategy } from '@interface';
-import { logger } from '@utils';
+import { PaymentMethod, PaymentStrategy } from '../../../interface/index.js';
+import { logger } from '../../../utils/index.js';
 
 /**
  * Регистрирует новую стратегию в фабрике

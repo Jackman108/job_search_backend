@@ -1,7 +1,7 @@
 import { JWT_CONFIG, PORTS } from '@config';
 import { startHttpServer, startWebSocketServer } from '@server';
 import { resolveHhCredKey } from './platform/crypto/hhCredCrypto.js';
-import { assertJwtSecret, logger } from '@utils';
+import { assertJwtSecret, logger } from './utils/index.js';
 
 process.on('uncaughtException', (error) => {
     logger.error('Uncaught Exception', {

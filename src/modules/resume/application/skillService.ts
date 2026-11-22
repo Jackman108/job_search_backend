@@ -1,5 +1,5 @@
-import { CreateSkillInput, Skill, UpdateSkillInput } from '@interface';
-import { executeQuery, generateUpdateQueryWithConditions } from '@utils';
+import { CreateSkillInput, Skill, UpdateSkillInput } from '../../../interface/index.js';
+import { executeQuery, generateUpdateQueryWithConditions } from '../../../utils/index.js';
 import { getResumeByUserId } from '../infra/getResumeByUserId.js';
 
 export const createSkillUser = async (userId: string, skillData: CreateSkillInput): Promise<string> => {

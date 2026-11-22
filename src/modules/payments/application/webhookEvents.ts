@@ -1,4 +1,4 @@
-import { executeQuery, logger } from '@utils';
+import { executeQuery, logger } from '../../../utils/index.js';
 import type { WebhookClaim } from '../domain/webhookGate.js';
 
 /**

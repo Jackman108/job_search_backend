@@ -9,7 +9,7 @@ import type {
     StartScriptBody,
     StopScriptResponse,
     SyncResumeBody,
-} from '@interface';
+} from '../../../interface/index.js';
 import { stop } from '../../../utils/stopManager.js';
 import { upsertVacancyAuthCredentials } from '../../search-profile/index.js';
 import { resolveHhApplyCredentials } from '../application/resolveHhApplyCredentials.js';

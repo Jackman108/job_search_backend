@@ -6,9 +6,9 @@ import {
     InitCryptoPaymentParams,
     PaymentResult,
     PaymentStatus,
-} from '@interface';
+} from '../../../../interface/index.js';
 import { createCryptoPayment } from '../../index.js';
-import { logger } from '@utils';
+import { logger } from '../../../../utils/index.js';
 import { mockCryptoResponse } from '../../../../mock/mockCryptoResponse';
 import { processWebhook } from './cryptoWebhook.js';
 

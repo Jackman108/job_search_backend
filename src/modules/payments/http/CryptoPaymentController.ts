@@ -1,4 +1,4 @@
-import { AuthenticatedRequest } from '@interface';
+import { AuthenticatedRequest } from '../../../interface/index.js';
 import { handleErrors, handleSuccess } from '@middlewares';
 import { Response } from 'express';
 import { cryptoService } from '../application/cryptoService.js';

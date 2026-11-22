@@ -1,7 +1,7 @@
 import { USE_MOCK_PROVIDER } from '@config';
 import { nowpaymentsApi, updatePaymentStatuses, validateNowPaymentsSignature, withErrorHandling } from '@integrations';
-import { CryptoPaymentDetails, PaymentResult, PaymentStatus } from '@interface';
-import { executeQuery, logger } from '@utils';
+import { CryptoPaymentDetails, PaymentResult, PaymentStatus } from '../../../../interface/index.js';
+import { executeQuery, logger } from '../../../../utils/index.js';
 import {
     buildProviderEventId,
     claimWebhookEvent,

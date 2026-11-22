@@ -1,5 +1,5 @@
 import type { JobBroadcast } from '@market-hunter/hh-worker/job';
-import { logger } from '@utils';
+import { logger } from '../utils/index.js';
 
 /**
  * Detached worker cannot reach the API process WebSocket server.

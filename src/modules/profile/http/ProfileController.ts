@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { AuthenticatedRequest, AvatarUploadParams, UserProfileUpdateFields } from '@interface';
+import { AuthenticatedRequest, AvatarUploadParams, UserProfileUpdateFields } from '../../../interface/index.js';
 import { handleErrors } from '@middlewares';
 import { deleteUserProfile, getUserProfile, updateUserProfile } from '../application/profileService.js';
 import { handleAvatarUpload } from '../infra/avatarUpload.js';

@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { handleErrors } from '@middlewares';
-import type { AuthenticatedRequest } from '@interface';
+import type { AuthenticatedRequest } from '../../../interface/index.js';
 import { deleteVacancyTable, deleteVacancyUser, getVacanciesUser } from '../application/vacancyService.js';
 
 export class VacancyController {

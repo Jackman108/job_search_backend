@@ -1,4 +1,4 @@
-import { PaymentStatus } from '@interface';
+import { PaymentStatus } from '../interface/index.js';
 
 /**
  * Моковые данные для криптоплатежей в режиме разработки

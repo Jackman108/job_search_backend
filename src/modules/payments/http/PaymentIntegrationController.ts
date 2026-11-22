@@ -8,9 +8,9 @@ import {
     validatePaymentMethod,
     validatePaymentParams,
 } from '@integrations';
-import { AuthenticatedRequest, RefundPaymentParams } from '@interface';
+import { AuthenticatedRequest, RefundPaymentParams } from '../../../interface/index.js';
 import { handleControllerError, handleErrors, handleSuccess } from '@middlewares';
-import { logger } from '@utils';
+import { logger } from '../../../utils/index.js';
 import { Request, Response } from 'express';
 
 type RequestWithRawBody = Request & { rawBody?: string };

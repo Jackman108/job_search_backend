@@ -1,6 +1,6 @@
 import type { VacancyData } from '@market-hunter/hh-worker/types';
 import { broadcast } from '@server';
-import { executeQuery } from '@utils';
+import { executeQuery } from '../../../utils/index.js';
 import { vacancyTableIdent } from '../module.config.js';
 
 export async function ensureVacanciesTable(): Promise<void> {

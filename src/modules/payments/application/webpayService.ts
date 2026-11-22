@@ -7,8 +7,8 @@ import {
     RefundPaymentParams,
     WebPayPayment,
     WebPayPaymentData,
-} from '@interface';
-import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '@utils';
+} from '../../../interface/index.js';
+import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '../../../utils/index.js';
 
 /**
  * @module WebpayService

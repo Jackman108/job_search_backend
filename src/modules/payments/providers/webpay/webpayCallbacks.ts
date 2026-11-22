@@ -1,8 +1,8 @@
 import { USE_MOCK_PROVIDER } from '@config';
 import { updatePaymentStatus, validateWebpaySignature } from '@integrations';
-import { PaymentStatus } from '@interface';
+import { PaymentStatus } from '../../../../interface/index.js';
 import { getWebpayPaymentByOrderNum, updateWebpayPaymentByOrderNum } from '../../index.js';
-import { logger } from '@utils';
+import { logger } from '../../../../utils/index.js';
 import {
     buildProviderEventId,
     claimWebhookEvent,

@@ -1,4 +1,4 @@
-import { executeQuery, generateUpdateQueryWithConditions } from '@utils';
+import { executeQuery, generateUpdateQueryWithConditions } from '../../../utils/index.js';
 import { getResumeByUserId } from '../infra/getResumeByUserId.js';
 
 export const getExperienceUser = async (userId: string): Promise<any[]> => {

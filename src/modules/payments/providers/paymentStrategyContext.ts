@@ -2,8 +2,14 @@
  * Контекст для реализации паттерна Стратегия платежей
  * Позволяет динамически переключаться между разными платежными системами
  */
-import { PaymentResult, PaymentStatus, PaymentStrategy, PaymentStrategyContext, RefundPaymentParams } from '@interface';
-import { logger } from '@utils';
+import {
+    PaymentResult,
+    PaymentStatus,
+    PaymentStrategy,
+    PaymentStrategyContext,
+    RefundPaymentParams,
+} from '../../../interface/index.js';
+import { logger } from '../../../utils/index.js';
 
 /**
  * Контекст стратегии платежей - объект, который выбирает и выполняет

@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { handleErrors } from '@middlewares';
-import { AuthenticatedRequest } from '@interface';
-import { resolveRouteParamId } from '@utils';
+import { AuthenticatedRequest } from '../../../interface/index.js';
+import { resolveRouteParamId } from '../../../utils/index.js';
 import {
     createVacancyAuth,
     deleteVacancyAuth,

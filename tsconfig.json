@@ -20,8 +20,6 @@
             "@server": ["src/server/index.ts"],
             "@routes": ["src/routes/index.ts"],
             "@middlewares": ["src/middlewares/index.ts"],
-            "@utils": ["src/utils/index.ts"],
-            "@interface": ["src/interface/index.ts"],
             "@integrations": ["src/modules/payments/providers/index.ts"],
             "@run": ["packages/hh-worker/src/run/index.ts"],
             "@market-hunter/contracts": ["packages/contracts/src/index.ts"],

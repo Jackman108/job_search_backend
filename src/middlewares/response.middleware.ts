@@ -1,4 +1,4 @@
-import { logger } from '@utils';
+import { logger } from '../utils/index.js';
 import { Response } from 'express';
 
 export const handleSuccess = (res: Response, message: string = 'Success', data?: any) => {

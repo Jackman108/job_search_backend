@@ -1,6 +1,6 @@
-import { ProfileData, UserProfileUpdateFields } from '@interface';
+import { ProfileData, UserProfileUpdateFields } from '../../../interface/index.js';
 import { broadcast } from '@server';
-import { executeQuery, generateUpdateQuery } from '@utils';
+import { executeQuery, generateUpdateQuery } from '../../../utils/index.js';
 import { countSuccessfulVacancies } from '../../vacancies/index.js';
 import { deriveUserRank } from '../domain/deriveUserRank.js';
 import { invalidateUserProfileCache, userProfileCache } from '../infra/profileCache.js';

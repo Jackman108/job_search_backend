@@ -2,7 +2,7 @@
  * Crypto / NOWPayments webhook signature validation.
  */
 import { nowPaymentsConfig, USE_MOCK_PROVIDER } from '@config';
-import { logger } from '@utils';
+import { logger } from '../../../../utils/index.js';
 import crypto from 'crypto';
 import { HashAlgorithm } from './hashAlgorithm.js';
 

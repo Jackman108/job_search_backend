@@ -6,8 +6,8 @@ import {
     updatePaymentStatuses,
     withErrorHandling,
 } from '@integrations';
-import { CryptoPaymentDetails, PaymentResult, PaymentStatus } from '@interface';
-import { executeQuery, logger } from '@utils';
+import { CryptoPaymentDetails, PaymentResult, PaymentStatus } from '../../../../interface/index.js';
+import { executeQuery, logger } from '../../../../utils/index.js';
 import { mockCryptoResponse } from '../../../../mock/mockCryptoResponse';
 
 /**

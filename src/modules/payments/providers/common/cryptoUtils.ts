@@ -2,8 +2,8 @@
  * Модуль для обновления статусов платежей
  * Содержит функции для синхронизации статусов между различными таблицами платежей
  */
-import { PaymentStatus } from '@interface';
-import { executeQuery, logger } from '@utils';
+import { PaymentStatus } from '../../../../interface/index.js';
+import { executeQuery, logger } from '../../../../utils/index.js';
 import { updatePaymentStatus } from '@integrations';
 
 /**

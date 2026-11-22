@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { handleErrors } from '@middlewares';
-import type { AuthenticatedRequest } from '@interface';
+import type { AuthenticatedRequest } from '../../../interface/index.js';
 import { deleteChatFeedback, deleteFeedbackTable, getChatFeedback } from '../application/feedbackService.js';
 
 export class FeedbackController {

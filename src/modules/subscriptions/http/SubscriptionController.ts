@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { handleErrors, handleSuccess } from '@middlewares';
-import { AuthenticatedRequest, SubscriptionRequestBody } from '@interface';
+import { AuthenticatedRequest, SubscriptionRequestBody } from '../../../interface/index.js';
 import {
     activateSubscription,
     createSubscription,

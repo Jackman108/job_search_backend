@@ -1,5 +1,5 @@
 // config/crypto.config.ts
-import { NowPaymentsConfig } from '@interface';
+import { NowPaymentsConfig } from '../interface/index.js';
 
 /**
  * Конфигурация для NOWPayments API

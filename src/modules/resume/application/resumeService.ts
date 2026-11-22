@@ -1,4 +1,4 @@
-import { executeQuery, generateUpdateQuery } from '@utils';
+import { executeQuery, generateUpdateQuery } from '../../../utils/index.js';
 
 export const createResumeUser = async (
     userId: string,

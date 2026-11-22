@@ -1,5 +1,5 @@
 import express, { RequestHandler, Response } from 'express';
-import { AuthenticatedRequest } from '@interface';
+import { AuthenticatedRequest } from '../interface/index.js';
 import { extractUserId, validateUserIdMiddleware } from '@middlewares';
 
 export function registerRoute(

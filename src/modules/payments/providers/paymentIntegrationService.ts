@@ -12,8 +12,8 @@ import {
     PaymentStatus,
     RefundPaymentParams,
     WebpayInitResult,
-} from '@interface';
-import { logger } from '@utils';
+} from '../../../interface/index.js';
+import { logger } from '../../../utils/index.js';
 import { createPaymentStrategyFactory } from './paymentStrategyFactory.js';
 
 // Создаем фабрику стратегий и контекст

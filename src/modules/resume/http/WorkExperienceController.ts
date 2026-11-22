@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { handleErrors } from '@middlewares';
-import { AuthenticatedRequest } from '@interface';
+import { AuthenticatedRequest } from '../../../interface/index.js';
 import {
     createExperienceUser,
     deleteExperienceUser,

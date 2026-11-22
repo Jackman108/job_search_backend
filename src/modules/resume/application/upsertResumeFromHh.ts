@@ -1,5 +1,5 @@
-import type { MappedHhResume } from '@interface';
-import { executeQuery } from '@utils';
+import type { MappedHhResume } from '../../../interface/index.js';
+import { executeQuery } from '../../../utils/index.js';
 import { getResumeByUserId } from '../infra/getResumeByUserId.js';
 import { invalidateResumeIdCache } from '../infra/resumeIdCache.js';
 import { createContactUser, getContactUser, updateContactUser } from './contactService.js';

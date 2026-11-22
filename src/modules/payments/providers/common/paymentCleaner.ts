@@ -2,8 +2,8 @@
  * Модуль для функций очистки платежей
  * Содержит общие функции для удаления незавершенных платежей разных типов
  */
-import { PaymentResult, PaymentStatus } from '@interface';
-import { executeQuery, logger } from '@utils';
+import { PaymentResult, PaymentStatus } from '../../../../interface/index.js';
+import { executeQuery, logger } from '../../../../utils/index.js';
 
 /**
  * Удаляет незавершенные криптоплатежи по payment_id

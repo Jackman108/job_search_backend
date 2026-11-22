@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { handleErrors } from '@middlewares';
-import { AuthenticatedRequest } from '@interface';
+import { AuthenticatedRequest } from '../../../interface/index.js';
 import { createSkillUser, deleteSkillUser, getSkillsUser, updateSkillUser } from '../application/skillService.js';
 
 export class SkillsController {
