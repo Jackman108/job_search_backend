@@ -84,7 +84,7 @@ export const createCryptoStrategy = (): PaymentStrategy => {
     /**
      * Обрабатывает возврат платежа
      */
-    const refundPayment = async (params: RefundPaymentParams): Promise<PaymentResult<any>> => {
+    const refundPayment = async (_params: RefundPaymentParams): Promise<PaymentResult<any>> => {
         // Возвраты для криптоплатежей не поддерживаются автоматически
         // Необходимо ручное вмешательство администратора
         return {
@@ -96,7 +96,7 @@ export const createCryptoStrategy = (): PaymentStrategy => {
     /**
      * Обрабатывает callback платежа
      */
-    const handlePaymentCallback = async (params: any): Promise<PaymentResult<string>> => {
+    const handlePaymentCallback = async (_params: unknown): Promise<PaymentResult<string>> => {
         return {
             success: true,
             data: '',

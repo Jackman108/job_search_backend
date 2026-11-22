@@ -1,4 +1,5 @@
 export * from './cors.middleware.js';
+export * from './securityHeaders.middleware.js';
 export * from './auth.middleware.js';
 export * from './error.middleware.js';
 export * from './requestLogger.middleware.js';

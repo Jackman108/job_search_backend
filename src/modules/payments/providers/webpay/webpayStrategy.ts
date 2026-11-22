@@ -69,20 +69,6 @@ export const createWebPayStrategy = (): WebPayStrategy => {
                 multiplyBy: 1,
             }) as number;
 
-            // Подготавливаем данные для подписи
-            const paymentData = {
-                order_num: orderNum,
-                amount: formattedAmount,
-                currency: params.currency,
-                payment_id: params.paymentId,
-            };
-
-            // Нормализуем данные для подписи
-            const normalizedData = normalizeDataForSignature(paymentData, {
-                sortKeys: true,
-                excludeEmpty: true,
-            });
-
             // Вызов сервиса инициализации WebPay
             const result = await initWebpayFiatPayment({
                 userId: params.userId,
@@ -153,7 +139,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @param transactionId ID транзакции
      * @returns URL для редиректа пользователя
      */
-    const handleWebpayReturn = async (orderNum: string, transactionId: string): Promise<PaymentResult<string>> => {
+    const handleWebpayReturn = async (orderNum: string, _transactionId: string): Promise<PaymentResult<string>> => {
         await updatePaymentStatus(orderNum, PaymentStatus.Completed);
 
         return {
@@ -202,7 +188,7 @@ export const createWebPayStrategy = (): WebPayStrategy => {
      * @param paymentId ID платежа
      * @returns Статус платежа
      */
-    const checkPaymentStatus = async (paymentId: string): Promise<PaymentResult<PaymentStatus>> => {
+    const checkPaymentStatus = async (_paymentId: string): Promise<PaymentResult<PaymentStatus>> => {
         // Здесь должна быть логика получения статуса платежа из БД или от WebPay
         // Для примера вернем успешный статус
         return {
@@ -212,27 +198,11 @@ export const createWebPayStrategy = (): WebPayStrategy => {
     };
 
     /**
-     * Очищает платеж
-     * @param paymentId ID платежа
-     * @returns Результат очистки
-     */
-    const cleanupPayment = async (paymentId: string): Promise<PaymentResult<boolean>> => {
-        logger.info('Cleaning up WebPay payment', { paymentId });
-        const result = await cleanupPendingCryptoPayment(paymentId);
-        return {
-            success: true,
-            data: result.data || false,
-        };
-    };
-
-    /**
      * Обрабатывает возврат средств
      * @param params Параметры возврата
      * @returns Результат операции возврата
      */
-    const refundPayment = async (params: any): Promise<PaymentResult<any>> => {
-        // Здесь будет логика возврата средств
-
+    const refundPayment = async (_params: unknown): Promise<PaymentResult<any>> => {
         return {
             success: true,
             data: { success: true },
