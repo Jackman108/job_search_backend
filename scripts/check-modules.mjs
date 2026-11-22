@@ -15,7 +15,7 @@ const ENFORCE = process.argv.includes('--enforce') || process.env.CHECK_MODULES_
 const ENFORCE_MODULES = new Set(
     (
         process.env.CHECK_MODULES_ENFORCE_LIST ||
-        'notifications,search-profile,hh-jobs,vacancies,feedback,resume,profile,subscriptions,payments'
+        'notifications,search-profile,hh-jobs,vacancies,feedback,resume,profile,subscriptions,payments,system'
     )
         .split(',')
         .map((s) => s.trim())
