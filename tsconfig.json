@@ -22,7 +22,6 @@
             "@middlewares": ["src/middlewares/index.ts"],
             "@utils": ["src/utils/index.ts"],
             "@interface": ["src/interface/index.ts"],
-            "@services": ["src/services/index.ts"],
             "@integrations": ["src/services/integrations/index.ts"],
             "@run": ["packages/hh-worker/src/run/index.ts"],
             "@market-hunter/contracts": ["packages/contracts/src/index.ts"],
@@ -31,7 +30,6 @@
             "@market-hunter/hh-worker/config": ["packages/hh-worker/src/config/index.ts"],
             "@market-hunter/hh-worker/lib": ["packages/hh-worker/src/lib/index.ts"],
             "@market-hunter/hh-worker/types": ["packages/hh-worker/src/types/index.ts"],
-            "@controllers": ["src/controllers/index.ts"],
             "@repositories/*": ["src/repositories/*"]
         }
     },

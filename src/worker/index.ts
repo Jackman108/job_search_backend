@@ -8,6 +8,6 @@ export * from './enqueue.js';
 export * from './spawnWorker.js';
 export * from './cancelJobs.js';
 
-/** Thin composition root: wire @services + poll-only JobBroadcast into hh-worker ports. */
+/** Thin composition root: wire domain modules + poll-only JobBroadcast into hh-worker ports. */
 export * from './createProcessJobDeps.js';
 export * from './noopJobBroadcast.js';

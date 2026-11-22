@@ -1,23 +1,14 @@
 import type { ProcessJobDeps } from '@market-hunter/hh-worker/job';
-import {
-    getChatFeedback,
-    getVacanciesUser,
-    getVacancyAuthByUserId,
-    incrementSpinCount,
-    saveChatFeedback,
-    saveVacancy,
-    updateSuccessfulResponsesCount,
-    upsertResumeFromHh,
-} from '@services';
+import { getChatFeedback, saveChatFeedback } from '../modules/feedback/index.js';
+import { incrementSpinCount, updateSuccessfulResponsesCount } from '../modules/profile/index.js';
+import { upsertResumeFromHh } from '../modules/resume/index.js';
+import { getVacancyAuthByUserId } from '../modules/search-profile/index.js';
+import { getVacanciesUser, saveVacancy } from '../modules/vacancies/index.js';
 import { noopJobBroadcast } from './noopJobBroadcast.js';
 
 /**
- * API composition root: wire `@services` counters/persistence + poll-only JobBroadcast
- * into hh-worker ports. Loaded by package CLI (`HH_WORKER_DEPS_FACTORY` override).
- * Scenarios must not import `@services` / `@server` directly.
- *
- * JobBroadcast logs locally (no cross-process WS). `processJob` wraps it with
- * `createJobStoreBroadcast` so CAPTCHA/errors persist on the job file for poll SoT.
+ * API composition root: wire module ports + poll-only JobBroadcast into hh-worker.
+ * Loaded by package CLI (`HH_WORKER_DEPS_FACTORY` override).
  */
 export function createProcessJobDeps(): ProcessJobDeps {
     return {
