@@ -1,4 +1,4 @@
-import { executeQuery } from '../../../utils/queryHelpers.js';
+import { executeQuery } from '../../../platform/db/index.js';
 
 export const getResumeByUserId = async (userId: string): Promise<string | null> => {
     const query = 'SELECT id FROM resumes WHERE user_id = $1 LIMIT 1;';

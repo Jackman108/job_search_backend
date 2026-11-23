@@ -1,4 +1,4 @@
-import { executeQuery } from '../../../utils/queryHelpers.js';
+import { executeQuery } from '../../../platform/db/index.js';
 
 const resumeIdCache = new Map<string, string | null>();
 
