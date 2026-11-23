@@ -17,8 +17,21 @@ async function gotoWithRetry(page: Page, vacancyUrl: string): Promise<void> {
     for (let i = 0; i < attempts.length; i++) {
         const opts = attempts[i];
         try {
-            await page.goto(vacancyUrl, opts);
-            return;
+            const nav = page.goto(vacancyUrl, opts);
+            // Prefer usable document over full lifecycle — race body/title.
+            const usable = page
+                .waitForFunction(() => Boolean(document.body && document.body.innerText.length > 40), {
+                    timeout: opts.timeout,
+                })
+                .catch(() => null);
+            await Promise.race([nav, usable]);
+            // If nav still pending, don't block forever — soft-continue when body exists.
+            await nav.catch((err) => {
+                lastErr = err;
+                stage('browser open soft-fail', String(err).slice(0, 100));
+            });
+            const bodyLen = await page.evaluate(() => document.body?.innerText?.length || 0).catch(() => 0);
+            if (bodyLen > 40) return;
         } catch (err) {
             lastErr = err;
             stage('browser open retry', `${i + 1}/${attempts.length}: ${String(err).slice(0, 120)}`);

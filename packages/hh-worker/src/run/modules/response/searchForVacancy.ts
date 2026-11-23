@@ -19,16 +19,42 @@ interface SearchForVacancyParams {
     vacancyUrl?: string;
 }
 
-/** Returns the live SERP URL after search results render. */
+async function countVacancyCards(page: Page): Promise<number> {
+    return page.$$eval(SELECTORS.VACANCY_CARD, (els) => els.length).catch(() => 0);
+}
+
+/**
+ * Prefer the stored SERP URL (filters/area already baked in). Re-typing the query
+ * drops Magritte filters and falls back to the HH account region (e.g. Жлобин → 0 hits).
+ */
 export async function searchForVacancy({ page, position, vacancyUrl }: SearchForVacancyParams): Promise<string> {
     await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT));
 
     try {
-        let input = await page.$(SEARCH_INPUT_SELECTORS).catch(() => null);
-        if (!input && vacancyUrl) {
-            stage('search goto', vacancyUrl.slice(0, 80));
-            await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG });
+        if (vacancyUrl) {
+            stage('search goto', vacancyUrl.slice(0, 100));
+            // Headless HH often paints SERP cards before navigation lifecycle settles.
+            const nav = page
+                .goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG })
+                .catch((err) => {
+                    stage('search goto soft-fail', String(err).slice(0, 80));
+                    return null;
+                });
+            const cardsEarly = page
+                .waitForSelector(SELECTORS.VACANCY_CARD, { timeout: TIMEOUTS.LONG })
+                .catch(() => null);
+            await Promise.race([nav, cardsEarly]);
             await new Promise((r) => setTimeout(r, TIMEOUTS.SHORT * 2));
+
+            const existing = await page
+                .waitForSelector(SELECTORS.VACANCY_CARD, { timeout: TIMEOUTS.MODAL })
+                .catch(() => null);
+            if (existing && (await countVacancyCards(page)) > 0) {
+                const serpUrl = page.url();
+                stage('search ready (url)', serpUrl.slice(0, 100));
+                return serpUrl;
+            }
+            stage('search url empty cards', 'fallback to type+enter');
         }
 
         const vacancyInputSelector = await page.waitForSelector(SEARCH_INPUT_SELECTORS, {

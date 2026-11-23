@@ -3,6 +3,7 @@ import { stop } from '@market-hunter/hh-worker/lib';
 import { Browser, Page } from 'puppeteer';
 import type { JobBroadcast } from '../../job/broadcast.types.js';
 import { clickByExactText } from './clickByExactText.js';
+import { clickDomSelector } from './clickDom.js';
 import { stage } from './stageLog.js';
 import { loginErrorTextMatches, loginTransientReloadMatches } from './loginErrorText.js';
 import { waitAndSubmitCaptchaAnswer } from './waitForCaptchaAnswer.js';
@@ -33,6 +34,8 @@ async function readBodyText(page: Page): Promise<string> {
 }
 
 async function clickLoginSubmit(page: Page): Promise<void> {
+    if (await clickDomSelector(page, SELECTORS.LOGIN_SUBMIT)) return;
+
     const byQa = await clickFirstSelector(page, [SELECTORS.LOGIN_SUBMIT], {
         timeout: TIMEOUTS.SEARCH,
         visible: true,

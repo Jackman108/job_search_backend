@@ -11,6 +11,7 @@ import { dismissApplyExtras } from './dismissApplyExtras.js';
 import { ensureSerpReady } from './ensureSerpReady.js';
 import { fillNativeValue } from './fillNativeValue.js';
 import { submitApplyResponse } from './submitApplyResponse.js';
+import { waitForApplySurface } from './waitForApplySurface.js';
 
 export type ProcessVacancyResult = 'success' | 'fail' | 'skip' | 'captcha';
 
@@ -99,6 +100,19 @@ export async function processVacancy({
             return 'fail';
         }
 
+        let surfaceReady = await waitForApplySurface(page);
+        if (!surfaceReady && data.url_vacancy) {
+            stage('apply surface retry', String(data.id));
+            const retry = await clickVacancyPageApply(page, data.url_vacancy);
+            if (retry.ok) surfaceReady = await waitForApplySurface(page);
+        }
+        if (!surfaceReady) {
+            await page.screenshot({ path: `screenshot-no-surface-${data.id}.png` }).catch(() => null);
+            await saveFail(data, userId, counters, vacancyRepo, 'apply_surface_missing');
+            await leaveApplySurface(page, serpUrl);
+            return 'fail';
+        }
+
         const relocationModal = await page
             .waitForSelector(SELECTORS.RELOCATION_MODAL_TITLE, { timeout: TIMEOUTS.MODAL })
             .catch(() => null);
@@ -111,9 +125,15 @@ export async function processVacancy({
         }
 
         await page.evaluate((selectors) => {
-            const hasPopup = document.querySelector(selectors.RESPONSE_SUBMIT);
+            const visible = (el: Element | null) => {
+                if (!el) return false;
+                const style = window.getComputedStyle(el);
+                if (style.display === 'none' || style.visibility === 'hidden') return false;
+                return el.getClientRects().length > 0;
+            };
+            const hasPopup = visible(document.querySelector(selectors.RESPONSE_SUBMIT));
             const top = document.querySelector(selectors.RESPONSE_LINK_TOP) as HTMLElement | null;
-            if (top && !hasPopup) top.click();
+            if (top && visible(top) && !hasPopup) top.click();
         }, SELECTORS);
         await settle();
 
@@ -136,8 +156,20 @@ export async function processVacancy({
         }
 
         stage('cover letter', String(data.id));
-        const coverToggle = await scrollToElementIfNotFound(page, SELECTORS.COVER_LETTER_TOGGLE);
-        if (coverToggle) {
+        let coverToggle = await scrollToElementIfNotFound(page, SELECTORS.COVER_LETTER_TOGGLE);
+        if (!coverToggle) {
+            // Magritte modal: «Добавить сопроводительное» without stable data-qa.
+            await page
+                .evaluate(() => {
+                    const nodes = Array.from(document.querySelectorAll('a, button, [role="button"], span'));
+                    const hit = nodes.find((el) =>
+                        /Добавить сопроводительн/i.test((el.textContent || '').replace(/\s+/g, ' ').trim()),
+                    ) as HTMLElement | undefined;
+                    hit?.click();
+                    return Boolean(hit);
+                })
+                .catch(() => false);
+        } else {
             await coverToggle.click().catch(() => undefined);
         }
 
@@ -177,21 +209,40 @@ export async function processVacancy({
         }
 
         if (outcome.captcha) {
-            broadcast.broadcast('CAPTCHA mid-apply — waiting for POST /jobs/:id/captcha');
-            await page.screenshot({ path: 'screenshot-CAPTCHA-apply.png' }).catch(() => null);
             const src = await readCaptchaSrc(page);
-            const solved = await waitAndSubmitCaptchaAnswer(jobId, page, src);
-            if (!solved) {
-                await saveFail(data, userId, counters, vacancyRepo, 'captcha');
-                await leaveApplySurface(page, serpUrl).catch(() => undefined);
-                return 'captcha';
-            }
-            await settle(TIMEOUTS.SHORT * 2);
-            outcome = await detectApplyOutcome(page);
-            if (outcome.captcha) {
-                await saveFail(data, userId, counters, vacancyRepo, 'captcha_still');
-                await leaveApplySurface(page, serpUrl).catch(() => undefined);
-                return 'captcha';
+            const hasVisibleCaptcha = await page
+                .evaluate((sels) => {
+                    const visible = (el: Element | null) => {
+                        if (!el) return false;
+                        const style = window.getComputedStyle(el);
+                        if (style.display === 'none' || style.visibility === 'hidden') return false;
+                        return el.getClientRects().length > 0;
+                    };
+                    const imgs = Array.from(document.querySelectorAll(sels.CAPTCHA_IMAGE));
+                    return imgs.some((img) => visible(img)) || visible(document.querySelector(sels.CAPTCHA_INPUT));
+                }, SELECTORS)
+                .catch(() => false);
+
+            // Hidden Magritte captcha markup on vacancy pages — do not block the queue.
+            if (!src && !hasVisibleCaptcha) {
+                stage('captcha', `false positive · ${data.id}`);
+                outcome = { ...outcome, captcha: false };
+            } else {
+                broadcast.broadcast('CAPTCHA mid-apply — waiting for POST /jobs/:id/captcha');
+                await page.screenshot({ path: 'screenshot-CAPTCHA-apply.png' }).catch(() => null);
+                const solved = await waitAndSubmitCaptchaAnswer(jobId, page, src);
+                if (!solved) {
+                    await saveFail(data, userId, counters, vacancyRepo, 'captcha');
+                    await leaveApplySurface(page, serpUrl).catch(() => undefined);
+                    return 'captcha';
+                }
+                await settle(TIMEOUTS.SHORT * 2);
+                outcome = await detectApplyOutcome(page);
+                if (outcome.captcha) {
+                    await saveFail(data, userId, counters, vacancyRepo, 'captcha_still');
+                    await leaveApplySurface(page, serpUrl).catch(() => undefined);
+                    return 'captcha';
+                }
             }
         }
 

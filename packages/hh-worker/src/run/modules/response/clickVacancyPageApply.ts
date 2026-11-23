@@ -27,7 +27,13 @@ async function settle(ms = TIMEOUTS.SHORT): Promise<void> {
 export async function clickVacancyPageApply(page: Page, vacancyUrl: string): Promise<ClickVacancyPageApplyResult> {
     if (!vacancyUrl || !/\/vacancy\//i.test(vacancyUrl)) return { ok: false };
 
-    await page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => undefined);
+    const nav = page.goto(vacancyUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.LONG }).catch(() => null);
+    const titled = page
+        .waitForFunction(() => /\/vacancy\//i.test(location.pathname) && (document.body?.innerText?.length || 0) > 80, {
+            timeout: TIMEOUTS.LONG,
+        })
+        .catch(() => null);
+    await Promise.race([nav, titled]);
     await settle(TIMEOUTS.SHORT * 2);
 
     await page
