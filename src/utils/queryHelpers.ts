@@ -1,5 +1,5 @@
 import { logError } from './index.js';
-import pool from 'src/config/database.config';
+import pool from '../config/database.config.js';
 
 export const executeQuery = async <T = any>(query: string, values: any[] = []): Promise<T[]> => {
     if (!pool) {
