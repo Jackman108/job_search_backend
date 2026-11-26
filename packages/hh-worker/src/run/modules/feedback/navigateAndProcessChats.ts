@@ -9,11 +9,12 @@ import { syncNegotiationsInvites } from './syncNegotiationsInvites.js';
 
 function statusRank(raw: string): number {
     const s = mapFeedbackStatus(raw);
-    // Отказ wins over Приглашение when merging conflicting sources.
+    // Terminal / advanced states win when merging API + DOM + negotiations.
     if (s === 'Отказ') return 0;
-    if (s === 'Приглашение') return 1;
-    if (s === 'Резюме просмотрено') return 2;
-    return 3;
+    if (s === 'Вакансия в архиве') return 1;
+    if (s === 'Приглашение') return 2;
+    if (s === 'Резюме просмотрено') return 3;
+    return 4;
 }
 
 function mergeMeta(into: Map<number, ChatListMeta>, rows: ChatListMeta[]): void {

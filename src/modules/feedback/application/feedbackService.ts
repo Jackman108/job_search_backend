@@ -75,6 +75,24 @@ export const getChatFeedback = async (userId: string): Promise<any[]> => {
         userId,
     ]);
 
+    // List-sync often writes vacancy_id=0 before chat open; link by title so Home
+    // vacancies table can show Приглашение/Отказ (same titles as feedback page).
+    // Title-only: company strings often differ (HH «ИП …» vs chatik short name).
+    await executeQuery(
+        `
+            UPDATE ${tableName} f
+            SET vacancy_id = v.id
+            FROM ${vacancyTable} v
+            WHERE f.user_id = $1
+              AND v.user_id = f.user_id
+              AND (f.vacancy_id IS NULL OR f.vacancy_id = 0)
+              AND NULLIF(TRIM(f.title_vacancy), '') IS NOT NULL
+              AND LOWER(TRIM(REPLACE(f.title_vacancy, CHR(160), ' ')))
+                = LOWER(TRIM(REPLACE(v.title_vacancy, CHR(160), ' ')))
+        `,
+        [userId],
+    );
+
     await executeQuery(
         `
             UPDATE ${tableName} f

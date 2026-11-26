@@ -11,7 +11,7 @@ import type {
     StopScriptResponse,
     SyncResumeBody,
 } from '../../../interface/index.js';
-import { stop } from '../../../utils/stopManager.js';
+import { stop, type StoppableBrowser } from '../../../utils/stopManager.js';
 import { upsertVacancyAuthCredentials } from '../../search-profile/index.js';
 import { resolveHhApplyCredentials } from '../application/resolveHhApplyCredentials.js';
 import {
@@ -69,7 +69,8 @@ export class HhJobController {
                   )
                 : undefined;
             const { cancelledJobIds, abortedJobIds } = stopUserJobs(req.userId!, kinds?.length ? { kinds } : undefined);
-            await stop(bodyIn.browser);
+            // contracts.StopScriptBody.browser is unknown (no puppeteer types in contracts).
+            await stop(bodyIn.browser as StoppableBrowser | null | undefined);
             const body: StopScriptResponse = {
                 message: 'Script stopped successfully!',
                 cancelledJobIds,

@@ -8,23 +8,53 @@ type ApiChatRow = {
     messages?: { last?: { body?: { text?: { content?: string } }; text?: string } };
 };
 
+type BrowserChatRow = {
+    chatId: number;
+    href: string;
+    title_vacancy: string;
+    title_company: string;
+    statusRaw: string;
+    previewText: string;
+};
+
 /**
  * Full chat list via Chatik JSON API (paginated). Complements DOM virtualization.
  * Status often missing here — caller merges with list DOM / negotiations page.
+ *
+ * Note: keep the page.evaluate callback free of named function/const bindings —
+ * tsx keepNames injects `__name(...)` which breaks in the browser context.
  */
 export async function fetchChatikChatsApi(page: Page, maxPages = 8): Promise<ChatListMeta[]> {
     const rows = await page
         .evaluate(async (pages) => {
-            const collected: Array<{
-                chatId: number;
-                href: string;
-                title_vacancy: string;
-                title_company: string;
-                statusRaw: string;
-                previewText: string;
-            }> = [];
+            const collected: BrowserChatRow[] = [];
 
-            const pushItems = (items: ApiChatRow[], resources: Record<string, unknown>) => {
+            for (let pageNum = 0; pageNum < pages; pageNum++) {
+                const urls = [
+                    `https://chatik.hh.ru/chatik/api/chats?page=${pageNum}&per_page=20`,
+                    `/chatik/api/chats?page=${pageNum}&per_page=20`,
+                ];
+                let data: Record<string, unknown> | null = null;
+                for (const url of urls) {
+                    try {
+                        const res = await fetch(url, {
+                            credentials: 'include',
+                            headers: { Accept: 'application/json' },
+                        });
+                        if (!res.ok) continue;
+                        data = (await res.json()) as Record<string, unknown>;
+                        break;
+                    } catch {
+                        /* try next url */
+                    }
+                }
+                if (!data) break;
+
+                const chatsBlock = (data.chats || data) as Record<string, unknown>;
+                const items = (chatsBlock.items || chatsBlock.chats || data.items || []) as ApiChatRow[];
+                const resources = (data.resources || {}) as Record<string, unknown>;
+                if (!Array.isArray(items) || items.length === 0) break;
+
                 const vacancies = (resources?.vacancies || {}) as Record<
                     string,
                     { name?: string; id?: number | string }
@@ -43,7 +73,6 @@ export async function fetchChatikChatsApi(page: Page, maxPages = 8): Promise<Cha
                     let company = item.display?.subtitle || '';
                     let statusRaw = '';
 
-                    // Prefer negotiation state from resources when present.
                     for (const neg of Object.values(negotiations)) {
                         const st = neg?.applicant_state || neg?.state;
                         if (st?.name) statusRaw = st.name;
@@ -76,34 +105,6 @@ export async function fetchChatikChatsApi(page: Page, maxPages = 8): Promise<Cha
                         previewText: String(preview).slice(0, 500),
                     });
                 }
-            };
-
-            for (let pageNum = 0; pageNum < pages; pageNum++) {
-                const urls = [
-                    `https://chatik.hh.ru/chatik/api/chats?page=${pageNum}&per_page=20`,
-                    `/chatik/api/chats?page=${pageNum}&per_page=20`,
-                ];
-                let data: Record<string, unknown> | null = null;
-                for (const url of urls) {
-                    try {
-                        const res = await fetch(url, {
-                            credentials: 'include',
-                            headers: { Accept: 'application/json' },
-                        });
-                        if (!res.ok) continue;
-                        data = (await res.json()) as Record<string, unknown>;
-                        break;
-                    } catch {
-                        /* try next url */
-                    }
-                }
-                if (!data) break;
-
-                const chatsBlock = (data.chats || data) as Record<string, unknown>;
-                const items = (chatsBlock.items || chatsBlock.chats || data.items || []) as ApiChatRow[];
-                const resources = (data.resources || {}) as Record<string, unknown>;
-                if (!Array.isArray(items) || items.length === 0) break;
-                pushItems(items, resources);
 
                 const hasNext =
                     chatsBlock.has_next_page === true ||
