@@ -131,10 +131,27 @@ export async function processJob(id: string, deps: ProcessJobDeps): Promise<void
             broadcast.broadcast(finished?.lastEvent || `HH job ${id} done (syncResume)`);
         }
     } catch (err) {
+        // /stop marks cancelled then kills the worker — never let the dying process
+        // overwrite that with status:error (refresh looked “resumed with error”).
         if (readJob(id)?.status === 'cancelled') {
             return;
         }
         const message = err instanceof Error ? err.message : String(err);
+        const abortLike =
+            /Target closed|Protocol error|Navigation failed because browser has disconnected|Browser\.close|SIGTERM|killed/i.test(
+                message,
+            );
+        if (abortLike) {
+            updateJob(id, {
+                status: 'cancelled',
+                finishedAt: new Date().toISOString(),
+                error: 'Cancelled by user via /stop',
+                lastEvent: 'Cancelled by user via /stop',
+                lastEventAt: new Date().toISOString(),
+                awaitingCaptcha: false,
+            });
+            return;
+        }
         updateJob(id, {
             status: 'error',
             finishedAt: new Date().toISOString(),

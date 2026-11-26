@@ -61,9 +61,11 @@ export {
 
 export function register(app: express.Application): void {
     validatePaymentsConfig();
-    registerPaymentRoutes(app);
-    registerInfoPaymentRoutes(app);
+    // Static paths BEFORE /payment/:id — otherwise Express treats "crypto"/"webpay" as ids
+    // and GET /payment/crypto → Payment not found for id crypto (500 spam on every layout poll).
     registerCryptoRoutes(app);
     registerWebpayRoutes(app);
+    registerPaymentRoutes(app);
+    registerInfoPaymentRoutes(app);
     registerIntegrationRoutes(app);
 }

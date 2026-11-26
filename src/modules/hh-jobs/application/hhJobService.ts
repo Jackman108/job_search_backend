@@ -25,8 +25,11 @@ export function enqueueResumeSync(payload: SyncResumeParams): { jobId: string } 
     return queueSyncResume(payload);
 }
 
-export function stopUserJobs(userId: string) {
-    return cancelJobsForUser(userId);
+export function stopUserJobs(
+    userId: string,
+    options?: { kinds?: ReadonlyArray<'sendFeedback' | 'getFeedback' | 'syncResume'> },
+) {
+    return cancelJobsForUser(userId, options);
 }
 
 export function listUserJobs(userId: string, limitRaw?: number): HhJobListItem[] {

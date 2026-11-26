@@ -7,6 +7,7 @@ import type {
     HhJobQueuedResponse,
     RefreshScriptBody,
     StartScriptBody,
+    StopScriptBody,
     StopScriptResponse,
     SyncResumeBody,
 } from '../../../interface/index.js';
@@ -60,8 +61,15 @@ export class HhJobController {
 
     async stopScript(req: AuthenticatedRequest, res: Response) {
         try {
-            const { cancelledJobIds, abortedJobIds } = stopUserJobs(req.userId!);
-            await stop(req.body?.browser);
+            const bodyIn = (req.body ?? {}) as Partial<StopScriptBody>;
+            const kinds = Array.isArray(bodyIn.kinds)
+                ? bodyIn.kinds.filter(
+                      (k): k is 'sendFeedback' | 'getFeedback' | 'syncResume' =>
+                          k === 'sendFeedback' || k === 'getFeedback' || k === 'syncResume',
+                  )
+                : undefined;
+            const { cancelledJobIds, abortedJobIds } = stopUserJobs(req.userId!, kinds?.length ? { kinds } : undefined);
+            await stop(bodyIn.browser);
             const body: StopScriptResponse = {
                 message: 'Script stopped successfully!',
                 cancelledJobIds,
