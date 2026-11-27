@@ -14,10 +14,7 @@ import { hhJobsConfig } from '../module.config.js';
 import { toPublicJobListItem, toPublicJobStatus } from '../domain/publicJob.js';
 
 /** One Chrome session per kind per user — supersede older queued/running same-kind jobs. */
-function supersedeSameKind(
-    userId: string,
-    kind: 'sendFeedback' | 'getFeedback' | 'syncResume',
-): void {
+function supersedeSameKind(userId: string, kind: 'sendFeedback' | 'getFeedback' | 'syncResume'): void {
     cancelJobsForUser(userId, { kinds: [kind] });
 }
 

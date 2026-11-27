@@ -28,6 +28,8 @@ export const generateUpdateQuery = (
     query: string;
     values: any[];
 } => {
+    assertSqlIdentifier(tableName);
+    assertSqlIdentifier(idFieldName);
     const { setClause, values } = generateSetClause(updates);
     if (setClause.length === 0) {
         throw new Error('No update fields provided');
@@ -43,12 +45,23 @@ export const generateUpdateQuery = (
     return { query, values };
 };
 
+/** Block SQLi via forged column names from req.body (S2). */
+const SQL_IDENT_RE = /^[a-z_][a-z0-9_]*$/i;
+
+export function assertSqlIdentifier(key: string): void {
+    if (!SQL_IDENT_RE.test(key)) {
+        throw new Error(`Invalid SQL identifier: ${key}`);
+    }
+}
+
 export const generateUpdateQueryWithConditions = (
     tableName: string,
     updates: Record<string, any>,
     conditions: Record<string, any>,
+    allowedColumns?: readonly string[],
 ): { query: string; values: any[] } => {
-    const { setClause, values } = generateSetClause(updates);
+    assertSqlIdentifier(tableName);
+    const { setClause, values } = generateSetClause(updates, allowedColumns);
     if (setClause.length === 0) {
         throw new Error('No update fields provided');
     }
@@ -68,18 +81,21 @@ export const generateUpdateQueryWithConditions = (
 
 export const generateSetClause = (
     updates: Record<string, any>,
+    allowedColumns?: readonly string[],
 ): {
     setClause: string[];
     values: any[];
 } => {
     const setClause: string[] = [];
     const values: any[] = [];
+    const allow = allowedColumns ? new Set(allowedColumns) : null;
 
-    Object.entries(updates).forEach(([key, value], index) => {
-        if (value !== undefined && key !== 'updated_at') {
-            setClause.push(`${key} = COALESCE($${index + 1}, ${key})`);
-            values.push(value);
-        }
+    Object.entries(updates).forEach(([key, value]) => {
+        if (value === undefined || key === 'updated_at') return;
+        assertSqlIdentifier(key);
+        if (allow && !allow.has(key)) return;
+        setClause.push(`${key} = COALESCE($${values.length + 1}, ${key})`);
+        values.push(value);
     });
 
     return { setClause, values };
@@ -89,6 +105,7 @@ const generateWhereClause = (conditions: Record<string, any>, values: any[]): st
     const whereClause: string[] = [];
 
     Object.entries(conditions).forEach(([key, value]) => {
+        assertSqlIdentifier(key);
         whereClause.push(`${key} = $${values.length + 1}`);
         values.push(value);
     });

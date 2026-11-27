@@ -9,7 +9,7 @@ export class CryptoPaymentController {
      * Получение списка криптоплатежей пользователя
      */
     async listCryptoPayments(req: AuthenticatedRequest, res: Response) {
-        const result = await cryptoService.listPayments();
+        const result = await cryptoService.listPayments({ userId: req.userId! });
 
         if (result.success) {
             res.status(200).json(result.data);
@@ -47,7 +47,8 @@ export class CryptoPaymentController {
             payment_id,
             network,
             crypto_address,
-        });
+            userId: req.userId!,
+        } as Parameters<typeof cryptoService.createPayment>[0]);
 
         if (result.success) {
             handleSuccess(res, 'Crypto payment created successfully', result.data);
@@ -60,7 +61,10 @@ export class CryptoPaymentController {
      * Обновление криптоплатежа
      */
     async updateCryptoPayment(req: AuthenticatedRequest, res: Response) {
-        const result = await cryptoService.updatePayment(req.params.paymentId, req.body);
+        const result = await cryptoService.updatePayment(req.params.paymentId, {
+            ...req.body,
+            userId: req.userId!,
+        });
         if (result.success) {
             handleSuccess(res, 'Crypto payment updated successfully', result.data);
         } else {
