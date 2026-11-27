@@ -17,7 +17,8 @@ export type ChatListMeta = {
  */
 export async function getChatListMeta(page: Page): Promise<ChatListMeta[]> {
     return page.$$eval(SELECTORS_CHAT.CHAT_CARD, (els) => {
-        const STATUS_RE = /(Отказ|Собеседование|Приглашение|Отклик на вакансию|Резюме просмотрено|Не рассмотрен)/i;
+        const STATUS_RE =
+            /(Отказ|Собеседование|Приглашение|Отклик на вакансию|Резюме просмотрено|Не рассмотрен|На рассмотрении|Вакансия в архиве|В архиве)/i;
         const TIME_RE = /^(\d{1,2}:\d{2}|сегодня|вчера|пн|вт|ср|чт|пт|сб|вс|\d{1,2}\s+\S+)$/i;
 
         return els

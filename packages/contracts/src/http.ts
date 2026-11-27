@@ -20,6 +20,11 @@ export interface RefreshScriptBody {
 
 export interface StopScriptBody {
     browser?: unknown;
+    /**
+     * Limit /stop to these job kinds. Omit = cancel all stoppable kinds for the user.
+     * Apply toggle should send `['sendFeedback']` so a running refresh is not killed.
+     */
+    kinds?: Array<'sendFeedback' | 'getFeedback' | 'syncResume'>;
 }
 
 export interface SyncResumeBody {

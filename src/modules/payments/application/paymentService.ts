@@ -1,6 +1,7 @@
 import { CreatePaymentParams, PaymentBase, PaymentStatus } from '../../../interface/index.js';
 import { getSubscriptionIdByUserId, withErrorHandling } from '@integrations';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '../../../utils/index.js';
+import { PAYMENT_ROW_PATCH_ALLOW, pickAllowedPatch } from '../domain/paymentPatchAllowlist.js';
 import { isPaymentsKeyedByUserId, resetPaymentsSchemaCache } from '../providers/common/paymentSchema.utils.js';
 
 /**
@@ -105,15 +106,17 @@ export const updatePayment = async (
     paymentId: string,
     updates: Partial<PaymentBase>,
 ): Promise<PaymentBase> => {
+    // Ownership gate before patch (S3/S5).
+    await getPayment(userId, paymentId);
+    const safe = pickAllowedPatch(updates as Record<string, unknown>, PAYMENT_ROW_PATCH_ALLOW);
     const scope = (await isPaymentsKeyedByUserId())
         ? { user_id: userId, id: paymentId }
         : { subscription_id: await getSubscriptionIdByUserId(userId), id: paymentId };
 
-    const { query, values } = generateUpdateQueryWithConditions(
-        'payments',
-        { ...updates, updated_at: new Date() },
-        scope,
-    );
+    if (Object.keys(safe).length === 0) {
+        throw new Error('No updatable payment fields provided');
+    }
+    const { query, values } = generateUpdateQueryWithConditions('payments', safe, scope, PAYMENT_ROW_PATCH_ALLOW);
     await executeQuery(query, values);
 
     const [updated] = await executeQuery<PaymentBase>(`SELECT * FROM payments WHERE id = $1;`, [paymentId]);
@@ -124,6 +127,9 @@ export const updatePayment = async (
  * Удаление платежа по id (scoped to user)
  */
 export const deletePayment = async (userId: string, paymentId: string): Promise<void> => {
+    // Verify parent ownership first — never delete orphan child rows by bare payment_id (S3).
+    await getPayment(userId, paymentId);
+
     await executeQuery(`DELETE FROM crypto_payments WHERE payment_id = $1;`, [paymentId]).catch(() => undefined);
     await executeQuery(`DELETE FROM webpay_payments WHERE payment_id = $1;`, [paymentId]).catch(() => undefined);
 

@@ -8,6 +8,9 @@ import {
     RefundPaymentParams,
 } from '../../../interface/index.js';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '../../../utils/index.js';
+import { CRYPTO_ROW_PATCH_ALLOW, pickAllowedPatch } from '../domain/paymentPatchAllowlist.js';
+import { getPayment } from './paymentService.js';
+import { isPaymentsKeyedByUserId } from '../providers/common/paymentSchema.utils.js';
 
 /**
  * Создание таблицы для криптоплатежей
@@ -41,16 +44,31 @@ export const createTableCryptoPayments = async (): Promise<void> => {
 };
 
 /**
- * Получение всех криптоплатежей пользователя
+ * Получение криптоплатежей пользователя (JOIN payments — S1).
  */
-export const listCryptoPayments = async (): Promise<CryptoPaymentDetails[]> => {
+export const listCryptoPayments = async (userId: string): Promise<CryptoPaymentDetails[]> => {
     try {
         await createTableCryptoPayments();
-        const query = `SELECT * FROM crypto_payments ORDER BY created_at DESC;`;
-        return await executeQuery<CryptoPaymentDetails>(query);
-    } catch {
-        // Table may be missing or FK types may not match auth Prisma `payments.id` (text).
-        return [];
+        if (await isPaymentsKeyedByUserId()) {
+            return await executeQuery<CryptoPaymentDetails>(
+                `SELECT c.* FROM crypto_payments c
+                 INNER JOIN payments p ON p.id = c.payment_id
+                 WHERE p.user_id = $1
+                 ORDER BY c.created_at DESC;`,
+                [userId],
+            );
+        }
+        return await executeQuery<CryptoPaymentDetails>(
+            `SELECT c.* FROM crypto_payments c
+             INNER JOIN payments p ON p.id = c.payment_id
+             INNER JOIN subscriptions s ON s.id = p.subscription_id
+             WHERE s.user_id = $1
+             ORDER BY c.created_at DESC;`,
+            [userId],
+        );
+    } catch (err) {
+        console.error('listCryptoPayments failed:', err);
+        throw err;
     }
 };
 
@@ -89,8 +107,16 @@ export const getCryptoPayment = async (userId: string, cryptoPaymentId: string):
 /**
  * Создание нового криптоплатежа
  * @param cryptoData Данные для создания криптоплатежа
+ * @param userId optional — when set, payment_id must belong to this user (S1)
  */
-export const createCryptoPayment = async (cryptoData: CryptoPaymentData): Promise<CryptoPaymentDetails> => {
+export const createCryptoPayment = async (
+    cryptoData: CryptoPaymentData,
+    userId?: string,
+): Promise<CryptoPaymentDetails> => {
+    if (userId) {
+        await getPayment(userId, cryptoData.payment_id);
+    }
+
     // Проверяем только если ID валидный
     let activeCryptoPayment = null;
 
@@ -141,38 +167,36 @@ export const getExistingCryptoPayment = async (paymentId: string): Promise<Crypt
 };
 
 /**
- * Обновление криптоплатежа
- * @param paymentId ID платежа
- * @param updates Поля для обновления
+ * Обновление криптоплатежа (user-scoped when userId set — S1/S2).
  */
 export const updateCryptoPayment = async (
     paymentId: string,
     updates: Partial<CryptoPaymentDetails>,
+    userId?: string,
 ): Promise<CryptoPaymentDetails> => {
-    // Проверяем существование платежа перед обновлением
-    const currentPayment = await getExistingCryptoPayment(paymentId);
+    const currentPayment = userId
+        ? await getCryptoPayment(userId, paymentId)
+        : await getExistingCryptoPayment(paymentId);
 
     if (!currentPayment) {
         throw new Error(`Crypto payment not found for id ${paymentId}`);
     }
 
-    // Добавляем payment_id из существующего платежа, если он не указан
-    const updatesWithPayment = {
-        ...updates,
-        payment_id: updates.payment_id || currentPayment.payment_id,
-    };
+    const safe = pickAllowedPatch(updates as Record<string, unknown>, CRYPTO_ROW_PATCH_ALLOW);
+    if (Object.keys(safe).length === 0) {
+        throw new Error('No updatable crypto fields provided');
+    }
 
-    // Выполняем обновление полей
     const { query, values } = generateUpdateQueryWithConditions(
         'crypto_payments',
-        { ...updatesWithPayment, updated_at: new Date() },
+        safe,
         { id: paymentId },
+        CRYPTO_ROW_PATCH_ALLOW,
     );
 
     await executeQuery(query, values);
 
-    // Получаем обновлённую запись
-    const result = await getExistingCryptoPayment(paymentId);
+    const result = userId ? await getCryptoPayment(userId, paymentId) : await getExistingCryptoPayment(paymentId);
     if (!result) {
         throw new Error(`Crypto payment not found for id ${paymentId} after update`);
     }
@@ -194,38 +218,37 @@ export const deleteCryptoPayment = async (userId: string, cryptoPaymentId: strin
  * Содержит только LCRUD операции для работы с криптоплатежами
  */
 export const cryptoService: ICryptoPaymentService = {
-    // Create - Создание криптоплатежа
     createPayment: async (params: CreateCryptoPaymentParams) => {
         return withErrorHandling(async () => {
-            // Создаем запись в БД для криптоплатежа
-            const cryptoPayment = await createCryptoPayment({
-                payment_id: params.payment_id,
-                amount: params.amount,
-                currency: params.currency,
-                network: params.network,
-                crypto_address: params.crypto_address,
-                transaction_hash: params.transaction_hash,
-            });
-
-            return cryptoPayment;
+            const userId = (params as CreateCryptoPaymentParams & { userId?: string }).userId;
+            return await createCryptoPayment(
+                {
+                    payment_id: params.payment_id,
+                    amount: params.amount,
+                    currency: params.currency,
+                    network: params.network,
+                    crypto_address: params.crypto_address,
+                    transaction_hash: params.transaction_hash,
+                },
+                userId,
+            );
         });
     },
 
-    // Read - Получение криптоплатежа
     getPayment: async (userId: string, paymentId: string) => {
         return withErrorHandling(async () => {
             return await getCryptoPayment(userId, paymentId);
         });
     },
 
-    // Update - Обновление статуса криптоплатежа
     updatePayment: async (paymentId: string, params: Partial<CryptoPaymentDetails>) => {
         return withErrorHandling(async () => {
-            return await updateCryptoPayment(paymentId, params);
+            const userId = (params as Partial<CryptoPaymentDetails> & { userId?: string }).userId;
+            const { userId: _drop, ...rest } = params as Partial<CryptoPaymentDetails> & { userId?: string };
+            return await updateCryptoPayment(paymentId, rest, userId);
         });
     },
 
-    // Delete - Удаление криптоплатежа
     deletePayment: async (userId: string, paymentId: string) => {
         return withErrorHandling(async () => {
             await deleteCryptoPayment(userId, paymentId);
@@ -233,24 +256,27 @@ export const cryptoService: ICryptoPaymentService = {
         });
     },
 
-    // List - Список всех криптоплатежей
-    listPayments: async () => {
+    listPayments: async (filters?: Record<string, any>) => {
         return withErrorHandling(async () => {
-            return await listCryptoPayments();
+            const userId = filters?.userId;
+            if (!userId || typeof userId !== 'string') {
+                throw new Error('userId is required to list crypto payments');
+            }
+            return await listCryptoPayments(userId);
         });
     },
 
-    // Refund - Возврат криптоплатежа
     refundPayment: async (params: RefundPaymentParams) => {
         return withErrorHandling(async () => {
-            // Обновляем статус платежа на "refunded"
-            const payment = await updateCryptoPayment(params.paymentId, {
-                payment_status: PaymentStatus.Refunded,
-            });
-
-            // Здесь может быть дополнительная логика для фактического возврата средств
-            // через API криптопровайдера
-
+            // Status transitions stay on webhook/status helpers — not client PATCH allowlist.
+            const existing = await getExistingCryptoPayment(params.paymentId);
+            if (!existing) throw new Error(`Crypto payment not found for id ${params.paymentId}`);
+            await executeQuery(`UPDATE crypto_payments SET payment_status = $1 WHERE id = $2`, [
+                PaymentStatus.Refunded,
+                params.paymentId,
+            ]);
+            const payment = await getExistingCryptoPayment(params.paymentId);
+            if (!payment) throw new Error(`Crypto payment not found after refund ${params.paymentId}`);
             return payment;
         });
     },

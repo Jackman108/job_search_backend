@@ -54,6 +54,12 @@
  *       properties:
  *         browser:
  *           description: Optional legacy browser hint (ignored)
+ *         kinds:
+ *           type: array
+ *           description: Optional job-kind filter (e.g. sendFeedback only — keep refresh running)
+ *           items:
+ *             type: string
+ *             enum: [sendFeedback, getFeedback, syncResume]
  *
  *     HhJobQueuedResponse:
  *       type: object

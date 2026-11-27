@@ -7,10 +7,11 @@ import type {
     HhJobQueuedResponse,
     RefreshScriptBody,
     StartScriptBody,
+    StopScriptBody,
     StopScriptResponse,
     SyncResumeBody,
 } from '../../../interface/index.js';
-import { stop } from '../../../utils/stopManager.js';
+import { stop, type StoppableBrowser } from '../../../utils/stopManager.js';
 import { upsertVacancyAuthCredentials } from '../../search-profile/index.js';
 import { resolveHhApplyCredentials } from '../application/resolveHhApplyCredentials.js';
 import {
@@ -60,8 +61,16 @@ export class HhJobController {
 
     async stopScript(req: AuthenticatedRequest, res: Response) {
         try {
-            const { cancelledJobIds, abortedJobIds } = stopUserJobs(req.userId!);
-            await stop(req.body?.browser);
+            const bodyIn = (req.body ?? {}) as Partial<StopScriptBody>;
+            const kinds = Array.isArray(bodyIn.kinds)
+                ? bodyIn.kinds.filter(
+                      (k): k is 'sendFeedback' | 'getFeedback' | 'syncResume' =>
+                          k === 'sendFeedback' || k === 'getFeedback' || k === 'syncResume',
+                  )
+                : undefined;
+            const { cancelledJobIds, abortedJobIds } = stopUserJobs(req.userId!, kinds?.length ? { kinds } : undefined);
+            // contracts.StopScriptBody.browser is unknown (no puppeteer types in contracts).
+            await stop(bodyIn.browser as StoppableBrowser | null | undefined);
             const body: StopScriptResponse = {
                 message: 'Script stopped successfully!',
                 cancelledJobIds,

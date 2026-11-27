@@ -9,6 +9,11 @@ import {
     WebPayPaymentData,
 } from '../../../interface/index.js';
 import { checkTableExists, executeQuery, generateUpdateQueryWithConditions } from '../../../utils/index.js';
+import {
+    WEBPAY_INTERNAL_PATCH_ALLOW,
+    WEBPAY_ROW_PATCH_ALLOW,
+    pickAllowedPatch,
+} from '../domain/paymentPatchAllowlist.js';
 
 /**
  * @module WebpayService
@@ -157,19 +162,20 @@ export const updateWebpayPayment = async (
     paymentId: string,
     updates: Partial<WebPayPayment>,
 ): Promise<WebPayPayment> => {
-    if (!updates.payment_id) {
-        throw new Error('Payment ID is required for updating webpay payment');
+    const safe = pickAllowedPatch(updates as Record<string, unknown>, WEBPAY_ROW_PATCH_ALLOW);
+    if (Object.keys(safe).length === 0) {
+        throw new Error('No updatable webpay fields provided');
     }
 
     const { query, values } = generateUpdateQueryWithConditions(
         'webpay_payments',
-        { ...updates, updated_at: new Date() },
+        safe,
         { id: paymentId },
+        WEBPAY_ROW_PATCH_ALLOW,
     );
 
     await executeQuery(query, values);
 
-    // Получаем обновлённую запись
     const selectQuery = `SELECT * FROM webpay_payments WHERE id = $1;`;
     const result = await executeQuery<WebPayPayment>(selectQuery, [paymentId]);
     if (!result[0]) throw new Error(`webpay payment not found for id ${paymentId}`);
@@ -177,23 +183,26 @@ export const updateWebpayPayment = async (
 };
 
 /**
- * Обновление WebPay платежа по номеру заказа
- * @param orderNum Номер заказа WebPay
- * @param updates Поля для обновления
+ * Обновление WebPay платежа по номеру заказа (webhook/internal — may set payment_status).
  */
 export const updateWebpayPaymentByOrderNum = async (
     orderNum: string,
     updates: Partial<WebPayPayment>,
 ): Promise<WebPayPayment | null> => {
+    const safe = pickAllowedPatch(updates as Record<string, unknown>, WEBPAY_INTERNAL_PATCH_ALLOW);
+    if (Object.keys(safe).length === 0) {
+        throw new Error('No updatable webpay fields provided');
+    }
+
     const { query, values } = generateUpdateQueryWithConditions(
         'webpay_payments',
-        { ...updates, updated_at: new Date() },
+        safe,
         { wsb_order_num: orderNum },
+        WEBPAY_INTERNAL_PATCH_ALLOW,
     );
 
     await executeQuery(query, values);
 
-    // Получаем обновлённые данные
     return await getWebpayPaymentByOrderNum(orderNum);
 };
 
@@ -269,11 +278,15 @@ export const webpayService: IWebPayService = {
 
     refundPayment: async (params: RefundPaymentParams): Promise<PaymentResult<WebPayPayment>> => {
         return withErrorHandling(async () => {
-            // Обновляем статус платежа на "refunded"
-            const payment = await updateWebpayPayment(params.paymentId, {
-                payment_status: PaymentStatus.Refunded,
-            });
-            return payment;
+            await executeQuery(`UPDATE webpay_payments SET payment_status = $1 WHERE id = $2`, [
+                PaymentStatus.Refunded,
+                params.paymentId,
+            ]);
+            const rows = await executeQuery<WebPayPayment>(`SELECT * FROM webpay_payments WHERE id = $1`, [
+                params.paymentId,
+            ]);
+            if (!rows[0]) throw new Error(`WebPay payment not found for id ${params.paymentId}`);
+            return rows[0];
         });
     },
 };

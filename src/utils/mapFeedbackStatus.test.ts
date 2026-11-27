@@ -22,7 +22,10 @@ describe('mapFeedbackStatus', () => {
 
     it('maps list labels', () => {
         assert.equal(mapFeedbackStatus('Отклик на вакансию'), 'Не рассмотрен');
+        assert.equal(mapFeedbackStatus('На рассмотрении'), 'Не рассмотрен');
         assert.equal(mapFeedbackStatus('Собеседование'), 'Приглашение');
+        assert.equal(mapFeedbackStatus('Вакансия в архиве'), 'Вакансия в архиве');
+        assert.equal(mapFeedbackStatus('В архиве'), 'Вакансия в архиве');
     });
 
     it('defaults unknown', () => {
@@ -39,5 +42,10 @@ describe('pickBestFeedbackStatus', () => {
 
     it('prefers invite over viewed', () => {
         assert.equal(pickBestFeedbackStatus(['Резюме просмотрено', 'Вас пригласили']), 'Приглашение');
+    });
+
+    it('prefers archive over invite but reject over archive', () => {
+        assert.equal(pickBestFeedbackStatus(['Собеседование', 'Вакансия в архиве']), 'Вакансия в архиве');
+        assert.equal(pickBestFeedbackStatus(['Вакансия в архиве', 'Отказ']), 'Отказ');
     });
 });
